@@ -1,0 +1,52 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { hospitalityService } from "@/services/hospitality.service";
+import type { TableFilters, Hospitality } from "@/types";
+type FilterOptions = TableFilters;
+type HospitalityBooking = Hospitality;
+
+export const hospitalityKeys = {
+  all: ["hospitality"] as const,
+  list: (filters: FilterOptions) => ["hospitality", "list", filters] as const,
+  vip: ["hospitality", "vip"] as const,
+};
+
+export function useHospitalityBookings(filters: FilterOptions = {}) {
+  return useQuery({
+    queryKey: hospitalityKeys.list(filters),
+    queryFn: () => hospitalityService.getBookings(filters),
+  });
+}
+
+export function useVipGuests() {
+  return useQuery({
+    queryKey: hospitalityKeys.vip,
+    queryFn: hospitalityService.getVipGuests,
+  });
+}
+
+export function useCreateBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Partial<HospitalityBooking>) =>
+      hospitalityService.createBooking(input),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: hospitalityKeys.all });
+      toast.success("Booking created");
+    },
+    onError: () => toast.error("Failed to create booking"),
+  });
+}
+
+export function useUpdateBookingStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: HospitalityBooking["status"] }) =>
+      hospitalityService.updateBookingStatus(id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: hospitalityKeys.all });
+      toast.success("Booking updated");
+    },
+    onError: () => toast.error("Update failed"),
+  });
+}
