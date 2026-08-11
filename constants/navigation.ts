@@ -3,7 +3,6 @@ import {
   Hotel,
   Users,
   CheckCircle2,
-  ClipboardList,
   MapPin,
   Calendar,
   CalendarDays,
@@ -42,7 +41,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Customers",      href: "/guests",         icon: Users },
       { label: "Calendar",       href: "/calendar",       icon: CalendarDays },
       { label: "Check-ins",      href: "/check-ins",      icon: CheckCircle2 },
-      { label: "Registrations",  href: "/registrations",  icon: ClipboardList },
     ],
   },
   {

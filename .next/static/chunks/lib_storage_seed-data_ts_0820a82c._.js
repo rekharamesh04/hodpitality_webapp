@@ -1,0 +1,801 @@
+(globalThis.TURBOPACK || (globalThis.TURBOPACK = [])).push([typeof document === "object" ? document.currentScript : undefined,
+"[project]/lib/storage/seed-data.ts [app-client] (ecmascript)", ((__turbopack_context__) => {
+"use strict";
+
+/**
+ * Seed Data for Demo/Development
+ * 
+ * This provides initial data that demonstrates the full system capabilities.
+ * Only loaded when the database is empty.
+ */ __turbopack_context__.s([
+    "seedAppointments",
+    ()=>seedAppointments,
+    "seedCompanies",
+    ()=>seedCompanies,
+    "seedCustomers",
+    ()=>seedCustomers,
+    "seedData",
+    ()=>seedData,
+    "seedLocations",
+    ()=>seedLocations,
+    "seedRooms",
+    ()=>seedRooms,
+    "seedServices",
+    ()=>seedServices,
+    "seedStaff",
+    ()=>seedStaff,
+    "seedUsers",
+    ()=>seedUsers
+]);
+const seedCompanies = [
+    {
+        id: 'company-1',
+        name: 'Wellness Group Inc',
+        plan: 'enterprise',
+        description: 'Premium wellness and spa services across multiple locations',
+        email: 'info@wellnessgroup.com',
+        phone: '+1 (555) 100-0001',
+        website: 'https://wellnessgroup.com',
+        status: 'active',
+        locationIds: [
+            'location-1',
+            'location-2'
+        ],
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'company-2',
+        name: 'Beauty Studio Co',
+        plan: 'professional',
+        description: 'Modern beauty and styling services',
+        email: 'contact@beautystudio.com',
+        phone: '+1 (555) 200-0002',
+        status: 'active',
+        locationIds: [
+            'location-3'
+        ],
+        createdAt: '2023-06-20T10:00:00Z',
+        updatedAt: '2024-01-10T10:00:00Z'
+    },
+    {
+        id: 'company-3',
+        name: 'Fitness & Health',
+        plan: 'starter',
+        description: 'Personal training and health coaching',
+        email: 'hello@fitnesshealth.com',
+        phone: '+1 (555) 300-0003',
+        status: 'active',
+        locationIds: [
+            'location-4'
+        ],
+        createdAt: '2023-09-01T10:00:00Z',
+        updatedAt: '2024-01-05T10:00:00Z'
+    }
+];
+const seedLocations = [
+    {
+        id: 'location-1',
+        companyId: 'company-1',
+        name: 'Downtown Wellness Center',
+        address: '123 Main Street',
+        city: 'New York',
+        state: 'NY',
+        zipCode: '10001',
+        country: 'USA',
+        phone: '+1 (555) 100-1001',
+        email: 'downtown@wellnessgroup.com',
+        manager: 'Sarah Johnson',
+        status: 'active',
+        customerCount: 245,
+        staffCount: 12,
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'location-2',
+        companyId: 'company-1',
+        name: 'Uptown Spa & Wellness',
+        address: '456 Park Avenue',
+        city: 'New York',
+        state: 'NY',
+        zipCode: '10021',
+        country: 'USA',
+        phone: '+1 (555) 100-1002',
+        email: 'uptown@wellnessgroup.com',
+        manager: 'Michael Chen',
+        status: 'active',
+        customerCount: 189,
+        staffCount: 10,
+        createdAt: '2023-03-10T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'location-3',
+        companyId: 'company-2',
+        name: 'Beauty Studio Manhattan',
+        address: '789 Broadway',
+        city: 'New York',
+        state: 'NY',
+        zipCode: '10003',
+        country: 'USA',
+        phone: '+1 (555) 200-2001',
+        email: 'manhattan@beautystudio.com',
+        manager: 'Emily Rodriguez',
+        status: 'active',
+        customerCount: 167,
+        staffCount: 8,
+        createdAt: '2023-06-20T10:00:00Z',
+        updatedAt: '2024-01-10T10:00:00Z'
+    },
+    {
+        id: 'location-4',
+        companyId: 'company-3',
+        name: 'FitLife Training Center',
+        address: '321 Fitness Drive',
+        city: 'Brooklyn',
+        state: 'NY',
+        zipCode: '11201',
+        country: 'USA',
+        phone: '+1 (555) 300-3001',
+        email: 'brooklyn@fitnesshealth.com',
+        manager: 'David Smith',
+        status: 'active',
+        customerCount: 98,
+        staffCount: 5,
+        createdAt: '2023-09-01T10:00:00Z',
+        updatedAt: '2024-01-05T10:00:00Z'
+    }
+];
+const seedCustomers = [
+    {
+        id: 'customer-1',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Jennifer Williams',
+        email: 'jennifer.williams@email.com',
+        phone: '+1 (555) 401-0001',
+        dateOfBirth: '1985-03-15',
+        gender: 'female',
+        address: '100 Residential Ave',
+        city: 'New York',
+        state: 'NY',
+        zipCode: '10001',
+        membershipTier: 'platinum',
+        memberSince: '2023-02-01T00:00:00Z',
+        preferredTime: 'morning',
+        communicationChannel: 'email',
+        visits: 47,
+        lastVisit: '2024-01-10T09:00:00Z',
+        balance: 250,
+        flags: [
+            'vip',
+            'preferred-customer'
+        ],
+        notes: 'Prefers morning appointments. Regular customer for massage therapy.',
+        summary: 'Platinum member since Feb 2023. Excellent attendance record.',
+        status: 'active',
+        createdAt: '2023-02-01T10:00:00Z',
+        updatedAt: '2024-01-10T10:00:00Z'
+    },
+    {
+        id: 'customer-2',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Robert Johnson',
+        email: 'robert.j@email.com',
+        phone: '+1 (555) 401-0002',
+        dateOfBirth: '1978-07-22',
+        gender: 'male',
+        address: '200 Main Street',
+        city: 'New York',
+        state: 'NY',
+        zipCode: '10001',
+        membershipTier: 'gold',
+        memberSince: '2023-04-15T00:00:00Z',
+        preferredTime: 'afternoon',
+        communicationChannel: 'phone',
+        visits: 28,
+        lastVisit: '2024-01-08T14:30:00Z',
+        balance: 0,
+        flags: [
+            'regular'
+        ],
+        notes: 'Prefers male therapists. Usually books for weekends.',
+        status: 'active',
+        createdAt: '2023-04-15T10:00:00Z',
+        updatedAt: '2024-01-08T10:00:00Z'
+    },
+    {
+        id: 'customer-3',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Maria Garcia',
+        email: 'maria.garcia@email.com',
+        phone: '+1 (555) 401-0003',
+        dateOfBirth: '1990-11-30',
+        gender: 'female',
+        membershipTier: 'silver',
+        memberSince: '2023-08-20T00:00:00Z',
+        preferredTime: 'evening',
+        communicationChannel: 'sms',
+        visits: 15,
+        lastVisit: '2024-01-12T18:00:00Z',
+        status: 'active',
+        createdAt: '2023-08-20T10:00:00Z',
+        updatedAt: '2024-01-12T10:00:00Z'
+    },
+    {
+        id: 'customer-4',
+        locationId: 'location-2',
+        companyId: 'company-1',
+        name: 'James Anderson',
+        email: 'james.anderson@email.com',
+        phone: '+1 (555) 402-0001',
+        dateOfBirth: '1982-05-10',
+        gender: 'male',
+        membershipTier: 'gold',
+        memberSince: '2023-05-10T00:00:00Z',
+        preferredTime: 'morning',
+        communicationChannel: 'email',
+        visits: 32,
+        lastVisit: '2024-01-11T10:00:00Z',
+        status: 'active',
+        createdAt: '2023-05-10T10:00:00Z',
+        updatedAt: '2024-01-11T10:00:00Z'
+    },
+    {
+        id: 'customer-5',
+        locationId: 'location-3',
+        companyId: 'company-2',
+        name: 'Lisa Thompson',
+        email: 'lisa.t@email.com',
+        phone: '+1 (555) 403-0001',
+        dateOfBirth: '1995-09-18',
+        gender: 'female',
+        membershipTier: 'vip',
+        memberSince: '2023-07-01T00:00:00Z',
+        preferredTime: 'afternoon',
+        communicationChannel: 'app',
+        visits: 22,
+        lastVisit: '2024-01-13T15:00:00Z',
+        flags: [
+            'vip',
+            'influencer'
+        ],
+        notes: 'Social media influencer. Prefers latest treatments.',
+        status: 'active',
+        createdAt: '2023-07-01T10:00:00Z',
+        updatedAt: '2024-01-13T10:00:00Z'
+    }
+];
+const seedStaff = [
+    {
+        id: 'staff-1',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Dr. Amanda Foster',
+        email: 'amanda.foster@wellnessgroup.com',
+        phone: '+1 (555) 501-0001',
+        role: 'Senior Therapist',
+        roomAssignments: [
+            'room-1',
+            'room-2'
+        ],
+        specializations: [
+            'deep-tissue',
+            'sports-massage',
+            'aromatherapy'
+        ],
+        status: 'active',
+        joinedDate: '2023-01-20T00:00:00Z',
+        createdAt: '2023-01-20T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'staff-2',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Michael Zhang',
+        email: 'michael.zhang@wellnessgroup.com',
+        phone: '+1 (555) 501-0002',
+        role: 'Massage Therapist',
+        roomAssignments: [
+            'room-3'
+        ],
+        specializations: [
+            'swedish-massage',
+            'hot-stone',
+            'reflexology'
+        ],
+        status: 'active',
+        joinedDate: '2023-02-15T00:00:00Z',
+        createdAt: '2023-02-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'staff-3',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Sarah Martinez',
+        email: 'sarah.martinez@wellnessgroup.com',
+        phone: '+1 (555) 501-0003',
+        role: 'Wellness Consultant',
+        roomAssignments: [
+            'room-4'
+        ],
+        specializations: [
+            'consultation',
+            'nutrition',
+            'lifestyle-coaching'
+        ],
+        status: 'active',
+        joinedDate: '2023-03-01T00:00:00Z',
+        createdAt: '2023-03-01T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'staff-4',
+        locationId: 'location-2',
+        companyId: 'company-1',
+        name: 'Emily Wilson',
+        email: 'emily.wilson@wellnessgroup.com',
+        phone: '+1 (555) 502-0001',
+        role: 'Spa Therapist',
+        roomAssignments: [
+            'room-5'
+        ],
+        specializations: [
+            'facial',
+            'body-treatments',
+            'aromatherapy'
+        ],
+        status: 'active',
+        joinedDate: '2023-03-15T00:00:00Z',
+        createdAt: '2023-03-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'staff-5',
+        locationId: 'location-3',
+        companyId: 'company-2',
+        name: 'Jessica Lee',
+        email: 'jessica.lee@beautystudio.com',
+        phone: '+1 (555) 503-0001',
+        role: 'Hair Stylist',
+        roomAssignments: [
+            'room-7'
+        ],
+        specializations: [
+            'cutting',
+            'coloring',
+            'styling'
+        ],
+        status: 'active',
+        joinedDate: '2023-06-25T00:00:00Z',
+        createdAt: '2023-06-25T10:00:00Z',
+        updatedAt: '2024-01-10T10:00:00Z'
+    }
+];
+const seedRooms = [
+    {
+        id: 'room-1',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Therapy Room 1',
+        type: 'treatment-room',
+        capacity: 1,
+        floor: '2nd Floor',
+        description: 'Private therapy room with massage table and aromatherapy',
+        amenities: [
+            'massage-table',
+            'aromatherapy',
+            'sound-system',
+            'dimming-lights'
+        ],
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'room-2',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Therapy Room 2',
+        type: 'treatment-room',
+        capacity: 1,
+        floor: '2nd Floor',
+        description: 'Premium therapy room with hot stone equipment',
+        amenities: [
+            'massage-table',
+            'hot-stone-warmer',
+            'towel-warmer',
+            'sound-system'
+        ],
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'room-3',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Massage Studio',
+        type: 'treatment-room',
+        capacity: 1,
+        floor: '2nd Floor',
+        description: 'Spacious room for various massage techniques',
+        amenities: [
+            'massage-table',
+            'storage',
+            'sink'
+        ],
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'room-4',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Consultation Room',
+        type: 'consultation-room',
+        capacity: 2,
+        floor: '1st Floor',
+        description: 'Private room for wellness consultations',
+        amenities: [
+            'desk',
+            'chairs',
+            'computer',
+            'whiteboard'
+        ],
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'room-5',
+        locationId: 'location-2',
+        companyId: 'company-1',
+        name: 'Spa Suite',
+        type: 'private-room',
+        capacity: 1,
+        floor: '3rd Floor',
+        description: 'Luxury spa suite with full amenities',
+        amenities: [
+            'massage-table',
+            'jacuzzi',
+            'sauna',
+            'shower',
+            'relaxation-area'
+        ],
+        status: 'active',
+        createdAt: '2023-03-10T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'room-6',
+        locationId: 'location-2',
+        companyId: 'company-1',
+        name: 'Treatment Room A',
+        type: 'treatment-room',
+        capacity: 1,
+        floor: '2nd Floor',
+        description: 'Standard treatment room',
+        amenities: [
+            'massage-table',
+            'storage'
+        ],
+        status: 'active',
+        createdAt: '2023-03-10T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'room-7',
+        locationId: 'location-3',
+        companyId: 'company-2',
+        name: 'Styling Station 1',
+        type: 'treatment-room',
+        capacity: 1,
+        floor: '1st Floor',
+        description: 'Professional styling station',
+        amenities: [
+            'styling-chair',
+            'mirror',
+            'sink',
+            'hair-dryer'
+        ],
+        status: 'active',
+        createdAt: '2023-06-20T10:00:00Z',
+        updatedAt: '2024-01-10T10:00:00Z'
+    }
+];
+const seedServices = [
+    {
+        id: 'service-1',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Deep Tissue Massage',
+        description: '60-minute therapeutic deep tissue massage',
+        duration: 60,
+        roomId: 'room-1',
+        price: 120,
+        category: 'massage',
+        requirements: [
+            'licensed-therapist'
+        ],
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'service-2',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Swedish Massage',
+        description: '60-minute relaxing Swedish massage',
+        duration: 60,
+        roomId: 'room-3',
+        price: 100,
+        category: 'massage',
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'service-3',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Hot Stone Therapy',
+        description: '90-minute hot stone massage therapy',
+        duration: 90,
+        roomId: 'room-2',
+        price: 150,
+        category: 'massage',
+        requirements: [
+            'hot-stone-equipment'
+        ],
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'service-4',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        name: 'Wellness Consultation',
+        description: '45-minute wellness and lifestyle consultation',
+        duration: 45,
+        roomId: 'room-4',
+        price: 80,
+        category: 'consultation',
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'service-5',
+        locationId: 'location-2',
+        companyId: 'company-1',
+        name: 'Luxury Spa Experience',
+        description: '120-minute full spa experience with massage and treatments',
+        duration: 120,
+        roomId: 'room-5',
+        price: 250,
+        category: 'spa',
+        status: 'active',
+        createdAt: '2023-03-10T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'service-6',
+        locationId: 'location-3',
+        companyId: 'company-2',
+        name: 'Hair Cut & Style',
+        description: 'Professional haircut and styling',
+        duration: 60,
+        roomId: 'room-7',
+        price: 75,
+        category: 'hair',
+        status: 'active',
+        createdAt: '2023-06-20T10:00:00Z',
+        updatedAt: '2024-01-10T10:00:00Z'
+    },
+    {
+        id: 'service-7',
+        locationId: 'location-3',
+        companyId: 'company-2',
+        name: 'Color Treatment',
+        description: 'Full color treatment and styling',
+        duration: 120,
+        roomId: 'room-7',
+        price: 150,
+        category: 'hair',
+        status: 'active',
+        createdAt: '2023-06-20T10:00:00Z',
+        updatedAt: '2024-01-10T10:00:00Z'
+    }
+];
+// ============================================================================
+// APPOINTMENTS
+// ============================================================================
+const today = new Date();
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+const yesterday = new Date(today);
+yesterday.setDate(yesterday.getDate() - 1);
+const seedAppointments = [
+    // Today's appointments - scheduled
+    {
+        id: 'appt-1',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        customerId: 'customer-1',
+        staffId: 'staff-1',
+        serviceId: 'service-1',
+        roomId: 'room-1',
+        date: today.toISOString().split('T')[0],
+        startTime: new Date(today.setHours(9, 0, 0, 0)).toISOString(),
+        endTime: new Date(today.setHours(10, 0, 0, 0)).toISOString(),
+        duration: 60,
+        status: 'scheduled',
+        notes: 'Customer requested deep tissue focus on back',
+        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+    },
+    {
+        id: 'appt-2',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        customerId: 'customer-2',
+        staffId: 'staff-2',
+        serviceId: 'service-2',
+        roomId: 'room-3',
+        date: today.toISOString().split('T')[0],
+        startTime: new Date(today.setHours(10, 30, 0, 0)).toISOString(),
+        endTime: new Date(today.setHours(11, 30, 0, 0)).toISOString(),
+        duration: 60,
+        status: 'scheduled',
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+    },
+    // Today's appointments - checked in
+    {
+        id: 'appt-3',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        customerId: 'customer-3',
+        staffId: 'staff-1',
+        serviceId: 'service-3',
+        roomId: 'room-2',
+        date: today.toISOString().split('T')[0],
+        startTime: new Date(today.setHours(11, 0, 0, 0)).toISOString(),
+        endTime: new Date(today.setHours(12, 30, 0, 0)).toISOString(),
+        duration: 90,
+        status: 'checked-in',
+        checkedInAt: new Date(today.setHours(10, 55, 0, 0)).toISOString(),
+        createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date().toISOString()
+    },
+    // Yesterday's appointments - completed
+    {
+        id: 'appt-4',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        customerId: 'customer-1',
+        staffId: 'staff-1',
+        serviceId: 'service-1',
+        roomId: 'room-1',
+        date: yesterday.toISOString().split('T')[0],
+        startTime: new Date(yesterday.setHours(14, 0, 0, 0)).toISOString(),
+        endTime: new Date(yesterday.setHours(15, 0, 0, 0)).toISOString(),
+        duration: 60,
+        status: 'completed',
+        checkedInAt: new Date(yesterday.setHours(13, 55, 0, 0)).toISOString(),
+        completedAt: new Date(yesterday.setHours(15, 5, 0, 0)).toISOString(),
+        createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+    },
+    // Yesterday's appointment - cancelled
+    {
+        id: 'appt-5',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        customerId: 'customer-2',
+        staffId: 'staff-2',
+        serviceId: 'service-2',
+        roomId: 'room-3',
+        date: yesterday.toISOString().split('T')[0],
+        startTime: new Date(yesterday.setHours(16, 0, 0, 0)).toISOString(),
+        endTime: new Date(yesterday.setHours(17, 0, 0, 0)).toISOString(),
+        duration: 60,
+        status: 'cancelled',
+        cancellationReason: 'customer-requested',
+        cancellationNotes: 'Customer had to reschedule due to work emergency',
+        cancelledAt: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString(),
+        cancelledBy: 'customer-2',
+        createdAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 1.5 * 24 * 60 * 60 * 1000).toISOString()
+    },
+    // Tomorrow's appointments
+    {
+        id: 'appt-6',
+        locationId: 'location-1',
+        companyId: 'company-1',
+        customerId: 'customer-1',
+        staffId: 'staff-3',
+        serviceId: 'service-4',
+        roomId: 'room-4',
+        date: tomorrow.toISOString().split('T')[0],
+        startTime: new Date(tomorrow.setHours(10, 0, 0, 0)).toISOString(),
+        endTime: new Date(tomorrow.setHours(10, 45, 0, 0)).toISOString(),
+        duration: 45,
+        status: 'scheduled',
+        notes: 'Follow-up wellness consultation',
+        createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+    }
+];
+const seedUsers = [
+    {
+        id: 'user-1',
+        name: 'Admin User',
+        email: 'admin@hospitalityadmin.com',
+        role: 'reseller-admin',
+        phone: '+1 (555) 999-0001',
+        status: 'active',
+        createdAt: '2023-01-01T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'user-2',
+        name: 'Sarah Johnson',
+        email: 'sarah.johnson@wellnessgroup.com',
+        role: 'company-admin',
+        companyId: 'company-1',
+        phone: '+1 (555) 100-1001',
+        status: 'active',
+        createdAt: '2023-01-15T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'user-3',
+        name: 'Michael Chen',
+        email: 'michael.chen@wellnessgroup.com',
+        role: 'location-staff',
+        companyId: 'company-1',
+        locationId: 'location-2',
+        phone: '+1 (555) 100-1002',
+        status: 'active',
+        createdAt: '2023-03-10T10:00:00Z',
+        updatedAt: '2024-01-15T10:00:00Z'
+    },
+    {
+        id: 'user-4',
+        name: 'Emily Rodriguez',
+        email: 'emily.rodriguez@beautystudio.com',
+        role: 'company-admin',
+        companyId: 'company-2',
+        phone: '+1 (555) 200-2001',
+        status: 'active',
+        createdAt: '2023-06-20T10:00:00Z',
+        updatedAt: '2024-01-10T10:00:00Z'
+    }
+];
+const seedData = {
+    companies: seedCompanies,
+    locations: seedLocations,
+    customers: seedCustomers,
+    staff: seedStaff,
+    rooms: seedRooms,
+    services: seedServices,
+    appointments: seedAppointments,
+    users: seedUsers
+};
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+]);
+
+//# sourceMappingURL=lib_storage_seed-data_ts_0820a82c._.js.map

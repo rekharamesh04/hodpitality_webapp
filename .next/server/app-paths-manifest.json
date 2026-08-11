@@ -1,22 +1,13 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js",
-  "/(auth)/reset-password/page": "app/(auth)/reset-password/page.js",
-  "/(auth)/login/page": "app/(auth)/login/page.js",
-  "/(auth)/verify-otp/page": "app/(auth)/verify-otp/page.js",
-  "/(auth)/forgot-password/page": "app/(auth)/forgot-password/page.js",
-  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
   "/(dashboard)/calendar/page": "app/(dashboard)/calendar/page.js",
   "/(dashboard)/check-ins/page": "app/(dashboard)/check-ins/page.js",
-  "/(dashboard)/events/page": "app/(dashboard)/events/page.js",
-  "/(dashboard)/hospitality/page": "app/(dashboard)/hospitality/page.js",
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/reports/page": "app/(dashboard)/reports/page.js",
-  "/(dashboard)/notifications/page": "app/(dashboard)/notifications/page.js",
+  "/(dashboard)/events/page": "app/(dashboard)/events/page.js",
+  "/(dashboard)/guests/page": "app/(dashboard)/guests/page.js",
+  "/(dashboard)/hospitality/page": "app/(dashboard)/hospitality/page.js",
   "/(dashboard)/registrations/page": "app/(dashboard)/registrations/page.js",
-  "/(dashboard)/venues/page": "app/(dashboard)/venues/page.js",
-  "/(dashboard)/guests/[id]/page": "app/(dashboard)/guests/[id]/page.js",
-  "/(dashboard)/settings/page": "app/(dashboard)/settings/page.js",
   "/(dashboard)/staff/page": "app/(dashboard)/staff/page.js",
-  "/(dashboard)/guests/page": "app/(dashboard)/guests/page.js"
+  "/(dashboard)/venues/page": "app/(dashboard)/venues/page.js",
+  "/api/proxy/[...path]/route": "app/api/proxy/[...path]/route.js",
+  "/page": "app/page.js"
 }

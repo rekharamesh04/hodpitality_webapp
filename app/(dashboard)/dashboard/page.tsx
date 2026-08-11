@@ -1,6 +1,7 @@
 'use client';
 
-import { Users, UserCheck, Clock, Hotel, Building2, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Users, UserCheck, Clock, Hotel } from 'lucide-react';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { StatsCard } from '@/components/dashboard/StatsCard';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
@@ -17,9 +18,24 @@ import {
   mockCheckInTrends,
   mockGuestCategories,
 } from '@/constants/mock-data';
+import api from '@/lib/axios';
+import type { DashboardStats } from '@/types';
 
 export default function DashboardPage() {
-  const stats = mockDashboardStats;
+  const [stats, setStats] = useState<DashboardStats>(mockDashboardStats);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get<DashboardStats>('/reports/dashboard-stats')
+      .then((res) => {
+        console.log('[Dashboard] dashboard-stats:', res.data);
+        setStats(res.data);
+      })
+      .catch((err) => {
+        console.error('[Dashboard] Failed to fetch stats, using mock data:', err);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -29,25 +45,25 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Today's Check-ins"
-          value={stats.todayCheckIns}
+          value={loading ? '…' : stats.todayCheckIns}
           icon={UserCheck}
           trend={{ value: 12, isPositive: true }}
         />
         <StatsCard
           title="Total Guests"
-          value={stats.totalGuests}
+          value={loading ? '…' : stats.totalGuests}
           icon={Users}
           trend={{ value: 8, isPositive: true }}
         />
         <StatsCard
           title="Pending Guests"
-          value={stats.pendingGuests}
+          value={loading ? '…' : stats.pendingGuests}
           icon={Clock}
           trend={{ value: -5, isPositive: false }}
         />
         <StatsCard
           title="Hospitality Bookings"
-          value={stats.hospitalityBookings}
+          value={loading ? '…' : stats.hospitalityBookings}
           icon={Hotel}
           trend={{ value: 15, isPositive: true }}
         />
