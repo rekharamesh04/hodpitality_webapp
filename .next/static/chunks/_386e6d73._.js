@@ -647,7 +647,7 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e
 var __TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$mock$2d$data$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/constants/mock-data.ts [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$dialogs$2f$NewAppointmentDialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/components/dialogs/NewAppointmentDialog.tsx [app-client] (ecmascript)");
 ;
-var _s = __turbopack_context__.k.signature();
+var _s = __turbopack_context__.k.signature(), _s1 = __turbopack_context__.k.signature();
 'use client';
 ;
 ;
@@ -1367,6 +1367,579 @@ function CalendarPage() {
 }
 _s(CalendarPage, "jDYAKtM2LByUzvav2KSWRwVSvzg=");
 _c1 = CalendarPage;
+const HOUR_START = 8;
+const HOUR_END = 18;
+const SLOT_HEIGHT = 64; // px per hour
+const STATUS_STYLES = {
+    scheduled: {
+        bg: 'bg-blue-100 border-blue-400',
+        text: 'text-blue-800',
+        label: 'Scheduled'
+    },
+    checked_in: {
+        bg: 'bg-green-100 border-green-400',
+        text: 'text-green-800',
+        label: 'Checked in'
+    },
+    completed: {
+        bg: 'bg-gray-100 border-gray-400',
+        text: 'text-gray-600',
+        label: 'Completed'
+    },
+    cancelled: {
+        bg: 'bg-red-50 border-red-300',
+        text: 'text-red-600',
+        label: 'Cancelled'
+    },
+    no_show: {
+        bg: 'bg-orange-50 border-orange-300',
+        text: 'text-orange-700',
+        label: 'No-show'
+    }
+};
+function addDays(date, days) {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+}
+function formatDate(date) {
+    return date.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+    });
+}
+function toISODate(date) {
+    return date.toISOString().split('T')[0];
+}
+function timeToDecimal(time) {
+    const [h, m] = time.split(':').map(Number);
+    return h + m / 60;
+}
+function AppointmentBlock(param) {
+    let { appt, onClick } = param;
+    const style = STATUS_STYLES[appt.status];
+    const top = (timeToDecimal(appt.startTime) - HOUR_START) * SLOT_HEIGHT;
+    const height = appt.duration / 60 * SLOT_HEIGHT;
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "absolute left-1 right-1 rounded border-l-2 ".concat(style.bg, " ").concat(style.text, " px-2 py-1 overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"),
+        style: {
+            top: "".concat(top, "px"),
+            height: "".concat(Math.max(height, 28), "px")
+        },
+        onClick: ()=>onClick(appt),
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                className: "text-xs font-semibold truncate leading-tight",
+                children: appt.customerName
+            }, void 0, false, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 343,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                className: "text-xs opacity-75 truncate leading-tight",
+                children: appt.service
+            }, void 0, false, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 344,
+                columnNumber: 7
+            }, this),
+            height >= 40 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                className: "text-xs opacity-60 truncate",
+                children: appt.room
+            }, void 0, false, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 346,
+                columnNumber: 9
+            }, this)
+        ]
+    }, void 0, true, {
+        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+        lineNumber: 338,
+        columnNumber: 5
+    }, this);
+}
+_c2 = AppointmentBlock;
+function CalendarPage() {
+    _s1();
+    const [currentDate, setCurrentDate] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(REFERENCE_DATE);
+    const [selectedAppt, setSelectedAppt] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
+    const [newApptOpen, setNewApptOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [appointments, setAppointments] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$mock$2d$data$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["mockSpaAppointments"]);
+    const dateKey = toISODate(currentDate);
+    const dayAppointments = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "CalendarPage.useMemo[dayAppointments]": ()=>appointments.filter({
+                "CalendarPage.useMemo[dayAppointments]": (a)=>a.date === dateKey
+            }["CalendarPage.useMemo[dayAppointments]"])
+    }["CalendarPage.useMemo[dayAppointments]"], [
+        appointments,
+        dateKey
+    ]);
+    const appointmentsByStaff = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMemo"])({
+        "CalendarPage.useMemo[appointmentsByStaff]": ()=>{
+            const map = {};
+            for (const s of __TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$mock$2d$data$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["mockCalendarStaff"]){
+                map[s.id] = dayAppointments.filter({
+                    "CalendarPage.useMemo[appointmentsByStaff]": (a)=>a.staffId === s.id
+                }["CalendarPage.useMemo[appointmentsByStaff]"]);
+            }
+            return map;
+        }
+    }["CalendarPage.useMemo[appointmentsByStaff]"], [
+        dayAppointments
+    ]);
+    const onSiteCount = dayAppointments.filter((a)=>a.status === 'checked_in').length;
+    const goToday = ()=>setCurrentDate(REFERENCE_DATE);
+    const goPrev = ()=>setCurrentDate((d)=>addDays(d, -1));
+    const goNext = ()=>setCurrentDate((d)=>addDays(d, 1));
+    function handleStatusChange(id, newStatus) {
+        const now = new Date().toTimeString().slice(0, 5);
+        setAppointments((prev)=>prev.map((a)=>a.id === id ? {
+                    ...a,
+                    status: newStatus,
+                    checkInTime: newStatus === 'checked_in' ? now : a.checkInTime,
+                    checkOutTime: newStatus === 'completed' ? now : a.checkOutTime,
+                    cancelledTime: newStatus === 'cancelled' ? now : a.cancelledTime,
+                    noShowTime: newStatus === 'no_show' ? now : a.noShowTime
+                } : a));
+        setSelectedAppt(null);
+    }
+    function handleAddAppointment(appt) {
+        const newId = "a".concat(Date.now());
+        setAppointments((prev)=>[
+                ...prev,
+                {
+                    ...appt,
+                    id: newId
+                }
+            ]);
+    }
+    const totalHours = HOUR_END - HOUR_START;
+    const hours = Array.from({
+        length: totalHours
+    }, (_, i)=>HOUR_START + i);
+    const gridHeight = totalHours * SLOT_HEIGHT;
+    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+        className: "flex flex-col space-y-4",
+        children: [
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between",
+                children: [
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "min-w-0",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("h1", {
+                                className: "text-xl font-bold truncate sm:text-2xl",
+                                children: formatDate(currentDate)
+                            }, void 0, false, {
+                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                lineNumber: 412,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                className: "text-sm text-muted-foreground",
+                                children: [
+                                    "Harbor Street · ",
+                                    dayAppointments.length,
+                                    " appointments · ",
+                                    onSiteCount,
+                                    " on site"
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                lineNumber: 413,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                        lineNumber: 411,
+                        columnNumber: 9
+                    }, this),
+                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex flex-wrap items-center gap-2",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex items-center gap-1",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                        variant: "outline",
+                                        size: "icon",
+                                        onClick: goPrev,
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$left$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronLeft$3e$__["ChevronLeft"], {
+                                            className: "h-4 w-4"
+                                        }, void 0, false, {
+                                            fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                            lineNumber: 420,
+                                            columnNumber: 15
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 419,
+                                        columnNumber: 13
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                        variant: "outline",
+                                        size: "sm",
+                                        onClick: goToday,
+                                        children: "Today"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 422,
+                                        columnNumber: 13
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                        variant: "outline",
+                                        size: "icon",
+                                        onClick: goNext,
+                                        children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$chevron$2d$right$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__ChevronRight$3e$__["ChevronRight"], {
+                                            className: "h-4 w-4"
+                                        }, void 0, false, {
+                                            fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                            lineNumber: 424,
+                                            columnNumber: 15
+                                        }, this)
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 423,
+                                        columnNumber: 13
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                lineNumber: 418,
+                                columnNumber: 11
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
+                                size: "sm",
+                                onClick: ()=>setNewApptOpen(true),
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$plus$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Plus$3e$__["Plus"], {
+                                        className: "mr-2 h-4 w-4"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 428,
+                                        columnNumber: 13
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "hidden xs:inline",
+                                        children: "New appointment"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 429,
+                                        columnNumber: 13
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                        className: "xs:hidden",
+                                        children: "New"
+                                    }, void 0, false, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 430,
+                                        columnNumber: 13
+                                    }, this)
+                                ]
+                            }, void 0, true, {
+                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                lineNumber: 427,
+                                columnNumber: 11
+                            }, this)
+                        ]
+                    }, void 0, true, {
+                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                        lineNumber: 417,
+                        columnNumber: 9
+                    }, this)
+                ]
+            }, void 0, true, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 410,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "flex flex-wrap gap-x-4 gap-y-2",
+                children: Object.entries(STATUS_STYLES).map((param)=>{
+                    let [key, s] = param;
+                    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                        className: "flex items-center gap-1.5",
+                        children: [
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "w-3 h-3 rounded-sm border ".concat(s.bg)
+                            }, void 0, false, {
+                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                lineNumber: 440,
+                                columnNumber: 15
+                            }, this),
+                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                className: "text-xs text-muted-foreground",
+                                children: s.label
+                            }, void 0, false, {
+                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                lineNumber: 441,
+                                columnNumber: 15
+                            }, this)
+                        ]
+                    }, key, true, {
+                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                        lineNumber: 439,
+                        columnNumber: 13
+                    }, this);
+                })
+            }, void 0, false, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 436,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "md:hidden space-y-3",
+                children: [
+                    dayAppointments.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                        className: "text-center text-sm text-muted-foreground py-10",
+                        children: "No appointments today."
+                    }, void 0, false, {
+                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                        lineNumber: 450,
+                        columnNumber: 11
+                    }, this),
+                    [
+                        ...dayAppointments
+                    ].sort((a, b)=>a.startTime.localeCompare(b.startTime)).map((appt)=>{
+                        const style = STATUS_STYLES[appt.status];
+                        const [h, m] = appt.startTime.split(':').map(Number);
+                        const ampm = h < 12 ? 'am' : 'pm';
+                        const dh = h > 12 ? h - 12 : h === 0 ? 12 : h;
+                        return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "flex gap-3 rounded-lg border-l-4 border p-3 cursor-pointer ".concat(style.bg),
+                            onClick: ()=>setSelectedAppt(appt),
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "w-14 shrink-0 text-right",
+                                    children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                        className: "text-sm font-semibold ".concat(style.text),
+                                        children: [
+                                            dh,
+                                            ":",
+                                            String(m).padStart(2, '0'),
+                                            ampm
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 466,
+                                        columnNumber: 19
+                                    }, this)
+                                }, void 0, false, {
+                                    fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                    lineNumber: 465,
+                                    columnNumber: 17
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "min-w-0 flex-1",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                            className: "text-sm font-semibold truncate ".concat(style.text),
+                                            children: appt.customerName
+                                        }, void 0, false, {
+                                            fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                            lineNumber: 469,
+                                            columnNumber: 19
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
+                                            className: "text-xs text-muted-foreground truncate",
+                                            children: [
+                                                appt.service,
+                                                " · ",
+                                                appt.staffName,
+                                                " · ",
+                                                appt.room
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                            lineNumber: 470,
+                                            columnNumber: 19
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                    lineNumber: 468,
+                                    columnNumber: 17
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                    className: "shrink-0 self-center px-2 py-0.5 rounded-full text-xs font-medium ".concat(style.bg, " ").concat(style.text),
+                                    children: style.label
+                                }, void 0, false, {
+                                    fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                    lineNumber: 472,
+                                    columnNumber: 17
+                                }, this)
+                            ]
+                        }, appt.id, true, {
+                            fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                            lineNumber: 460,
+                            columnNumber: 15
+                        }, this);
+                    })
+                ]
+            }, void 0, true, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 448,
+                columnNumber: 7
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                className: "hidden md:block flex-1 overflow-auto border rounded-lg bg-background",
+                children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                    className: "flex",
+                    style: {
+                        minWidth: "".concat(16 * 4 + __TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$mock$2d$data$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["mockCalendarStaff"].length * 140, "px")
+                    },
+                    children: [
+                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                            className: "w-16 shrink-0 border-r",
+                            children: [
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "h-10 border-b"
+                                }, void 0, false, {
+                                    fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                    lineNumber: 485,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "relative",
+                                    style: {
+                                        height: "".concat(gridHeight, "px")
+                                    },
+                                    children: hours.map((h)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "absolute left-0 right-0 flex items-start justify-end pr-2",
+                                            style: {
+                                                top: "".concat((h - HOUR_START) * SLOT_HEIGHT, "px"),
+                                                height: "".concat(SLOT_HEIGHT, "px")
+                                            },
+                                            children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "text-xs text-muted-foreground -translate-y-2",
+                                                children: h < 12 ? "".concat(h, "am") : h === 12 ? '12pm' : "".concat(h - 12, "pm")
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                                lineNumber: 493,
+                                                columnNumber: 19
+                                            }, this)
+                                        }, h, false, {
+                                            fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                            lineNumber: 488,
+                                            columnNumber: 17
+                                        }, this))
+                                }, void 0, false, {
+                                    fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                    lineNumber: 486,
+                                    columnNumber: 13
+                                }, this)
+                            ]
+                        }, void 0, true, {
+                            fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                            lineNumber: 484,
+                            columnNumber: 11
+                        }, this),
+                        __TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$mock$2d$data$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["mockCalendarStaff"].map((staff)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                className: "flex-1 border-r last:border-r-0 min-w-[140px]",
+                                children: [
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "h-10 border-b flex flex-col items-center justify-center px-2",
+                                        children: [
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "text-xs font-semibold",
+                                                children: staff.shortName
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                                lineNumber: 505,
+                                                columnNumber: 17
+                                            }, this),
+                                            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
+                                                className: "text-xs text-muted-foreground",
+                                                children: staff.rooms
+                                            }, void 0, false, {
+                                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                                lineNumber: 506,
+                                                columnNumber: 17
+                                            }, this)
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 504,
+                                        columnNumber: 15
+                                    }, this),
+                                    /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                        className: "relative",
+                                        style: {
+                                            height: "".concat(gridHeight, "px")
+                                        },
+                                        children: [
+                                            hours.map((h)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                                    className: "absolute left-0 right-0 border-t border-dashed border-gray-100",
+                                                    style: {
+                                                        top: "".concat((h - HOUR_START) * SLOT_HEIGHT, "px")
+                                                    }
+                                                }, h, false, {
+                                                    fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                                    lineNumber: 510,
+                                                    columnNumber: 19
+                                                }, this)),
+                                            (appointmentsByStaff[staff.id] || []).map((appt)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AppointmentBlock, {
+                                                    appt: appt,
+                                                    onClick: setSelectedAppt
+                                                }, appt.id, false, {
+                                                    fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                                    lineNumber: 517,
+                                                    columnNumber: 19
+                                                }, this))
+                                        ]
+                                    }, void 0, true, {
+                                        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                        lineNumber: 508,
+                                        columnNumber: 15
+                                    }, this)
+                                ]
+                            }, staff.id, true, {
+                                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                                lineNumber: 503,
+                                columnNumber: 13
+                            }, this))
+                    ]
+                }, void 0, true, {
+                    fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                    lineNumber: 482,
+                    columnNumber: 9
+                }, this)
+            }, void 0, false, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 481,
+                columnNumber: 7
+            }, this),
+            selectedAppt && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(AppointmentDetailPanel, {
+                appt: selectedAppt,
+                onClose: ()=>setSelectedAppt(null),
+                onStatusChange: handleStatusChange
+            }, void 0, false, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 527,
+                columnNumber: 9
+            }, this),
+            /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$dialogs$2f$NewAppointmentDialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                open: newApptOpen,
+                onClose: ()=>setNewApptOpen(false),
+                onBook: handleAddAppointment,
+                defaultDate: dateKey
+            }, void 0, false, {
+                fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+                lineNumber: 534,
+                columnNumber: 7
+            }, this)
+        ]
+    }, void 0, true, {
+        fileName: "[project]/app/(dashboard)/calendar/page.tsx",
+        lineNumber: 408,
+        columnNumber: 5
+    }, this);
+}
+_s1(CalendarPage, "PpsAbs6yzhqyxd9ZFr9hYIzQpQI=");
+_c3 = CalendarPage;
 function AppointmentDetailPanel(param) {
     let { appt, onClose, onStatusChange } = param;
     const style = STATUS_STYLES[appt.status];
@@ -1390,7 +1963,7 @@ function AppointmentDetailPanel(param) {
                         children: "Appointment"
                     }, void 0, false, {
                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                        lineNumber: 319,
+                        lineNumber: 568,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1400,13 +1973,13 @@ function AppointmentDetailPanel(param) {
                         children: "✕"
                     }, void 0, false, {
                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                        lineNumber: 320,
+                        lineNumber: 569,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                lineNumber: 318,
+                lineNumber: 567,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1420,7 +1993,7 @@ function AppointmentDetailPanel(param) {
                                 children: appt.customerInitials
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 325,
+                                lineNumber: 574,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1430,7 +2003,7 @@ function AppointmentDetailPanel(param) {
                                         children: appt.customerName
                                     }, void 0, false, {
                                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                        lineNumber: 329,
+                                        lineNumber: 578,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -1438,13 +2011,13 @@ function AppointmentDetailPanel(param) {
                                         children: appt.customerPhone
                                     }, void 0, false, {
                                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                        lineNumber: 330,
+                                        lineNumber: 579,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 328,
+                                lineNumber: 577,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
@@ -1453,13 +2026,13 @@ function AppointmentDetailPanel(param) {
                                 children: appt.customerTier
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 332,
+                                lineNumber: 581,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                        lineNumber: 324,
+                        lineNumber: 573,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1470,7 +2043,7 @@ function AppointmentDetailPanel(param) {
                                 value: appt.service
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 337,
+                                lineNumber: 586,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(Row, {
@@ -1478,7 +2051,7 @@ function AppointmentDetailPanel(param) {
                                 value: appt.staffName
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 338,
+                                lineNumber: 587,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(Row, {
@@ -1486,7 +2059,7 @@ function AppointmentDetailPanel(param) {
                                 value: appt.room
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 339,
+                                lineNumber: 588,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(Row, {
@@ -1494,7 +2067,7 @@ function AppointmentDetailPanel(param) {
                                 value: "".concat(fmtTime(h, m), " – ").concat(fmtTime(endH, endM))
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 340,
+                                lineNumber: 589,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(Row, {
@@ -1502,7 +2075,7 @@ function AppointmentDetailPanel(param) {
                                 value: "".concat(appt.duration, " min")
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 341,
+                                lineNumber: 590,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1513,7 +2086,7 @@ function AppointmentDetailPanel(param) {
                                         children: "Status"
                                     }, void 0, false, {
                                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                        lineNumber: 343,
+                                        lineNumber: 592,
                                         columnNumber: 13
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1521,19 +2094,19 @@ function AppointmentDetailPanel(param) {
                                         children: style.label
                                     }, void 0, false, {
                                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                        lineNumber: 344,
+                                        lineNumber: 593,
                                         columnNumber: 13
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 342,
+                                lineNumber: 591,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                        lineNumber: 336,
+                        lineNumber: 585,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1548,7 +2121,7 @@ function AppointmentDetailPanel(param) {
                                         children: "Check in"
                                     }, void 0, false, {
                                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                        lineNumber: 354,
+                                        lineNumber: 603,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1559,7 +2132,7 @@ function AppointmentDetailPanel(param) {
                                         children: "Cancel"
                                     }, void 0, false, {
                                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                        lineNumber: 361,
+                                        lineNumber: 610,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1570,7 +2143,7 @@ function AppointmentDetailPanel(param) {
                                         children: "Mark no-show"
                                     }, void 0, false, {
                                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                        lineNumber: 369,
+                                        lineNumber: 618,
                                         columnNumber: 15
                                     }, this)
                                 ]
@@ -1582,7 +2155,7 @@ function AppointmentDetailPanel(param) {
                                 children: "Complete"
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 380,
+                                lineNumber: 629,
                                 columnNumber: 13
                             }, this),
                             (appt.status === 'cancelled' || appt.status === 'no_show') && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -1593,29 +2166,29 @@ function AppointmentDetailPanel(param) {
                                 children: "Undo"
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                                lineNumber: 389,
+                                lineNumber: 638,
                                 columnNumber: 13
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                        lineNumber: 351,
+                        lineNumber: 600,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                lineNumber: 322,
+                lineNumber: 571,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-        lineNumber: 317,
+        lineNumber: 566,
         columnNumber: 5
     }, this);
 }
-_c2 = AppointmentDetailPanel;
+_c4 = AppointmentDetailPanel;
 function Row(param) {
     let { label, value } = param;
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1626,7 +2199,7 @@ function Row(param) {
                 children: label
             }, void 0, false, {
                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                lineNumber: 407,
+                lineNumber: 656,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1634,68 +2207,28 @@ function Row(param) {
                 children: value
             }, void 0, false, {
                 fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-                lineNumber: 408,
+                lineNumber: 657,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/(dashboard)/calendar/page.tsx",
-        lineNumber: 406,
+        lineNumber: 655,
         columnNumber: 5
     }, this);
 }
-_c3 = Row;
-var _c, _c1, _c2, _c3;
+_c5 = Row;
+var _c, _c1, _c2, _c3, _c4, _c5;
 __turbopack_context__.k.register(_c, "AppointmentBlock");
 __turbopack_context__.k.register(_c1, "CalendarPage");
-__turbopack_context__.k.register(_c2, "AppointmentDetailPanel");
-__turbopack_context__.k.register(_c3, "Row");
+__turbopack_context__.k.register(_c2, "AppointmentBlock");
+__turbopack_context__.k.register(_c3, "CalendarPage");
+__turbopack_context__.k.register(_c4, "AppointmentDetailPanel");
+__turbopack_context__.k.register(_c5, "Row");
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }
 }),
-"[project]/node_modules/lucide-react/dist/esm/icons/plus.js [app-client] (ecmascript)", ((__turbopack_context__) => {
-"use strict";
-
-/**
- * @license lucide-react v0.469.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */ __turbopack_context__.s([
-    "default",
-    ()=>Plus
-]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/createLucideIcon.js [app-client] (ecmascript)");
-;
-const Plus = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$createLucideIcon$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"])("Plus", [
-    [
-        "path",
-        {
-            d: "M5 12h14",
-            key: "1ays0h"
-        }
-    ],
-    [
-        "path",
-        {
-            d: "M12 5v14",
-            key: "s699le"
-        }
-    ]
-]);
-;
- //# sourceMappingURL=plus.js.map
-}),
-"[project]/node_modules/lucide-react/dist/esm/icons/plus.js [app-client] (ecmascript) <export default as Plus>", ((__turbopack_context__) => {
-"use strict";
-
-__turbopack_context__.s([
-    "Plus",
-    ()=>__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$plus$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"]
-]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$plus$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/plus.js [app-client] (ecmascript)");
-}),
 ]);
 
-//# sourceMappingURL=_7778ea1b._.js.map
+//# sourceMappingURL=_386e6d73._.js.map

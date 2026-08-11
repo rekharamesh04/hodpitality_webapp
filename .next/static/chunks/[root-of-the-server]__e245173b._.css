@@ -1347,6 +1347,10 @@
     min-width: 140px;
   }
 
+  .min-w-\[160px\] {
+    min-width: 160px;
+  }
+
   .min-w-\[var\(--radix-select-trigger-width\)\] {
     min-width: var(--radix-select-trigger-width);
   }
