@@ -1,6 +1,6 @@
 export type Status = 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled' | 'confirmed' | 'checked_in' | 'checked_out';
 
-export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff' | 'viewer';
+export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff' | 'viewer' | 'reseller';
 
 export interface User {
   id: string;

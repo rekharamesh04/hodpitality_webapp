@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/store';
+import { findUser } from '@/constants/users';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
@@ -38,24 +39,26 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      
-      // Mock successful login
-      const mockUser = {
-        id: '1',
-        name: 'Admin User',
-        email: data.email,
-        role: 'admin' as const,
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
+      const matched = findUser(data.email, data.password);
+      if (!matched) {
+        toast.error('Invalid email or password.');
+        return;
+      }
+
+      const mockToken = `mock-jwt-${matched.id}`;
+      const user = {
+        id: matched.id,
+        name: matched.name,
+        email: matched.email,
+        role: matched.role,
         avatar: '',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      const mockToken = 'mock-jwt-token';
 
-      login(mockUser, mockToken);
-      
-      // Store token in localStorage and cookie
+      login(user, mockToken);
       localStorage.setItem('auth_token', mockToken);
       
       // Set cookie for middleware
@@ -137,10 +140,10 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-muted-foreground">
-              <p>
-                Demo credentials: <strong>admin@entryflow.com</strong> / <strong>password</strong>
-              </p>
+            <div className="mt-5 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
+              <p className="font-semibold text-foreground mb-1">Test credentials</p>
+              <p><span className="font-medium text-foreground">Admins</span> — sarah / james / priya @entryflow.com · <code>admin123</code></p>
+              <p><span className="font-medium text-foreground">Resellers</span> — alex / nina @reseller.com · <code>reseller123</code></p>
             </div>
           </CardContent>
         </Card>

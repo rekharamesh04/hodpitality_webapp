@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUIStore } from '@/store';
+import { useUIStore, useAuthStore } from '@/store';
 import { NAV_SECTIONS } from '@/constants/navigation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,9 +19,19 @@ function NavItems({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const { user } = useAuthStore();
+  const role = user?.role ?? '';
+
+  const visibleSections = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter(
+      (item) => !item.roles || item.roles.includes(role)
+    ),
+  })).filter((section) => section.items.length > 0);
+
   return (
     <nav className="space-y-6">
-      {NAV_SECTIONS.map((section) => (
+      {visibleSections.map((section) => (
         <div key={section.label}>
           {!collapsed && (
             <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

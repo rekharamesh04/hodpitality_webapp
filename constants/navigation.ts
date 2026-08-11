@@ -20,6 +20,8 @@ export interface NavItem {
   icon: LucideIcon;
   badge?: number;
   section?: string;
+  /** if set, only these roles can see this item; omit = everyone */
+  roles?: string[];
 }
 
 export interface NavSection {
@@ -37,7 +39,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Operations",
     items: [
-      { label: "Hospitality",    href: "/hospitality",    icon: Hotel },
+      { label: "Hospitality",    href: "/hospitality",    icon: Hotel,        roles: ['admin', 'super_admin'] },
       { label: "Customers",      href: "/guests",         icon: Users },
       { label: "Calendar",       href: "/calendar",       icon: CalendarDays },
       { label: "Check-ins",      href: "/check-ins",      icon: CheckCircle2 },
@@ -46,16 +48,16 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Venue & Events",
     items: [
-      { label: "Venues",         href: "/venues",         icon: MapPin },
+      { label: "Venues",         href: "/venues",         icon: MapPin,        roles: ['admin', 'super_admin'] },
       { label: "Events",         href: "/events",         icon: Calendar },
-      { label: "Staff",          href: "/staff",          icon: UserCog },
+      { label: "Staff",          href: "/staff",          icon: UserCog,       roles: ['admin', 'super_admin'] },
     ],
   },
   {
     label: "Insights",
     items: [
       { label: "Reports",        href: "/reports",        icon: BarChart2 },
-      { label: "Analytics",      href: "/analytics",      icon: TrendingUp },
+      { label: "Analytics",      href: "/analytics",      icon: TrendingUp,    roles: ['admin', 'super_admin'] },
     ],
   },
   {
