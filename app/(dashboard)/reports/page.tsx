@@ -1,19 +1,39 @@
 'use client';
 
-import { BarChart2, Plus, Download, FileText } from 'lucide-react';
+import { useState } from 'react';
+import { BarChart2, Download, FileText, TrendingUp, Users, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { useDashboardStats, useDailyReports, useExportReport } from '@/hooks/useReports';
+
+const REPORT_TYPES = [
+  { id: 'daily',   name: 'Daily Check-in',    description: 'Guest check-in activity',   icon: Users      },
+  { id: 'guest',   name: 'Guest Arrivals',     description: 'Arrival flow breakdown',    icon: TrendingUp },
+  { id: 'monthly', name: 'Monthly Events',     description: 'Event attendance by month', icon: Calendar   },
+  { id: 'revenue', name: 'Revenue Trend',      description: 'Revenue trend over time',   icon: BarChart2  },
+];
 
 export default function ReportsPage() {
-  const reportTypes = [
-    { name: 'Daily Check-in Report', description: 'Guest check-in activity', icon: FileText },
-    { name: 'Hospitality Summary', description: 'Bookings and services', icon: FileText },
-    { name: 'Attendance Report', description: 'Event attendance data', icon: FileText },
-    { name: 'Revenue Report', description: 'Financial summary', icon: FileText },
-    { name: 'Venue Utilization', description: 'Capacity analysis', icon: FileText },
-    { name: 'Guest Analytics', description: 'Demographics and trends', icon: FileText },
-  ];
+  const [exportDialog, setExportDialog] = useState(false);
+  const [selectedType, setSelectedType] = useState('daily');
+  const [format, setFormat]             = useState<'pdf' | 'excel'>('pdf');
+
+  const { data: stats }    = useDashboardStats();
+  const { data: dailyRaw } = useDailyReports(7);
+  const exportReport       = useExportReport();
+
+  const daily = Array.isArray(dailyRaw) ? dailyRaw : (dailyRaw as any)?.data ?? [];
+
+  function handleExport() {
+    exportReport.mutate(
+      { type: selectedType, format },
+      { onSuccess: () => setExportDialog(false) }
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -22,67 +42,60 @@ export default function ReportsPage() {
           <h1 className="text-3xl font-bold">Reports</h1>
           <p className="text-muted-foreground">Generate and download detailed reports</p>
         </div>
-        <Button size="sm">
-          <Plus className="mr-2 h-4 w-4" />
-          Generate Report
+        <Button size="sm" onClick={() => setExportDialog(true)}>
+          <Download className="mr-2 h-4 w-4" />
+          Export Report
         </Button>
       </div>
 
+      {/* Live stats from GET /reports/dashboard-stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Reports</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">156</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">This Month</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">24</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Scheduled</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">8</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Downloaded</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">142</div>
-          </CardContent>
-        </Card>
+        {[
+          { label: "Today's Check-ins",  value: stats?.todayCheckIns      ?? '—' },
+          { label: 'Total Guests',       value: stats?.totalGuests         ?? '—' },
+          { label: 'Total Events',       value: stats?.totalEvents         ?? '—' },
+          { label: 'Venue Occupancy',    value: stats?.venueOccupancy != null ? `${stats.venueOccupancy}%` : '—' },
+        ].map((s) => (
+          <Card key={s.label}>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium">{s.label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{s.value}</div>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
+      {/* Report types */}
       <Card>
         <CardHeader>
           <CardTitle>Report Types</CardTitle>
-          <CardDescription>Select a report type to generate</CardDescription>
+          <CardDescription>Click Generate to export any report as PDF or Excel</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {reportTypes.map((report) => {
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {REPORT_TYPES.map((report) => {
               const Icon = report.icon;
               return (
-                <Card key={report.name} className="card-hover cursor-pointer">
-                  <CardContent className="flex items-start gap-4 pt-6">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <Icon className="h-6 w-6 text-primary" />
+                <Card key={report.id} className="card-hover cursor-pointer">
+                  <CardContent className="flex items-start gap-3 pt-5">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <Icon className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="flex-1 space-y-1">
-                      <h3 className="font-semibold">{report.name}</h3>
-                      <p className="text-sm text-muted-foreground">{report.description}</p>
-                      <Button variant="outline" size="sm" className="mt-2">
-                        <Download className="mr-2 h-3 w-3" />
+                    <div className="flex-1 space-y-1 min-w-0">
+                      <h3 className="text-sm font-semibold leading-tight">{report.name}</h3>
+                      <p className="text-xs text-muted-foreground">{report.description}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 h-7 text-xs"
+                        onClick={() => {
+                          setSelectedType(report.id);
+                          setExportDialog(true);
+                        }}
+                      >
+                        <Download className="mr-1 h-3 w-3" />
                         Generate
                       </Button>
                     </div>
@@ -94,34 +107,77 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Reports</CardTitle>
-          <CardDescription>Previously generated reports</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[
-              { name: 'Daily Check-in Report - Jan 15, 2024', date: '2 hours ago', status: 'completed' },
-              { name: 'Hospitality Summary - Week 2', date: '1 day ago', status: 'completed' },
-              { name: 'Monthly Revenue Report - December', date: '3 days ago', status: 'completed' },
-            ].map((report, i) => (
-              <div key={i} className="flex items-center justify-between rounded-lg border p-4">
-                <div>
-                  <p className="font-medium">{report.name}</p>
-                  <p className="text-sm text-muted-foreground">{report.date}</p>
+      {/* Daily report data from GET /reports/daily */}
+      {daily.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Daily Reports (Last 7 Days)</CardTitle>
+            <CardDescription>Check-ins and registrations per day</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {daily.map((d: any, i: number) => (
+                <div key={d.date ?? i} className="flex items-center justify-between rounded-lg border px-4 py-3">
+                  <p className="font-medium text-sm">{d.date}</p>
+                  <div className="flex gap-4 text-sm">
+                    <span className="text-muted-foreground">
+                      Check-ins: <span className="font-medium text-foreground">{d.checkIns ?? 0}</span>
+                    </span>
+                    <span className="text-muted-foreground">
+                      Registrations: <span className="font-medium text-foreground">{d.registrations ?? 0}</span>
+                    </span>
+                    {d.revenue != null && (
+                      <span className="text-muted-foreground">
+                        Revenue: <span className="font-medium text-foreground">${d.revenue}</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge>{report.status}</Badge>
-                  <Button variant="ghost" size="sm">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Export Dialog */}
+      <Dialog open={exportDialog} onOpenChange={setExportDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Export Report</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>Report Type</Label>
+              <select
+                className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+              >
+                {REPORT_TYPES.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <Label>Format</Label>
+              <select
+                className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                value={format}
+                onChange={(e) => setFormat(e.target.value as 'pdf' | 'excel')}
+              >
+                <option value="pdf">PDF</option>
+                <option value="excel">Excel</option>
+              </select>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setExportDialog(false)}>Cancel</Button>
+            <Button onClick={handleExport} disabled={exportReport.isPending}>
+              {exportReport.isPending ? 'Generating…' : 'Export'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

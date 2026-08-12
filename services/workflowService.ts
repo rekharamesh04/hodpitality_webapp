@@ -174,9 +174,9 @@ class WorkflowService {
     venue: any;
   }>> {
     try {
-      const venue = await venueService.getVenue(eventData.venueId);
+      const venue = await venueService.getVenue(eventData.venueId!);
       if (venue.status !== 'active') return { success: false, error: 'Venue is not available' };
-      if (eventData.capacity > venue.capacity) return { success: false, error: `Event capacity (${eventData.capacity}) exceeds venue capacity (${venue.capacity})` };
+      if ((eventData.capacity ?? 0) > (venue.capacity ?? 0)) return { success: false, error: `Event capacity (${eventData.capacity}) exceeds venue capacity (${venue.capacity})` };
       const event = await eventService.createEvent({ ...eventData, attendees: 0, status: 'active' });
       return { success: true, data: { event, venue }, message: `Event "${eventData.title}" created successfully` };
     } catch (error) {
@@ -377,8 +377,8 @@ class WorkflowService {
       const allEvents = eventsData.data;
       const venueReports = venues.map(venue => {
         const venueEvents = allEvents.filter(e => e.venueId === venue.id);
-        const utilizationPercent = (venue.currentOccupancy / venue.capacity) * 100;
-        return { id: venue.id, name: venue.name, capacity: venue.capacity, currentOccupancy: venue.currentOccupancy, utilizationPercent: Math.round(utilizationPercent * 100) / 100, status: venue.status, events: venueEvents };
+        const utilizationPercent = ((venue.currentOccupancy ?? 0) / (venue.capacity || 1)) * 100;
+        return { id: venue.id, name: venue.name ?? '', capacity: venue.capacity ?? 0, currentOccupancy: venue.currentOccupancy ?? 0, utilizationPercent: Math.round(utilizationPercent * 100) / 100, status: venue.status as string, events: venueEvents };
       });
       const overallUtilization = venueReports.length ? venueReports.reduce((sum, v) => sum + v.utilizationPercent, 0) / venueReports.length : 0;
       return { success: true, data: { venues: venueReports, overallUtilization: Math.round(overallUtilization * 100) / 100 }, message: 'Venue utilization report generated successfully' };

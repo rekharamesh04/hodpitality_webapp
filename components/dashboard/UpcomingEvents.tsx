@@ -13,6 +13,7 @@ interface UpcomingEventsProps {
 }
 
 export function UpcomingEvents({ events }: UpcomingEventsProps) {
+  const safeEvents = Array.isArray(events) ? events : [];
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
@@ -26,7 +27,7 @@ export function UpcomingEvents({ events }: UpcomingEventsProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {events.slice(0, 5).map((event) => (
+          {safeEvents.slice(0, 5).map((event) => (
             <div key={event.id} className="flex items-start gap-4 rounded-lg border p-4 transition-colors hover:bg-accent">
               <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <span className="text-xs font-semibold">

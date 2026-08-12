@@ -565,7 +565,7 @@ class WorkflowService {
                 success: false,
                 error: 'Venue is not available'
             };
-            if (eventData.capacity > venue.capacity) return {
+            if ((eventData.capacity ?? 0) > (venue.capacity ?? 0)) return {
                 success: false,
                 error: `Event capacity (${eventData.capacity}) exceeds venue capacity (${venue.capacity})`
             };
@@ -831,12 +831,12 @@ class WorkflowService {
             const allEvents = eventsData.data;
             const venueReports = venues.map((venue)=>{
                 const venueEvents = allEvents.filter((e)=>e.venueId === venue.id);
-                const utilizationPercent = venue.currentOccupancy / venue.capacity * 100;
+                const utilizationPercent = (venue.currentOccupancy ?? 0) / (venue.capacity || 1) * 100;
                 return {
                     id: venue.id,
-                    name: venue.name,
-                    capacity: venue.capacity,
-                    currentOccupancy: venue.currentOccupancy,
+                    name: venue.name ?? '',
+                    capacity: venue.capacity ?? 0,
+                    currentOccupancy: venue.currentOccupancy ?? 0,
                     utilizationPercent: Math.round(utilizationPercent * 100) / 100,
                     status: venue.status,
                     events: venueEvents

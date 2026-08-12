@@ -1340,7 +1340,7 @@ function ApiResponsePage() {
                                                 children: group.endpoints.map((ep)=>{
                                                     const res = results[ep.id];
                                                     const isLoading = res?.status === 'loading';
-                                                    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
+                                                    return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["Fragment"], {
                                                         children: [
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("tr", {
                                                                 className: `group transition-colors ${res?.status === 'success' ? 'bg-emerald-50/60 dark:bg-emerald-950/20' : res?.status === 'error' ? 'bg-red-50/60 dark:bg-red-950/20' : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.02]'}`,
@@ -1352,12 +1352,12 @@ function ApiResponsePage() {
                                                                             children: ep.method
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                            lineNumber: 560,
+                                                                            lineNumber: 559,
                                                                             columnNumber: 33
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                        lineNumber: 559,
+                                                                        lineNumber: 558,
                                                                         columnNumber: 31
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1370,7 +1370,7 @@ function ApiResponsePage() {
                                                                                     children: ep.path
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                                    lineNumber: 566,
+                                                                                    lineNumber: 565,
                                                                                     columnNumber: 35
                                                                                 }, this),
                                                                                 ep.note && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1378,7 +1378,7 @@ function ApiResponsePage() {
                                                                                     children: ep.note
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                                    lineNumber: 567,
+                                                                                    lineNumber: 566,
                                                                                     columnNumber: 47
                                                                                 }, this),
                                                                                 ep.body && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -1389,18 +1389,18 @@ function ApiResponsePage() {
                                                                                     ]
                                                                                 }, void 0, true, {
                                                                                     fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                                    lineNumber: 569,
+                                                                                    lineNumber: 568,
                                                                                     columnNumber: 37
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                            lineNumber: 565,
+                                                                            lineNumber: 564,
                                                                             columnNumber: 33
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                        lineNumber: 564,
+                                                                        lineNumber: 563,
                                                                         columnNumber: 31
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1409,12 +1409,12 @@ function ApiResponsePage() {
                                                                             result: res
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                            lineNumber: 576,
+                                                                            lineNumber: 575,
                                                                             columnNumber: 33
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                        lineNumber: 575,
+                                                                        lineNumber: 574,
                                                                         columnNumber: 31
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1424,12 +1424,12 @@ function ApiResponsePage() {
                                                                             children: "bulk skip"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                            lineNumber: 580,
+                                                                            lineNumber: 579,
                                                                             columnNumber: 35
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                        lineNumber: 578,
+                                                                        lineNumber: 577,
                                                                         columnNumber: 31
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -1443,29 +1443,29 @@ function ApiResponsePage() {
                                                                                     className: "w-3 h-3 animate-spin"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                                    lineNumber: 592,
+                                                                                    lineNumber: 591,
                                                                                     columnNumber: 39
                                                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$server$2f$route$2d$modules$2f$app$2d$page$2f$vendored$2f$ssr$2f$react$2d$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$ssr$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__["Play"], {
                                                                                     className: "w-3 h-3"
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                                    lineNumber: 593,
+                                                                                    lineNumber: 592,
                                                                                     columnNumber: 39
                                                                                 }, this),
                                                                                 "Test"
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                            lineNumber: 586,
+                                                                            lineNumber: 585,
                                                                             columnNumber: 33
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                        lineNumber: 585,
+                                                                        lineNumber: 584,
                                                                         columnNumber: 31
                                                                     }, this)
                                                                 ]
-                                                            }, ep.id, true, {
+                                                            }, void 0, true, {
                                                                 fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
                                                                 lineNumber: 549,
                                                                 columnNumber: 29
@@ -1476,16 +1476,20 @@ function ApiResponsePage() {
                                                                     result: res
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                    lineNumber: 606,
+                                                                    lineNumber: 605,
                                                                     columnNumber: 33
                                                                 }, this)
                                                             }, `${ep.id}-preview`, false, {
                                                                 fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                                                lineNumber: 601,
+                                                                lineNumber: 600,
                                                                 columnNumber: 31
                                                             }, this)
                                                         ]
-                                                    }, void 0, true);
+                                                    }, ep.id, true, {
+                                                        fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
+                                                        lineNumber: 548,
+                                                        columnNumber: 27
+                                                    }, this);
                                                 })
                                             }, void 0, false, {
                                                 fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
@@ -1519,14 +1523,14 @@ function ApiResponsePage() {
                                 children: "bulk skip"
                             }, void 0, false, {
                                 fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                                lineNumber: 622,
+                                lineNumber: 621,
                                 columnNumber: 78
                             }, this),
                             ' and won\'t run during "Test All". Use individual Test buttons to run them manually.'
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/(dashboard)/apiresponse/page.tsx",
-                        lineNumber: 621,
+                        lineNumber: 620,
                         columnNumber: 9
                     }, this)
                 ]

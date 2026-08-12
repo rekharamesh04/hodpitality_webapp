@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, Fragment } from 'react';
 import api from '@/lib/axios';
 import {
   CheckCircle2,
@@ -545,9 +545,8 @@ export default function ApiResponsePage() {
                         const isLoading = res?.status === 'loading';
 
                         return (
-                          <>
+                          <Fragment key={ep.id}>
                             <tr
-                              key={ep.id}
                               className={`group transition-colors ${
                                 res?.status === 'success'
                                   ? 'bg-emerald-50/60 dark:bg-emerald-950/20'
@@ -606,7 +605,7 @@ export default function ApiResponsePage() {
                                 <ResponsePreview result={res} />
                               </tr>
                             )}
-                          </>
+                          </Fragment>
                         );
                       })}
                     </tbody>

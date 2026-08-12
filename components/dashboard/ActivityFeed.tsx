@@ -20,6 +20,7 @@ const iconMap = {
 };
 
 export function ActivityFeed({ activities }: ActivityFeedProps) {
+  const safeActivities = Array.isArray(activities) ? activities : [];
   return (
     <Card>
       <CardHeader>
@@ -28,7 +29,7 @@ export function ActivityFeed({ activities }: ActivityFeedProps) {
       <CardContent>
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
-            {activities.map((activity) => {
+            {safeActivities.map((activity) => {
               const Icon = iconMap[activity.type] || AlertCircle;
               return (
                 <div key={activity.id} className="flex gap-4">

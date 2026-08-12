@@ -26,16 +26,19 @@ export interface LoginCredentials {
 
 export interface Guest {
   id: string;
+  PK?: string;
+  entity_type?: string;
   name: string;
   email: string;
   phone: string;
   company?: string;
   designation?: string;
-  category: 'VIP' | 'Speaker' | 'Delegate' | 'Staff' | 'Press';
+  category: 'VIP' | 'Speaker' | 'Delegate' | 'Staff' | 'Press' | 'regular' | 'standard';
   status: Status;
   checkedIn: boolean;
   checkInTime?: string;
   registrationDate: string;
+  createdAt?: string;
   avatar?: string;
   qrCode?: string;
   notes?: string;
@@ -44,16 +47,31 @@ export interface Guest {
 
 export interface CheckIn {
   id: string;
+  PK?: string;
+  entity_type?: string;
   guestId: string;
   guestName: string;
   guestEmail: string;
   checkInTime: string;
   checkInMethod: 'QR' | 'Manual' | 'Self';
+  /** Raw API field */
+  method?: string;
+  /** Raw API ISO timestamp */
+  timestamp?: string;
   venue?: string;
   event?: string;
   badgePrinted: boolean;
   verifiedBy?: string;
   notes?: string;
+}
+
+export interface CheckInStats {
+  expected: number;
+  arrived: number;
+  onSite: number;
+  completed: number;
+  noShows: number;
+  cancelled: number;
 }
 
 export interface Registration {
@@ -85,11 +103,15 @@ export interface Hospitality {
 
 export interface Venue {
   id: string;
-  name: string;
+  PK?: string;
+  entity_type?: string;
+  name?: string;
   capacity: number;
-  currentOccupancy: number;
-  type: 'Conference Hall' | 'Meeting Room' | 'Auditorium' | 'Banquet' | 'Other';
-  location: string;
+  /** Raw API field – prefer over currentOccupancy */
+  occupancy?: number;
+  currentOccupancy?: number;
+  type?: string;
+  location?: string;
   status: Status;
   amenities: string[];
   image?: string;
@@ -97,30 +119,41 @@ export interface Venue {
 
 export interface Event {
   id: string;
+  PK?: string;
+  entity_type?: string;
+  is_deleted?: boolean;
   title: string;
-  description: string;
+  description?: string;
   startDate: string;
-  endDate: string;
-  venue: string;
-  venueId: string;
+  /** Raw API date field */
+  date?: string;
+  endDate?: string;
+  venue?: string;
+  venueId?: string;
   status: Status;
-  attendees: number;
-  capacity: number;
-  category: string;
-  organizer: string;
+  attendees?: number;
+  /** Raw API registered count */
+  registered?: number;
+  capacity?: number;
+  category?: string;
+  organizer?: string;
   image?: string;
 }
 
 export interface Staff {
   id: string;
+  PK?: string;
+  entity_type?: string;
   name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  department: string;
+  email?: string;
+  phone?: string;
+  role: UserRole | string;
+  department?: string;
   status: Status;
-  joinedDate: string;
+  joinedDate?: string;
+  createdAt?: string;
   avatar?: string;
+  schedule?: Record<string, unknown>;
 }
 
 export interface Notification {
@@ -300,6 +333,8 @@ export interface TableFilters {
 
 export interface Reseller {
   id: string;
+  /** DynamoDB raw PK e.g. "RESELLER#<uuid>" – present on list/detail responses */
+  PK?: string;
   name: string;
   email: string;
   phone?: string;
@@ -310,6 +345,8 @@ export interface Reseller {
 
 export interface Company {
   id: string;
+  /** DynamoDB raw PK e.g. "COMPANY#<uuid>" – present on list/detail responses */
+  PK?: string;
   name: string;
   email?: string;
   phone?: string;
@@ -323,14 +360,18 @@ export interface Company {
 
 export interface Appointment {
   id: string;
-  guestId: string;
-  guestName: string;
-  staffId: string;
-  staffName: string;
-  title: string;
-  startTime: string;
-  endTime: string;
-  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  PK?: string;
+  entity_type?: string;
+  /** ISO date string – required by API on create */
+  date?: string;
+  guestId?: string;
+  guestName?: string;
+  staffId?: string;
+  staffName?: string;
+  title?: string;
+  startTime?: string;
+  endTime?: string;
+  status?: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
   notes?: string;
   venueId?: string;
 }
@@ -340,11 +381,34 @@ export interface Appointment {
 export interface CalendarEvent {
   id: string;
   title: string;
-  start: string;
-  end: string;
+  /** ISO date string from GET /calendar/events */
+  date?: string;
+  /** ISO date string – alternative to date */
+  start?: string;
+  end?: string;
+  endDate?: string;
   color?: string;
-  type: 'event' | 'appointment' | 'staff_shift';
+  type: string;
+  status?: string;
   resourceId?: string;
+}
+
+export interface CalendarEventsResponse {
+  month: string;
+  entries: CalendarEvent[];
+}
+
+export interface CalendarDayView {
+  date: string;
+  staffColumns: Array<{
+    staff: {
+      id: string;
+      name: string;
+      shortName?: string;
+      rooms?: string;
+    };
+    appointments: Appointment[];
+  }>;
 }
 
 // ============ Upload types ============

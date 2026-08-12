@@ -1,248 +1,213 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import type { SpaAppointment, AppointmentStatus } from '@/types';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
+import { QrCode, UserCheck, Printer, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { appointmentService } from '@/services/appointment.service';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+import {
+  useCheckIns, useCheckInStats, useCheckIn, useQrCheckIn, usePrintBadge,
+} from '@/hooks/useCheckins';
 
-const TODAY_LABEL = 'Thursday 6 August';
+type CheckMode = 'quick' | 'qr' | null;
 
-type FilterTab = 'all' | 'scheduled' | 'checked_in' | 'completed' | 'cancelled' | 'no_show';
-
-const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: 'all',        label: 'All' },
-  { key: 'scheduled',  label: 'Expected' },
-  { key: 'checked_in', label: 'On site' },
-  { key: 'completed',  label: 'Completed' },
-  { key: 'cancelled',  label: 'Cancelled' },
-];
-
-const STATUS_META: Record<AppointmentStatus, { label: string; badge: string }> = {
-  scheduled:  { label: 'Scheduled', badge: 'bg-blue-100 text-blue-800 border-blue-300' },
-  checked_in: { label: 'Checked in', badge: 'bg-green-100 text-green-800 border-green-300' },
-  completed:  { label: 'Completed', badge: 'bg-gray-100 text-gray-600 border-gray-300' },
-  cancelled:  { label: 'Cancelled', badge: 'bg-red-50 text-red-600 border-red-200' },
-  no_show:    { label: 'No-show', badge: 'bg-orange-50 text-orange-700 border-orange-200' },
+const METHOD_BADGE: Record<string, string> = {
+  manual:             'bg-gray-100 text-gray-700',
+  qr:                 'bg-blue-100 text-blue-800',
+  qr_scan:            'bg-blue-100 text-blue-800',
+  facial_recognition: 'bg-purple-100 text-purple-800',
+  quick:              'bg-green-100 text-green-800',
 };
-
-const TIER_COLORS: Record<string, string> = {
-  Founding:  'bg-amber-100 text-amber-800',
-  Signature: 'bg-purple-100 text-purple-800',
-  Standard:  'bg-gray-100 text-gray-700',
-};
-
-function formatTime(t: string): string {
-  const [hStr, m] = t.split(':');
-  const h = Number(hStr);
-  const ampm = h < 12 ? 'am' : 'pm';
-  const d = h > 12 ? h - 12 : h === 0 ? 12 : h;
-  return `${d}:${m} ${ampm}`;
-}
 
 export default function CheckInsPage() {
-  const [appointments, setAppointments] = useState<SpaAppointment[]>([]);
-  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [checkMode, setCheckMode] = useState<CheckMode>(null);
+  const [guestId, setGuestId]     = useState('');
+  const [qrCode, setQrCode]       = useState('');
 
-  useEffect(() => {
-    appointmentService.getAppointments({ limit: 100 }).then((res) => {
-      setAppointments((res.data as unknown as SpaAppointment[]) ?? []);
-    }).catch(() => {});
-  }, []);
+  const { data: checkInsData, isLoading, refetch } = useCheckIns();
+  const { data: stats }                            = useCheckInStats();
+  const checkIns = checkInsData?.data ?? [];
 
-  const stats = useMemo(() => ({
-    expected:  appointments.filter((a) => a.status === 'scheduled').length,
-    onSite:    appointments.filter((a) => a.status === 'checked_in').length,
-    completed: appointments.filter((a) => a.status === 'completed').length,
-    noShows:   appointments.filter((a) => a.status === 'no_show').length,
-    cancelled: appointments.filter((a) => a.status === 'cancelled').length,
-  }), [appointments]);
+  const quickCheckIn = useCheckIn();
+  const qrCheckIn    = useQrCheckIn();
+  const printBadge   = usePrintBadge();
 
-  const filtered = useMemo(() => {
-    const sorted = [...appointments].sort((a, b) => a.startTime.localeCompare(b.startTime));
-    if (activeTab === 'all') return sorted;
-    return sorted.filter((a) => a.status === activeTab);
-  }, [appointments, activeTab]);
-
-  function updateStatus(id: string, newStatus: AppointmentStatus) {
-    const now = new Date().toTimeString().slice(0, 5);
-    setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === id
-          ? {
-              ...a,
-              status: newStatus,
-              checkInTime:   newStatus === 'checked_in' ? now : a.checkInTime,
-              checkOutTime:  newStatus === 'completed'  ? now : a.checkOutTime,
-              cancelledTime: newStatus === 'cancelled'  ? now : a.cancelledTime,
-              noShowTime:    newStatus === 'no_show'    ? now : a.noShowTime,
-            }
-          : a
-      )
+  function handleQuickCheckIn() {
+    if (!guestId.trim()) return;
+    quickCheckIn.mutate(
+      { guestId: guestId.trim() },
+      { onSuccess: () => { setCheckMode(null); setGuestId(''); } }
     );
   }
+
+  function handleQrCheckIn() {
+    if (!qrCode.trim()) return;
+    qrCheckIn.mutate(
+      { qrCode: qrCode.trim() },
+      { onSuccess: () => { setCheckMode(null); setQrCode(''); } }
+    );
+  }
+
+  const STAT_CARDS = [
+    { label: 'Expected',  value: stats?.expected  ?? 0, color: 'text-blue-700'   },
+    { label: 'Arrived',   value: stats?.arrived   ?? 0, color: 'text-teal-700'   },
+    { label: 'On Site',   value: stats?.onSite    ?? 0, color: 'text-green-700'  },
+    { label: 'Completed', value: stats?.completed ?? 0, color: 'text-gray-700'   },
+    { label: 'No Shows',  value: stats?.noShows   ?? 0, color: 'text-orange-700' },
+    { label: 'Cancelled', value: stats?.cancelled ?? 0, color: 'text-red-600'    },
+  ];
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Check-ins</h1>
-        <p className="text-sm text-muted-foreground">Harbor Street · {TODAY_LABEL}</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Check-ins</h1>
+          <p className="text-sm text-muted-foreground">Live check-in management</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setCheckMode('qr')}>
+            <QrCode className="mr-2 h-4 w-4" />
+            QR Scan
+          </Button>
+          <Button size="sm" onClick={() => setCheckMode('quick')}>
+            <UserCheck className="mr-2 h-4 w-4" />
+            Check In
+          </Button>
+        </div>
       </div>
 
-      {/* Stats bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <StatCard label="Expected"  value={stats.expected}  color="text-blue-700"   />
-        <StatCard label="On site"   value={stats.onSite}    color="text-green-700"  />
-        <StatCard label="Completed" value={stats.completed} color="text-gray-700"   />
-        <StatCard label="No-shows"  value={stats.noShows}   color="text-orange-700" />
-        <StatCard label="Cancelled" value={stats.cancelled} color="text-red-600"    />
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        {STAT_CARDS.map((s) => (
+          <Card key={s.label}>
+            <CardContent className="pt-4 pb-3 px-4">
+              <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      {/* Filter tabs */}
-      <div className="flex gap-1 border-b overflow-x-auto scrollbar-none">
-        {FILTER_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={cn(
-              'px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px',
-              activeTab === tab.key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+      {/* Check-in list */}
+      <div className="border rounded-lg overflow-hidden overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Guest ID</TableHead>
+              <TableHead>Method</TableHead>
+              <TableHead className="hidden sm:table-cell">Timestamp</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
+                  Loading check-ins…
+                </TableCell>
+              </TableRow>
             )}
-          >
-            {tab.label}
-          </button>
-        ))}
+            {!isLoading && checkIns.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-10">
+                  No check-ins yet.
+                </TableCell>
+              </TableRow>
+            )}
+            {checkIns.map((ci) => {
+              const ciId   = ci.id ?? ci.PK?.replace('CHECKIN#', '') ?? '';
+              const method = ci.method ?? ci.checkInMethod ?? 'manual';
+              const ts     = ci.timestamp ?? ci.checkInTime ?? '';
+              return (
+                <TableRow key={ciId}>
+                  <TableCell className="font-mono text-sm">{ci.guestId}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${METHOD_BADGE[method] ?? METHOD_BADGE.manual}`}>
+                      {method.replace(/_/g, ' ')}
+                    </span>
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">
+                    {ts ? new Date(ts).toLocaleString() : '—'}
+                  </TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs"
+                      onClick={() => printBadge.mutate(ciId)}
+                      disabled={printBadge.isPending}
+                    >
+                      <Printer className="mr-1 h-3 w-3" />
+                      Badge
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
       </div>
 
-      {/* Timeline list */}
-      <div className="space-y-3">
-        {filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-10">No appointments in this category.</p>
-        )}
-        {filtered.map((appt) => (
-          <AppointmentRow
-            key={appt.id}
-            appt={appt}
-            onCheckIn={()  => updateStatus(appt.id, 'checked_in')}
-            onComplete={()  => updateStatus(appt.id, 'completed')}
-            onCancel={()   => updateStatus(appt.id, 'cancelled')}
-            onNoShow={()   => updateStatus(appt.id, 'no_show')}
-            onUndo={()     => updateStatus(appt.id, 'scheduled')}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
-  return (
-    <div className="rounded-lg border bg-card px-4 py-3">
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-      <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-    </div>
-  );
-}
-
-interface RowProps {
-  appt: SpaAppointment;
-  onCheckIn: () => void;
-  onComplete: () => void;
-  onCancel: () => void;
-  onNoShow: () => void;
-  onUndo: () => void;
-}
-
-function AppointmentRow({ appt, onCheckIn, onComplete, onCancel, onNoShow, onUndo }: RowProps) {
-  const meta = STATUS_META[appt.status];
-  const tierColor = TIER_COLORS[appt.customerTier] ?? '';
-
-  const [h, m] = appt.startTime.split(':').map(Number);
-  const endMin = h * 60 + m + appt.duration;
-  const endH = Math.floor(endMin / 60);
-  const endM = endMin % 60;
-
-  const startLabel = formatTime(appt.startTime);
-  const endLabel = `${endH > 12 ? endH - 12 : endH}:${String(endM).padStart(2, '0')} ${endH < 12 ? 'am' : 'pm'}`;
-
-  const timestampLabel =
-    appt.status === 'checked_in'  ? `In ${appt.checkInTime  ?? ''}` :
-    appt.status === 'completed'   ? `Out ${appt.checkOutTime ?? ''}` :
-    appt.status === 'no_show'     ? `Missed ${appt.noShowTime ?? ''}` :
-    appt.status === 'cancelled'   ? `Cancelled ${appt.cancelledTime ?? ''}` :
-    null;
-
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border bg-card p-3 sm:p-4">
-      {/* Time + customer — always visible */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {/* Time block */}
-        <div className="w-16 shrink-0 text-right">
-          <p className="text-sm font-semibold">{startLabel}</p>
-          <p className="text-xs text-muted-foreground">{endLabel}</p>
-        </div>
-
-        {/* Avatar + name */}
-        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-          {appt.customerInitials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold truncate">{appt.customerName}</span>
-            <span className={`inline-flex items-center px-1.5 py-0 rounded-full text-xs font-medium ${tierColor}`}>
-              {appt.customerTier}
-            </span>
+      {/* Quick Check-in Dialog */}
+      <Dialog open={checkMode === 'quick'} onOpenChange={(v) => !v && setCheckMode(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Quick Check-in</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>Guest ID</Label>
+              <Input
+                value={guestId}
+                onChange={(e) => setGuestId(e.target.value)}
+                placeholder="Enter guest ID"
+                onKeyDown={(e) => e.key === 'Enter' && handleQuickCheckIn()}
+              />
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground">{appt.customerPhone}</p>
-          {/* Service info — always visible on mobile, duplicated in desktop column below */}
-          <p className="text-xs text-muted-foreground sm:hidden">{appt.service} · {appt.staffName}</p>
-        </div>
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCheckMode(null)}>Cancel</Button>
+            <Button onClick={handleQuickCheckIn} disabled={quickCheckIn.isPending || !guestId.trim()}>
+              {quickCheckIn.isPending ? 'Checking in…' : 'Check In'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-      {/* Service info (desktop only) */}
-      <div className="hidden sm:block w-48 shrink-0 min-w-0">
-        <p className="text-sm font-medium truncate">{appt.service}</p>
-        <p className="text-xs text-muted-foreground truncate">
-          {appt.staffName} · {appt.duration} min · {appt.room}
-        </p>
-      </div>
-
-      {/* Status + actions */}
-      <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-        <div className="flex flex-col items-start sm:items-end gap-1">
-          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${meta.badge}`}>
-            {meta.label}
-          </span>
-          {timestampLabel && (
-            <span className="text-xs text-muted-foreground">{timestampLabel}</span>
-          )}
-        </div>
-
-        {appt.status === 'scheduled' && (
-          <div className="flex gap-1">
-            <Button size="sm" className="h-7 text-xs px-2" onClick={onCheckIn}>Check in</Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={onCancel}>Cancel</Button>
+      {/* QR Check-in Dialog */}
+      <Dialog open={checkMode === 'qr'} onOpenChange={(v) => !v && setCheckMode(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>QR Code Check-in</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>QR Code</Label>
+              <Input
+                value={qrCode}
+                onChange={(e) => setQrCode(e.target.value)}
+                placeholder="Scan or enter QR code"
+                autoFocus
+                onKeyDown={(e) => e.key === 'Enter' && handleQrCheckIn()}
+              />
+            </div>
           </div>
-        )}
-        {appt.status === 'checked_in' && (
-          <Button size="sm" className="h-7 text-xs px-2" onClick={onComplete}>Complete</Button>
-        )}
-        {(appt.status === 'no_show' || appt.status === 'cancelled') && (
-          <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={onUndo}>Undo</Button>
-        )}
-      </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCheckMode(null)}>Cancel</Button>
+            <Button onClick={handleQrCheckIn} disabled={qrCheckIn.isPending || !qrCode.trim()}>
+              {qrCheckIn.isPending ? 'Processing…' : 'Scan & Check In'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+

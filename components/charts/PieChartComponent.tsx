@@ -28,6 +28,7 @@ export function PieChartComponent({
   data,
   height = 300,
 }: PieChartComponentProps) {
+  const safeData = Array.isArray(data) ? data : [];
   return (
     <Card>
       <CardHeader>
@@ -38,7 +39,7 @@ export function PieChartComponent({
         <ResponsiveContainer width="100%" height={height}>
           <PieChart>
             <Pie
-              data={data}
+              data={safeData}
               cx="50%"
               cy="50%"
               labelLine={false}
@@ -47,7 +48,7 @@ export function PieChartComponent({
               fill="#8884d8"
               dataKey="value"
             >
-              {data.map((entry, index) => (
+              {safeData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>

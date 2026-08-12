@@ -17,7 +17,7 @@ export function VenueOccupancy({ venues }: VenueOccupancyProps) {
       <CardContent>
         <div className="space-y-4">
           {venues.map((venue) => {
-            const occupancyPercent = (venue.currentOccupancy / venue.capacity) * 100;
+            const occupancyPercent = ((venue.currentOccupancy ?? 0) / (venue.capacity || 1)) * 100;
             return (
               <div key={venue.id} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">

@@ -1,47 +1,50 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Search, CalendarPlus } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import {
+  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { cn, formatDate, formatCurrency } from '@/lib/utils';
-import { useGuests } from '@/hooks/use-guests';
+import { cn, formatDate } from '@/lib/utils';
+import {
+  useGuests, useCreateGuest, useUpdateGuest, useDeleteGuest,
+} from '@/hooks/use-guests';
+import { guestService } from '@/services/guest.service';
 import apiClient from '@/lib/axios';
-import type { Customer, MembershipTier, Registration } from '@/types';
-import NewAppointmentDialog from '@/components/dialogs/NewAppointmentDialog';
-import { CompleteRegistrationDialog } from '@/components/dialogs/CompleteRegistrationDialog';
+import type { Guest, Registration } from '@/types';
 
-const TIER_TABS: { key: MembershipTier | 'All'; label: string }[] = [
-  { key: 'All',       label: 'All' },
-  { key: 'Founding',  label: 'Founding' },
-  { key: 'Signature', label: 'Signature' },
-  { key: 'Standard',  label: 'Standard' },
-];
-
-const TIER_BADGE: Record<MembershipTier, string> = {
-  Founding:  'bg-amber-100 text-amber-800 border-amber-300',
-  Signature: 'bg-purple-100 text-purple-800 border-purple-300',
-  Standard:  'bg-gray-100 text-gray-700 border-gray-300',
+const CATEGORY_COLORS: Record<string, string> = {
+  VIP:      'bg-amber-100 text-amber-800 border-amber-300',
+  Speaker:  'bg-purple-100 text-purple-800 border-purple-300',
+  Delegate: 'bg-blue-100 text-blue-800 border-blue-300',
+  Staff:    'bg-gray-100 text-gray-700 border-gray-300',
+  Press:    'bg-green-100 text-green-800 border-green-300',
+  regular:  'bg-gray-100 text-gray-700 border-gray-300',
+  standard: 'bg-gray-100 text-gray-700 border-gray-300',
 };
 
-const TODAY = '2026-08-06';
-type Tab = 'customers' | 'registrations';
+type Tab = 'guests' | 'registrations';
 
-export default function CustomersPage() {
-  const router = useRouter();
-  const { data: guestsData } = useGuests();
+export default function GuestsPage() {
+  const [tab, setTab] = useState<Tab>('guests');
+  const [search, setSearch] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<Guest | null>(null);
+  const [form, setForm] = useState<{ name: string; email: string; phone: string; category: Guest['category'] }>({ name: '', email: '', phone: '', category: 'regular' });
+  const [exporting, setExporting] = useState(false);
+
+  const { data: guestsData, isLoading } = useGuests({ search });
+  const guests = guestsData?.data ?? [];
+
   const { data: registrationsData } = useQuery<Registration[]>({
     queryKey: ['registrations'],
     queryFn: async () => {
@@ -50,53 +53,68 @@ export default function CustomersPage() {
     },
   });
   const registrations = registrationsData ?? [];
-  const [tab, setTab] = useState<Tab>('customers');
 
-  // customers state
-  const [searchTerm, setSearchTerm] = useState('');
-  const [tierFilter, setTierFilter] = useState<MembershipTier | 'All'>('All');
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [bookTarget, setBookTarget] = useState<Customer | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
+  const create = useCreateGuest();
+  const update = useUpdateGuest();
+  const remove = useDeleteGuest();
 
-  // registrations state
-  const [regOpen, setRegOpen] = useState(false);
+  function openCreate() {
+    setEditing(null);
+    setForm({ name: '', email: '', phone: '', category: 'regular' });
+    setDialogOpen(true);
+  }
 
-  const filtered = useMemo(() => {
-    return customers.filter((c) => {
-      const matchesTier = tierFilter === 'All' || c.tier === tierFilter;
-      const q = searchTerm.toLowerCase();
-      const matchesSearch =
-        !q ||
-        c.name.toLowerCase().includes(q) ||
-        c.email.toLowerCase().includes(q) ||
-        c.phone.includes(q);
-      return matchesTier && matchesSearch;
-    });
-  }, [customers, tierFilter, searchTerm]);
+  function openEdit(g: Guest) {
+    setEditing(g);
+    setForm({ name: g.name, email: g.email, phone: g.phone ?? '', category: g.category ?? 'regular' });
+    setDialogOpen(true);
+  }
+
+  function handleSubmit() {
+    const guestId = editing?.id ?? editing?.PK?.replace('GUEST#', '');
+    if (editing && guestId) {
+      update.mutate({ id: guestId, data: form }, { onSuccess: () => setDialogOpen(false) });
+    } else {
+      create.mutate(form, { onSuccess: () => setDialogOpen(false) });
+    }
+  }
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await guestService.exportGuests();
+      if ((res as any).downloadUrl) window.open((res as any).downloadUrl, '_blank');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  const isPending = create.isPending || update.isPending;
 
   return (
     <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Customers</h1>
-          <p className="text-sm text-muted-foreground">Harbor Street</p>
+          <h1 className="text-2xl font-bold">Guests</h1>
+          <p className="text-sm text-muted-foreground">CRM — guest management</p>
         </div>
-        {tab === 'customers' ? (
-          <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> Add customer
-          </Button>
-        ) : (
-          <Button size="sm" onClick={() => setRegOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" /> New registration
-          </Button>
+        {tab === 'guests' && (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={handleExport} disabled={exporting}>
+              <Download className="mr-1 h-4 w-4" />
+              Export
+            </Button>
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" /> Add Guest
+            </Button>
+          </div>
         )}
       </div>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b">
-        {(['customers', 'registrations'] as Tab[]).map((t) => (
+        {(['guests', 'registrations'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -112,97 +130,102 @@ export default function CustomersPage() {
         ))}
       </div>
 
-      {/* ── Customers tab ── */}
-      {tab === 'customers' && (
+      {/* ── Guests tab ── */}
+      {tab === 'guests' && (
         <>
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
             <div className="relative w-full sm:w-72">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search name, email or phone"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 className="pl-9"
               />
             </div>
-            <div className="flex gap-1 border rounded-md overflow-x-auto scrollbar-none shrink-0">
-              {TIER_TABS.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setTierFilter(t.key as MembershipTier | 'All')}
-                  className={cn(
-                    'px-3 py-1.5 text-sm font-medium transition-colors',
-                    tierFilter === t.key
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            <p className="text-xs text-muted-foreground">{guests.length} guests</p>
           </div>
-
-          <p className="text-xs text-muted-foreground">{filtered.length} of {customers.length} customers</p>
 
           <div className="border rounded-lg overflow-hidden overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Customer</TableHead>
+                  <TableHead>Guest</TableHead>
                   <TableHead className="hidden sm:table-cell">Contact</TableHead>
-                  <TableHead>Tier</TableHead>
-                  <TableHead className="text-center hidden sm:table-cell">Visits</TableHead>
-                  <TableHead className="hidden lg:table-cell">Last visit</TableHead>
-                  <TableHead className="hidden lg:table-cell">Next appointment</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead className="hidden sm:table-cell">Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Checked In</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.length === 0 && (
+                {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-10">No customers found.</TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                      Loading guests…
+                    </TableCell>
                   </TableRow>
                 )}
-                {filtered.map((customer) => (
-                  <TableRow key={customer.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                          {customer.initials}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold truncate">{customer.name}</p>
-                          <p className="text-xs text-muted-foreground">Since {customer.memberSince}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">
-                      <p className="text-sm truncate max-w-[160px]">{customer.email}</p>
-                      <p className="text-xs text-muted-foreground">{customer.phone}</p>
-                    </TableCell>
-                    <TableCell>
-                      <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border', TIER_BADGE[customer.tier])}>
-                        {customer.tier}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-center text-sm font-medium hidden sm:table-cell">{customer.visits}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{customer.lastVisit ?? '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{customer.nextAppointment ?? '—'}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 justify-end">
-                        <Button size="sm" variant="outline" className="h-7 text-xs px-2" onClick={() => setBookTarget(customer)}>
-                          <CalendarPlus className="h-3 w-3 mr-1" />
-                          <span className="hidden sm:inline">Book</span>
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => router.push(`/guests/${customer.id}`)}>
-                          <span className="hidden sm:inline">Profile</span>
-                          <span className="sm:hidden">→</span>
-                        </Button>
-                      </div>
+                {!isLoading && guests.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                      No guests found.
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
+                {guests.map((g) => {
+                  const gId = g.id ?? g.PK?.replace('GUEST#', '') ?? '';
+                  return (
+                    <TableRow key={gId}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                            {g.name?.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold truncate">{g.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {g.createdAt ? formatDate(g.createdAt) : ''}
+                            </p>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <p className="text-sm truncate max-w-[160px]">{g.email}</p>
+                        <p className="text-xs text-muted-foreground">{g.phone}</p>
+                      </TableCell>
+                      <TableCell>
+                        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border', CATEGORY_COLORS[g.category] ?? CATEGORY_COLORS.regular)}>
+                          {g.category}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <StatusBadge status={g.status} />
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant={g.checkedIn ? 'default' : 'outline'}>
+                          {g.checkedIn ? 'Yes' : 'No'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 justify-end">
+                          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => openEdit(g)}>
+                            <Pencil className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-destructive"
+                            onClick={() => remove.mutate(gId)}
+                            disabled={remove.isPending}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -214,10 +237,10 @@ export default function CustomersPage() {
         <>
           <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
             {[
-              { label: 'Total', value: '1,400' },
-              { label: 'Confirmed', value: '1,247' },
-              { label: 'Pending', value: '153' },
-              { label: 'Revenue', value: '$487K' },
+              { label: 'Total',     value: registrations.length },
+              { label: 'Confirmed', value: registrations.filter((r) => r.status === 'confirmed').length },
+              { label: 'Pending',   value: registrations.filter((r) => r.status === 'pending').length },
+              { label: 'Paid',      value: registrations.filter((r) => r.paymentStatus === 'paid').length },
             ].map((s) => (
               <div key={s.label} className="border rounded-lg p-4">
                 <p className="text-xs text-muted-foreground">{s.label}</p>
@@ -236,10 +259,14 @@ export default function CustomersPage() {
                   <TableHead className="hidden sm:table-cell">Date</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Payment</TableHead>
-                  <TableHead className="hidden sm:table-cell">Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {registrations.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">No registrations found.</TableCell>
+                  </TableRow>
+                )}
                 {registrations.map((reg) => (
                   <TableRow key={reg.id}>
                     <TableCell>
@@ -253,7 +280,6 @@ export default function CustomersPage() {
                     <TableCell>
                       <Badge variant={reg.paymentStatus === 'paid' ? 'default' : 'secondary'}>{reg.paymentStatus}</Badge>
                     </TableCell>
-                    <TableCell className="hidden sm:table-cell">{reg.amount && formatCurrency(reg.amount)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -262,125 +288,62 @@ export default function CustomersPage() {
         </>
       )}
 
-      {/* ── Dialogs ── */}
-      <CompleteRegistrationDialog open={regOpen} onOpenChange={setRegOpen} />
-
-      {bookTarget && (
-        <NewAppointmentDialog
-          open={!!bookTarget}
-          onClose={() => setBookTarget(null)}
-          onBook={(appt) => {
-            setCustomers((prev) =>
-              prev.map((c) =>
-                c.id === bookTarget.id
-                  ? { ...c, nextAppointment: `${appt.date} ${appt.startTime}`, upcomingCount: c.upcomingCount + 1 }
-                  : c
-              )
-            );
-          }}
-          defaultDate={TODAY}
-          preselectedCustomerId={bookTarget.id}
-        />
-      )}
-
-      {addOpen && (
-        <AddCustomerDialog
-          onClose={() => setAddOpen(false)}
-          onAdd={(c) => setCustomers((prev) => [...prev, c])}
-        />
-      )}
+      {/* Create / Edit Guest Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Edit Guest' : 'Add Guest'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label>Full name</Label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Jane Smith"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="jane@example.com"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Phone</Label>
+              <Input
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="+1 234 567 8900"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label>Category</Label>
+              <select
+                className="w-full rounded-md border px-3 py-2 text-sm bg-background"
+                value={form.category}
+                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value as typeof f.category }))}
+              >
+                {['regular', 'VIP', 'Speaker', 'Delegate', 'Staff', 'Press'].map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleSubmit} disabled={isPending || !form.name}>
+              {isPending ? 'Saving…' : editing ? 'Save Changes' : 'Add Guest'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
 // ─── Add Customer Dialog ────────────────────────────────────────────────────
 
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-function AddCustomerDialog({
-  onClose,
-  onAdd,
-}: {
-  onClose: () => void;
-  onAdd: (c: Customer) => void;
-}) {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [tier, setTier] = useState<MembershipTier>('Standard');
-
-  function handleSubmit() {
-    if (!name.trim()) return;
-    const initials = name
-      .split(' ')
-      .map((p) => p[0]?.toUpperCase() ?? '')
-      .join('')
-      .slice(0, 2);
-    const newCustomer: Customer = {
-      id: `c${Date.now()}`,
-      name: name.trim(),
-      initials,
-      email,
-      phone,
-      preferredContact: 'SMS',
-      preferences: '',
-      homeLocation: 'Harbor Street',
-      balance: 0,
-      tier,
-      memberSince: new Date().toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }),
-      visits: 0,
-      upcomingCount: 0,
-      missedVisits: 0,
-      notes: '',
-      customerId: `C${Date.now()}-L1`,
-    };
-    onAdd(newCustomer);
-    onClose();
-  }
-
-  return (
-    <Dialog open onOpenChange={(v) => { if (!v) onClose(); }}>
-      <DialogContent className="max-w-sm">
-        <DialogHeader>
-          <DialogTitle>Add customer</DialogTitle>
-        </DialogHeader>
-        <div className="space-y-3 py-2">
-          <div className="space-y-1">
-            <Label>Full name</Label>
-            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Smith" />
-          </div>
-          <div className="space-y-1">
-            <Label>Email</Label>
-            <Input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="jane@example.com" />
-          </div>
-          <div className="space-y-1">
-            <Label>Phone</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(415) 555-0000" />
-          </div>
-          <div className="space-y-1">
-            <Label>Tier</Label>
-            <select
-              className="w-full rounded-md border px-3 py-2 text-sm bg-background"
-              value={tier}
-              onChange={(e) => setTier(e.target.value as MembershipTier)}
-            >
-              <option value="Standard">Standard</option>
-              <option value="Signature">Signature</option>
-              <option value="Founding">Founding</option>
-            </select>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={!name.trim()}>Add customer</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}

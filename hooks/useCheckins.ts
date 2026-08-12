@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { checkInService } from "@/services/checkin.service";
 import { QUERY_KEYS } from "@/constants";
-import type { TableFilters } from "@/types";
+import type { TableFilters, CheckInStats } from "@/types";
 type FilterOptions = TableFilters;
 
 export const checkInKeys = {
@@ -20,7 +20,7 @@ export function useCheckIns(filters: FilterOptions = {}) {
 }
 
 export function useCheckInStats() {
-  return useQuery({
+  return useQuery<CheckInStats>({
     queryKey: checkInKeys.stats,
     queryFn:  checkInService.getStats,
     refetchInterval: 15000,

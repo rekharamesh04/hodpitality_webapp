@@ -11,6 +11,8 @@ import {
   TrendingUp,
   Bell,
   Settings,
+  Building2,
+  Briefcase,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -51,6 +53,13 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Venues",         href: "/venues",         icon: MapPin,        roles: ['admin', 'super_admin'] },
       { label: "Events",         href: "/events",         icon: Calendar },
       { label: "Staff",          href: "/staff",          icon: UserCog,       roles: ['admin', 'super_admin'] },
+    ],
+  },
+  {
+    label: "Multi-Tenant",
+    items: [
+      { label: "Resellers", href: "/resellers", icon: Building2, roles: ['admin', 'super_admin'] },
+      { label: "Companies", href: "/companies", icon: Briefcase,  roles: ['admin', 'super_admin'] },
     ],
   },
   {

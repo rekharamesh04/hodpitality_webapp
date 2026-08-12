@@ -1,6 +1,6 @@
 import api from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { CheckIn, CursorPaginatedResponse, TableFilters } from '@/types';
+import type { CheckIn, CheckInStats, CursorPaginatedResponse, TableFilters } from '@/types';
 
 export const checkInService = {
   async getCheckIns(filters: TableFilters = {}): Promise<CursorPaginatedResponse<CheckIn>> {
@@ -15,8 +15,8 @@ export const checkInService = {
     return data;
   },
 
-  async getStats(): Promise<{ total: number; today: number }> {
-    const { data } = await api.get<{ total: number; today: number }>(
+  async getStats(): Promise<CheckInStats> {
+    const { data } = await api.get<CheckInStats>(
       `${API_ENDPOINTS.CHECK_INS}/stats`
     );
     return data;

@@ -508,7 +508,8 @@ class WorkflowService {
                 success: false,
                 error: 'Venue is not available'
             };
-            if (eventData.capacity > venue.capacity) return {
+            var _eventData_capacity, _venue_capacity;
+            if (((_eventData_capacity = eventData.capacity) !== null && _eventData_capacity !== void 0 ? _eventData_capacity : 0) > ((_venue_capacity = venue.capacity) !== null && _venue_capacity !== void 0 ? _venue_capacity : 0)) return {
                 success: false,
                 error: "Event capacity (".concat(eventData.capacity, ") exceeds venue capacity (").concat(venue.capacity, ")")
             };
@@ -781,12 +782,14 @@ class WorkflowService {
             const allEvents = eventsData.data;
             const venueReports = venues.map((venue)=>{
                 const venueEvents = allEvents.filter((e)=>e.venueId === venue.id);
-                const utilizationPercent = venue.currentOccupancy / venue.capacity * 100;
+                var _venue_currentOccupancy;
+                const utilizationPercent = ((_venue_currentOccupancy = venue.currentOccupancy) !== null && _venue_currentOccupancy !== void 0 ? _venue_currentOccupancy : 0) / (venue.capacity || 1) * 100;
+                var _venue_name, _venue_capacity, _venue_currentOccupancy1;
                 return {
                     id: venue.id,
-                    name: venue.name,
-                    capacity: venue.capacity,
-                    currentOccupancy: venue.currentOccupancy,
+                    name: (_venue_name = venue.name) !== null && _venue_name !== void 0 ? _venue_name : '',
+                    capacity: (_venue_capacity = venue.capacity) !== null && _venue_capacity !== void 0 ? _venue_capacity : 0,
+                    currentOccupancy: (_venue_currentOccupancy1 = venue.currentOccupancy) !== null && _venue_currentOccupancy1 !== void 0 ? _venue_currentOccupancy1 : 0,
                     utilizationPercent: Math.round(utilizationPercent * 100) / 100,
                     status: venue.status,
                     events: venueEvents
