@@ -7,9 +7,12 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { getInitials, formatDate } from '@/lib/utils';
-import { mockStaff } from '@/constants/mock-data';
+import { useStaff } from '@/hooks/useStaff';
 
 export default function StaffPage() {
+  const { data, isLoading } = useStaff();
+  const staffList = data?.data ?? [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -59,7 +62,8 @@ export default function StaffPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {mockStaff.map((staff) => (
+        {isLoading && <p className="text-muted-foreground col-span-3">Loading staff…</p>}
+        {staffList.map((staff) => (
           <Card key={staff.id} className="card-hover">
             <CardHeader>
               <div className="flex items-start gap-4">

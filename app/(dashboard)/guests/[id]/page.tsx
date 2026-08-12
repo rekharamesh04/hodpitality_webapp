@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { use } from 'react';
 import { ArrowLeft, Phone, Mail, MessageSquare, CalendarPlus, Pencil } from 'lucide-react';
@@ -15,9 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { mockCustomers, mockSpaAppointments, mockVisitHistory } from '@/constants/mock-data';
-import type { SpaAppointment } from '@/types';
+import type { SpaAppointment, Guest } from '@/types';
 import NewAppointmentDialog from '@/components/dialogs/NewAppointmentDialog';
+import { guestService } from '@/services/guest.service';
+import { appointmentService } from '@/services/appointment.service';
 
 const TIER_COLORS: Record<string, string> = {
   Founding:  'bg-amber-100 text-amber-800 border-amber-300',
@@ -41,10 +42,15 @@ export default function CustomerProfilePage({
   const router = useRouter();
   const { id } = use(params);
 
-  const customer = mockCustomers.find((c) => c.id === id);
-
+  const [customer, setCustomer] = useState<(Guest & Record<string, any>) | null>(null);
   const [bookOpen, setBookOpen] = useState(false);
-  const [appointments, setAppointments] = useState<SpaAppointment[]>(mockSpaAppointments);
+  const [appointments, setAppointments] = useState<SpaAppointment[]>([]);
+  const visitHistory: Array<{ date: string; service: string; staff: string; duration: number; outcome: string; notes?: string }> = [];
+
+  useEffect(() => {
+    guestService.getGuest(id).then(setCustomer).catch(console.error);
+    appointmentService.getAppointments({ limit: 100 }).then(res => setAppointments((res.data ?? []) as unknown as SpaAppointment[])).catch(console.error);
+  }, [id]);
 
   const upcomingAppts = useMemo(
     () =>
@@ -54,7 +60,6 @@ export default function CustomerProfilePage({
     [appointments, id]
   );
 
-  const visitHistory = mockVisitHistory[id] ?? [];
 
   if (!customer) {
     return (
@@ -212,7 +217,7 @@ export default function CustomerProfilePage({
                         <TableCell className="text-sm">{v.date}</TableCell>
                         <TableCell className="text-sm">{v.service}</TableCell>
                         <TableCell className="text-sm hidden sm:table-cell">{v.staff}</TableCell>
-                        <TableCell className="text-sm hidden md:table-cell">{v.location}</TableCell>
+                        <TableCell className="text-sm hidden md:table-cell">{(v as any).location}</TableCell>
                         <TableCell>
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${

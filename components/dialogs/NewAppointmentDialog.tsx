@@ -1,6 +1,4 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -10,9 +8,10 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { mockCustomers, mockCalendarStaff, mockSpaServices } from '@/constants/mock-data';
-import type { SpaAppointment, AppointmentStatus } from '@/types';
+import type { SpaAppointment, AppointmentStatus, Customer, CalendarStaff, SpaService } from '@/types';
 import { cn } from '@/lib/utils';
+import { guestService } from '@/services/guest.service';
+import { staffService } from '@/services/staff.service';
 
 interface NewAppointmentDialogProps {
   open: boolean;
@@ -30,13 +29,8 @@ const TIME_SLOTS = Array.from({ length: 19 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 });
 
-// Slots that are already booked (mock busy times)
-const MOCK_BUSY: Record<string, string[]> = {
-  st1: ['08:00', '09:00', '12:00'],
-  st2: ['08:00', '10:30', '14:00'],
-  st3: ['08:00', '16:00', '17:00'],
-  st4: ['08:30', '15:30'],
-};
+// Busy slots from the server will be empty by default (server-side logic handles conflicts)
+const MOCK_BUSY: Record<string, string[]> = {};
 
 export default function NewAppointmentDialog({
   open,
@@ -50,6 +44,26 @@ export default function NewAppointmentDialog({
   const [selectedServiceId, setSelectedServiceId] = useState('');
   const [selectedStaffId, setSelectedStaffId] = useState('');
   const [selectedTime, setSelectedTime] = useState('');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [staffList, setStaffList] = useState<CalendarStaff[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    guestService.getGuests({ limit: 100 }).then((res) => {
+      setCustomers((res.data as unknown as Customer[]) ?? []);
+    }).catch(() => {});
+    staffService.getStaff({ limit: 50 }).then((res) => {
+      const mapped: CalendarStaff[] = (res.data ?? []).map((s) => ({
+        id: s.id,
+        shortName: s.name.split(' ')[0],
+        rooms: (s as any).rooms ?? '',
+      }));
+      setStaffList(mapped);
+    }).catch(() => {});
+  }, [open]);
+
+  // Static service list — no API endpoint defined for spa services
+  const spaServices: SpaService[] = [];
 
   function reset() {
     setStep(1);
@@ -65,20 +79,20 @@ export default function NewAppointmentDialog({
   }
 
   function handleBook() {
-    const customer = mockCustomers.find((c) => c.id === selectedCustomerId)!;
-    const service = mockSpaServices.find((s) => s.id === selectedServiceId)!;
-    const staff = mockCalendarStaff.find((s) => s.id === selectedStaffId)!;
+    const customer = customers.find((c) => c.id === selectedCustomerId)!;
+    const service = spaServices.find((s) => s.id === selectedServiceId);
+    const staff = staffList.find((s) => s.id === selectedStaffId)!;
     const appt: Omit<SpaAppointment, 'id'> = {
-      customerId: customer.id,
-      customerName: customer.name,
-      customerInitials: customer.initials,
-      customerTier: customer.tier,
-      customerPhone: customer.phone,
-      staffId: staff.id,
-      staffName: staff.shortName,
-      service: service.name,
-      duration: service.duration,
-      room: service.room,
+      customerId: customer?.id ?? selectedCustomerId,
+      customerName: customer?.name ?? '',
+      customerInitials: customer?.initials ?? '',
+      customerTier: customer?.tier ?? 'Standard',
+      customerPhone: customer?.phone ?? '',
+      staffId: staff?.id ?? selectedStaffId,
+      staffName: staff?.shortName ?? '',
+      service: service?.name ?? selectedServiceId,
+      duration: service?.duration ?? 60,
+      room: service?.room ?? '',
       date: defaultDate ?? new Date().toISOString().split('T')[0],
       startTime: selectedTime,
       status: 'scheduled' as AppointmentStatus,
@@ -90,9 +104,9 @@ export default function NewAppointmentDialog({
   const canProceedStep1 = !!selectedCustomerId && !!selectedServiceId;
   const canProceedStep2 = !!selectedStaffId && !!selectedTime;
 
-  const selectedCustomer = mockCustomers.find((c) => c.id === selectedCustomerId);
-  const selectedService = mockSpaServices.find((s) => s.id === selectedServiceId);
-  const selectedStaff = mockCalendarStaff.find((s) => s.id === selectedStaffId);
+  const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
+  const selectedService = spaServices.find((s) => s.id === selectedServiceId);
+  const selectedStaff = staffList.find((s) => s.id === selectedStaffId);
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); }}>
@@ -104,6 +118,8 @@ export default function NewAppointmentDialog({
 
         {step === 1 && (
           <Step1
+            customers={customers}
+            spaServices={spaServices}
             selectedCustomerId={selectedCustomerId}
             onSelectCustomer={setSelectedCustomerId}
             selectedServiceId={selectedServiceId}
@@ -113,6 +129,7 @@ export default function NewAppointmentDialog({
 
         {step === 2 && (
           <Step2
+            staffList={staffList}
             selectedStaffId={selectedStaffId}
             onSelectStaff={(id) => { setSelectedStaffId(id); setSelectedTime(''); }}
             selectedTime={selectedTime}
@@ -159,11 +176,15 @@ export default function NewAppointmentDialog({
 // ─── Step 1: Customer + Service ──────────────────────────────────────────────
 
 function Step1({
+  customers,
+  spaServices,
   selectedCustomerId,
   onSelectCustomer,
   selectedServiceId,
   onSelectService,
 }: {
+  customers: Customer[];
+  spaServices: SpaService[];
   selectedCustomerId: string;
   onSelectCustomer: (id: string) => void;
   selectedServiceId: string;
@@ -181,7 +202,7 @@ function Step1({
           onChange={(e) => onSelectCustomer(e.target.value)}
         >
           <option value="">Select a customer…</option>
-          {mockCustomers.map((c) => (
+          {customers.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name}
             </option>
@@ -192,7 +213,7 @@ function Step1({
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Service</label>
         <div className="grid grid-cols-1 gap-2">
-          {mockSpaServices.map((s) => (
+          {spaServices.map((s) => (
             <button
               key={s.id}
               type="button"
@@ -210,6 +231,9 @@ function Step1({
               </span>
             </button>
           ))}
+          {spaServices.length === 0 && (
+            <p className="text-sm text-muted-foreground py-2">No services available</p>
+          )}
         </div>
       </div>
     </div>
@@ -219,11 +243,13 @@ function Step1({
 // ─── Step 2: Staff + Time ─────────────────────────────────────────────────────
 
 function Step2({
+  staffList,
   selectedStaffId,
   onSelectStaff,
   selectedTime,
   onSelectTime,
 }: {
+  staffList: CalendarStaff[];
   selectedStaffId: string;
   onSelectStaff: (id: string) => void;
   selectedTime: string;
@@ -238,7 +264,7 @@ function Step2({
       <div className="space-y-1.5">
         <label className="text-sm font-medium">Staff member</label>
         <div className="flex flex-wrap gap-2">
-          {mockCalendarStaff.map((s) => (
+          {staffList.map((s) => (
             <button
               key={s.id}
               type="button"
@@ -299,13 +325,13 @@ function Step3({
   time,
   date,
 }: {
-  customer: (typeof mockCustomers)[0];
-  service: (typeof mockSpaServices)[0];
-  staff: (typeof mockCalendarStaff)[0];
+  customer: Customer | undefined;
+  service: SpaService | undefined;
+  staff: CalendarStaff | undefined;
   time: string;
   date?: string;
 }) {
-  const endMin = timeToMinutes(time) + service.duration;
+  const endMin = timeToMinutes(time) + (service?.duration ?? 60);
   const dateLabel = date
     ? new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })
     : 'Today';
@@ -316,17 +342,17 @@ function Step3({
       <div className="rounded-lg border p-4 space-y-3">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-semibold text-primary">
-            {customer.initials}
+          {customer?.initials}
           </div>
           <div>
-            <p className="font-semibold">{customer.name}</p>
-            <Badge variant="outline" className="text-xs">{customer.tier}</Badge>
+            <p className="font-semibold">{customer?.name}</p>
+            <Badge variant="outline" className="text-xs">{customer?.tier}</Badge>
           </div>
         </div>
         <hr />
-        <ConfirmRow label="Service" value={`${service.name} · ${service.duration} min`} />
-        <ConfirmRow label="Staff" value={staff.shortName} />
-        <ConfirmRow label="Room" value={service.room} />
+        <ConfirmRow label="Service" value={`${service?.name ?? ''} · ${service?.duration ?? 0} min`} />
+        <ConfirmRow label="Staff" value={staff?.shortName ?? ''} />
+        <ConfirmRow label="Room" value={service?.room ?? ''} />
         <ConfirmRow label="Date" value={dateLabel} />
         <ConfirmRow
           label="Time"

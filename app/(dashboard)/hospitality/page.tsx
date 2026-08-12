@@ -31,7 +31,7 @@ import {
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { mockHospitality } from '@/constants/mock-data';
+import { useHospitalityBookings, useCreateBooking } from '@/hooks/useHospitality';
 import type { Hospitality } from '@/types';
 
 const TYPES: Hospitality['type'][] = ['Hotel', 'Transport', 'Meal', 'Airport Pickup', 'Special Request'];
@@ -46,7 +46,9 @@ const emptyForm = {
 };
 
 export default function HospitalityPage() {
-  const [bookings, setBookings] = useState<Hospitality[]>(mockHospitality);
+  const { data: bookingsData, isLoading } = useHospitalityBookings();
+  const createBookingMutation = useCreateBooking();
+  const bookings = bookingsData?.data ?? [];
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
 
@@ -57,9 +59,7 @@ export default function HospitalityPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const newBooking: Hospitality = {
-      id: `h${Date.now()}`,
-      guestId: `g${Date.now()}`,
+    createBookingMutation.mutate({
       guestName: form.guestName,
       type: form.type,
       description: form.description,
@@ -68,8 +68,7 @@ export default function HospitalityPage() {
       serviceDate: form.serviceDate ? new Date(form.serviceDate).toISOString() : new Date().toISOString(),
       venue: form.venue || undefined,
       cost: form.cost ? Number(form.cost) : undefined,
-    };
-    setBookings((prev) => [newBooking, ...prev]);
+    });
     setOpen(false);
   }
 

@@ -1,57 +1,45 @@
-import { sleep } from "@/utils/helpers";
-import { mockDashboardStats as MOCK_DASHBOARD_STATS } from "@/constants/mock-data";
-import type { DashboardStats } from "@/types";
-
-type DailyReport = any;
-
-// Stub chart data for local use
-const MOCK_DAILY_REPORTS: any[] = [];
-const GUEST_ARRIVALS_CHART: any[] = [];
-const MONTHLY_EVENTS_CHART: any[] = [];
-const REVENUE_TREND_CHART: any[] = [];
-const NATIONALITY_CHART: any[] = [];
-const CHECK_IN_BY_HOUR: any[] = [];
+import api from '@/lib/axios';
+import { API_ENDPOINTS } from '@/constants';
+import type { DashboardStats, DailyReport, ChartDataPoint, DashboardActivityItem } from '@/types';
 
 export const reportService = {
   async getDashboardStats(): Promise<DashboardStats> {
-    await sleep(350);
-    return MOCK_DASHBOARD_STATS;
+    const { data } = await api.get<DashboardStats>(API_ENDPOINTS.REPORTS.DASHBOARD_STATS);
+    return data;
   },
 
   async getDailyReports(days = 7): Promise<DailyReport[]> {
-    await sleep(400);
-    return MOCK_DAILY_REPORTS.slice(0, days);
+    const { data } = await api.get<DailyReport[]>(`${API_ENDPOINTS.REPORTS.DAILY}?days=${days}`);
+    return data;
   },
 
-  async getGuestArrivalsChart() {
-    await sleep(300);
-    return GUEST_ARRIVALS_CHART;
+  async getActivityFeed(): Promise<DashboardActivityItem[]> {
+    const { data } = await api.get<DashboardActivityItem[]>(API_ENDPOINTS.DASHBOARD.ACTIVITY);
+    return data;
   },
 
-  async getMonthlyEventsChart() {
-    await sleep(300);
-    return MONTHLY_EVENTS_CHART;
+  async getChartData(type: string): Promise<ChartDataPoint[]> {
+    const { data } = await api.get<ChartDataPoint[]>(API_ENDPOINTS.DASHBOARD.CHARTS(type));
+    return data;
   },
 
-  async getRevenueTrendChart() {
-    await sleep(300);
-    return REVENUE_TREND_CHART;
+  async getGuestArrivalsChart(): Promise<ChartDataPoint[]> {
+    const { data } = await api.get<ChartDataPoint[]>(API_ENDPOINTS.REPORTS.GUEST_ARRIVALS);
+    return data;
   },
 
-  async getNationalityChart() {
-    await sleep(300);
-    return NATIONALITY_CHART;
+  async getMonthlyEventsChart(): Promise<ChartDataPoint[]> {
+    const { data } = await api.get<ChartDataPoint[]>(API_ENDPOINTS.REPORTS.MONTHLY_EVENTS);
+    return data;
   },
 
-  async getCheckInByHour() {
-    await sleep(300);
-    return CHECK_IN_BY_HOUR;
+  async getRevenueTrendChart(): Promise<ChartDataPoint[]> {
+    const { data } = await api.get<ChartDataPoint[]>(API_ENDPOINTS.REPORTS.REVENUE_TREND);
+    return data;
   },
 
-  async exportReport(type: string, format: "csv" | "pdf" = "csv"): Promise<Blob> {
-    await sleep(1200);
-    void format;
-    const content = `Report: ${type}\nGenerated: ${new Date().toISOString()}\nData: Sample export data`;
-    return new Blob([content], { type: "text/plain" });
+  async exportReport(payload: { type: string; format: 'pdf' | 'excel'; dateFrom?: string; dateTo?: string }): Promise<{ downloadUrl: string }> {
+    const { data } = await api.post<{ downloadUrl: string }>(API_ENDPOINTS.REPORTS.EXPORT, payload);
+    return data;
   },
 };

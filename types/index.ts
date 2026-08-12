@@ -276,6 +276,12 @@ export interface PaginatedResponse<T = any> {
   totalPages: number;
 }
 
+/** AWS Lambda cursor-based pagination shape returned by all GET list endpoints */
+export interface CursorPaginatedResponse<T = any> {
+  data: T[];
+  nextCursor?: string;
+}
+
 export interface TableFilters {
   search?: string;
   status?: Status;
@@ -286,4 +292,88 @@ export interface TableFilters {
   pageSize?: number;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
+  limit?: number;
+  cursor?: string;
+}
+
+// ============ Multi-Tenant types ============
+
+export interface Reseller {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  status: Status;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Company {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  status: Status;
+  resellerId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============ Appointment types ============
+
+export interface Appointment {
+  id: string;
+  guestId: string;
+  guestName: string;
+  staffId: string;
+  staffName: string;
+  title: string;
+  startTime: string;
+  endTime: string;
+  status: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  notes?: string;
+  venueId?: string;
+}
+
+// ============ Calendar types ============
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  color?: string;
+  type: 'event' | 'appointment' | 'staff_shift';
+  resourceId?: string;
+}
+
+// ============ Upload types ============
+
+export interface PresignedUrlResponse {
+  uploadUrl: string;
+  fileKey: string;
+  publicUrl: string;
+}
+
+// ============ Report / Chart types ============
+
+export interface DailyReport {
+  date: string;
+  checkIns: number;
+  registrations: number;
+  revenue?: number;
+}
+
+export interface ChartDataPoint {
+  label: string;
+  value: number;
+  extra?: Record<string, unknown>;
+}
+
+export interface DashboardActivityItem {
+  id: string;
+  type: string;
+  message: string;
+  timestamp: string;
+  actor?: string;
 }

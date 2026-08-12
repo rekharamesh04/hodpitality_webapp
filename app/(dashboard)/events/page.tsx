@@ -6,9 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { formatDate } from '@/lib/utils';
-import { mockEvents } from '@/constants/mock-data';
+import { useEvents } from '@/hooks/useEvents';
 
 export default function EventsPage() {
+  const { data, isLoading } = useEvents();
+  const events = data?.data ?? [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -58,7 +61,8 @@ export default function EventsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {mockEvents.map((event) => {
+        {isLoading && <p className="text-muted-foreground col-span-2">Loading events…</p>}
+        {events.map((event) => {
           const capacityPercent = (event.attendees / event.capacity) * 100;
           return (
             <Card key={event.id} className="card-hover">

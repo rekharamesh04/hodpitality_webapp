@@ -1,80 +1,46 @@
-import { sleep } from "@/utils/helpers";
-import { mockEvents as MOCK_EVENTS } from "@/constants/mock-data";
-import type { Event, PaginatedResponse, TableFilters } from "@/types";
-
-let eventData = [...MOCK_EVENTS];
+import api from '@/lib/axios';
+import { API_ENDPOINTS } from '@/constants';
+import type { Event, CheckIn, CursorPaginatedResponse, TableFilters } from '@/types';
 
 export const eventService = {
-  async getEvents(filters: TableFilters = {}): Promise<PaginatedResponse<Event>> {
-    await sleep(400);
-    let data = [...eventData];
-    if (filters.search) {
-      const q = filters.search.toLowerCase();
-      data = data.filter(
-        (e) =>
-          e.title.toLowerCase().includes(q) ||
-          e.venue.toLowerCase().includes(q) ||
-          e.category.toLowerCase().includes(q)
-      );
-    }
-    if (filters.status) data = data.filter((e) => e.status === filters.status);
-    const page = filters.page ?? 1;
-    const pageSize = filters.pageSize ?? 10;
-    const total = data.length;
-    return {
-      data: data.slice((page - 1) * pageSize, page * pageSize),
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    };
+  async getEvents(filters: TableFilters = {}): Promise<CursorPaginatedResponse<Event>> {
+    const p = new URLSearchParams();
+    p.set('limit', String(filters.limit ?? 50));
+    if (filters.cursor) p.set('cursor', filters.cursor);
+    if (filters.search) p.set('search', filters.search);
+    if (filters.status) p.set('status', filters.status);
+    const { data } = await api.get<CursorPaginatedResponse<Event>>(
+      `${API_ENDPOINTS.EVENTS}?${p}`
+    );
+    return data;
   },
 
   async getEvent(id: string): Promise<Event> {
-    await sleep(300);
-    const ev = eventData.find((e) => e.id === id);
-    if (!ev) throw new Error("Event not found");
-    return ev;
+    const { data } = await api.get<Event>(`${API_ENDPOINTS.EVENTS}/${id}`);
+    return data;
   },
 
-  async getUpcomingEvents(limit = 5): Promise<Event[]> {
-    await sleep(300);
-    return eventData
-      .filter((e) => (e.status as string) === "upcoming" || e.status === "active")
-      .slice(0, limit);
+  async getUpcomingEvents(): Promise<Event[]> {
+    const { data } = await api.get<Event[]>(`${API_ENDPOINTS.EVENTS}/upcoming`);
+    return data;
+  },
+
+  async getEventAttendees(id: string): Promise<CheckIn[]> {
+    const { data } = await api.get<CheckIn[]>(`${API_ENDPOINTS.EVENTS}/${id}/attendees`);
+    return data;
   },
 
   async createEvent(input: Partial<Event>): Promise<Event> {
-    await sleep(700);
-    const ev: Event = {
-      id: `ev${Date.now()}`,
-      title: (input as any).name ?? input.title ?? "New Event",
-      description: input.description ?? "",
-      startDate: input.startDate ?? new Date().toISOString(),
-      endDate: input.endDate ?? new Date().toISOString(),
-      venue: "TBD",
-      venueId: input.venueId ?? "",
-      capacity: input.capacity ?? 100,
-      attendees: 0,
-      status: "active",
-      category: input.category ?? "General",
-      organizer: input.organizer ?? "Admin",
-      createdAt: new Date().toISOString(),
-    } as Event;
-    eventData = [ev, ...eventData];
-    return ev;
+    const { data } = await api.post<Event>(API_ENDPOINTS.EVENTS, input);
+    return data;
   },
 
   async updateEvent(id: string, input: Partial<Event>): Promise<Event> {
-    await sleep(500);
-    const idx = eventData.findIndex((e) => e.id === id);
-    if (idx === -1) throw new Error("Event not found");
-    eventData[idx] = { ...eventData[idx], ...input };
-    return eventData[idx];
+    const { data } = await api.put<Event>(`${API_ENDPOINTS.EVENTS}/${id}`, input);
+    return data;
   },
 
   async deleteEvent(id: string): Promise<void> {
-    await sleep(400);
-    eventData = eventData.filter((e) => e.id !== id);
+    await api.delete(`${API_ENDPOINTS.EVENTS}/${id}`);
   },
 };

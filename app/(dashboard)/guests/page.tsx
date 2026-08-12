@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { Plus, Search, CalendarPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,8 +17,9 @@ import {
 } from '@/components/ui/table';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { cn, formatDate, formatCurrency } from '@/lib/utils';
-import { mockCustomers, mockRegistrations } from '@/constants/mock-data';
-import type { Customer, MembershipTier } from '@/types';
+import { useGuests } from '@/hooks/use-guests';
+import apiClient from '@/lib/axios';
+import type { Customer, MembershipTier, Registration } from '@/types';
 import NewAppointmentDialog from '@/components/dialogs/NewAppointmentDialog';
 import { CompleteRegistrationDialog } from '@/components/dialogs/CompleteRegistrationDialog';
 
@@ -39,12 +41,21 @@ type Tab = 'customers' | 'registrations';
 
 export default function CustomersPage() {
   const router = useRouter();
+  const { data: guestsData } = useGuests();
+  const { data: registrationsData } = useQuery<Registration[]>({
+    queryKey: ['registrations'],
+    queryFn: async () => {
+      const res = await apiClient.get<{ data: Registration[] }>('/registrations?limit=100');
+      return res.data?.data ?? [];
+    },
+  });
+  const registrations = registrationsData ?? [];
   const [tab, setTab] = useState<Tab>('customers');
 
   // customers state
   const [searchTerm, setSearchTerm] = useState('');
   const [tierFilter, setTierFilter] = useState<MembershipTier | 'All'>('All');
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [bookTarget, setBookTarget] = useState<Customer | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
@@ -229,7 +240,7 @@ export default function CustomersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockRegistrations.map((reg) => (
+                {registrations.map((reg) => (
                   <TableRow key={reg.id}>
                     <TableCell>
                       <div className="font-medium">{reg.guestName}</div>

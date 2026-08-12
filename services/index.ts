@@ -1,52 +1,25 @@
 /**
- * Service Integration Point
- * 
- * This file allows you to easily switch between mock data and real API
- * by changing a single configuration flag.
+ * Service Integration Layer
+ * All services call the real AWS Lambda backend.
+ * Base URL and API key are configured via .env.local (NEXT_PUBLIC_API_URL, NEXT_PUBLIC_LAMBDA_API_KEY).
  */
 
-import { mockApiService } from './mockApi';
-import { apiService } from './api';
+export { authService }        from './auth.service';
+export { guestService }       from './guest.service';
+export { checkInService }     from './checkin.service';
+export { eventService }       from './event.service';
+export { venueService }       from './venue.service';
+export { staffService }       from './staff.service';
+export { appointmentService } from './appointment.service';
+export { calendarService }    from './calendar.service';
+export { hospitalityService } from './hospitality.service';
+export { reportService }      from './report.service';
+export { notificationService } from './notification.service';
+export { settingsService }    from './settings.service';
+export { resellerService }    from './reseller.service';
+export { companyService }     from './company.service';
+export { uploadService }      from './upload.service';
 
-// Configuration flag - set to true to use real API
-const USE_REAL_API = false;
-
-/**
- * Main service instance
- * Switch between mock and real API here
- */
-export const hospitalityService = USE_REAL_API ? apiService : mockApiService;
-
-/**
- * Export workflow service (works with both mock and real API)
- */
 export { workflowService } from './workflowService';
 
-/**
- * Export types for consumers
- */
 export type * from '@/types';
-
-/**
- * Configuration
- */
-export const config = {
-  useRealApi: USE_REAL_API,
-  apiBaseUrl: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
-  mockDelay: 500, // ms delay for mock API to simulate network
-};
-
-/**
- * Usage Examples:
- * 
- * // In your components or hooks:
- * import { hospitalityService, workflowService } from '@/services';
- * 
- * // Basic CRUD operations
- * const guests = await hospitalityService.getGuests();
- * const newGuest = await hospitalityService.createGuest(guestData);
- * 
- * // Business workflows
- * const result = await workflowService.completeRegistration(registrationData);
- * const checkIn = await workflowService.processCheckIn(checkInData);
- */

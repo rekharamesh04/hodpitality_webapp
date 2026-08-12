@@ -1447,23 +1447,45 @@ const API_ENDPOINTS = {
     AUTH: {
         LOGIN: '/auth/login',
         LOGOUT: '/auth/logout',
-        REFRESH: '/auth/refresh',
-        VERIFY_OTP: '/auth/verify-otp',
+        ME: '/auth/me',
         FORGOT_PASSWORD: '/auth/forgot-password',
+        VERIFY_OTP: '/auth/verify-otp',
         RESET_PASSWORD: '/auth/reset-password'
     },
-    DASHBOARD: '/dashboard',
-    HOSPITALITY: '/hospitality',
+    SETTINGS: {
+        PROFILE: '/settings/profile',
+        ORGANISATION: '/settings/organisation',
+        NOTIFICATIONS: '/settings/notifications',
+        PASSWORD: '/settings/password'
+    },
+    RESELLERS: '/resellers',
+    COMPANIES: '/companies',
     GUESTS: '/guests',
-    CHECKINS: '/checkins',
-    REGISTRATIONS: '/registrations',
-    VENUES: '/venues',
+    CUSTOMERS: '/customers',
+    CHECK_INS: '/check-ins',
     EVENTS: '/events',
+    VENUES: '/venues',
     STAFF: '/staff',
-    REPORTS: '/reports',
-    ANALYTICS: '/analytics',
+    APPOINTMENTS: '/appointments',
+    CALENDAR: '/calendar',
+    DASHBOARD: {
+        ACTIVITY: '/dashboard/activity',
+        CHARTS: (type)=>`/dashboard/charts/${type}`
+    },
+    REPORTS: {
+        DASHBOARD_STATS: '/reports/dashboard-stats',
+        DAILY: '/reports/daily',
+        GUEST_ARRIVALS: '/reports/guest-arrivals',
+        MONTHLY_EVENTS: '/reports/monthly-events',
+        REVENUE_TREND: '/reports/revenue-trend',
+        EXPORT: '/reports/export'
+    },
+    UPLOADS: {
+        PRESIGNED_URL: '/uploads/presigned-url'
+    },
     NOTIFICATIONS: '/notifications',
-    SETTINGS: '/settings'
+    HOSPITALITY: '/hospitality',
+    REGISTRATIONS: '/registrations'
 };
 const QUERY_KEYS = {
     DASHBOARD: [
@@ -1480,7 +1502,11 @@ const QUERY_KEYS = {
             id
         ],
     CHECKINS: [
-        'checkins'
+        'check-ins'
+    ],
+    CHECKIN_STATS: [
+        'check-ins',
+        'stats'
     ],
     REGISTRATIONS: [
         'registrations'
@@ -1488,11 +1514,38 @@ const QUERY_KEYS = {
     VENUES: [
         'venues'
     ],
+    VENUE_DETAIL: (id)=>[
+            'venues',
+            id
+        ],
     EVENTS: [
         'events'
     ],
+    EVENT_DETAIL: (id)=>[
+            'events',
+            id
+        ],
+    EVENT_ATTENDEES: (id)=>[
+            'events',
+            id,
+            'attendees'
+        ],
+    UPCOMING_EVENTS: [
+        'events',
+        'upcoming'
+    ],
     STAFF: [
         'staff'
+    ],
+    STAFF_DETAIL: (id)=>[
+            'staff',
+            id
+        ],
+    APPOINTMENTS: [
+        'appointments'
+    ],
+    CALENDAR: [
+        'calendar'
     ],
     REPORTS: [
         'reports'
@@ -1508,7 +1561,21 @@ const QUERY_KEYS = {
     ],
     USER: [
         'user'
-    ]
+    ],
+    RESELLERS: [
+        'resellers'
+    ],
+    RESELLER_DETAIL: (id)=>[
+            'resellers',
+            id
+        ],
+    COMPANIES: [
+        'companies'
+    ],
+    COMPANY_DETAIL: (id)=>[
+            'companies',
+            id
+        ]
 };
 const STORAGE_KEYS = {
     AUTH_TOKEN: 'entryflow_auth_token',

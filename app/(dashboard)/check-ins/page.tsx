@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { SpaAppointment, AppointmentStatus } from '@/types';
-import { mockSpaAppointments } from '@/constants/mock-data';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { appointmentService } from '@/services/appointment.service';
 
 const TODAY_LABEL = 'Thursday 6 August';
 
@@ -42,8 +42,14 @@ function formatTime(t: string): string {
 }
 
 export default function CheckInsPage() {
-  const [appointments, setAppointments] = useState<SpaAppointment[]>(mockSpaAppointments);
+  const [appointments, setAppointments] = useState<SpaAppointment[]>([]);
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
+
+  useEffect(() => {
+    appointmentService.getAppointments({ limit: 100 }).then((res) => {
+      setAppointments((res.data as unknown as SpaAppointment[]) ?? []);
+    }).catch(() => {});
+  }, []);
 
   const stats = useMemo(() => ({
     expected:  appointments.filter((a) => a.status === 'scheduled').length,

@@ -16,10 +16,17 @@ import {
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { mockRegistrations } from '@/constants/mock-data';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/axios';
+import type { Registration } from '@/types';
 
 export default function RegistrationsPage() {
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
+  const { data: regs, isLoading } = useQuery<Registration[]>({
+    queryKey: ['registrations'],
+    queryFn: async () => { const r = await api.get('/registrations?limit=50'); return r.data?.data ?? []; },
+  });
+  const registrations = regs ?? [];
 
   return (
     <div className="space-y-6">
@@ -93,7 +100,10 @@ export default function RegistrationsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockRegistrations.map((reg) => (
+              {isLoading && (
+                <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground">Loading…</TableCell></TableRow>
+              )}
+              {registrations.map((reg) => (
                 <TableRow key={reg.id}>
                   <TableCell>
                     <div className="font-medium">{reg.guestName}</div>

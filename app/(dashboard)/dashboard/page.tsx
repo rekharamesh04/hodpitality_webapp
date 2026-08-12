@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { Users, UserCheck, Clock, Hotel } from 'lucide-react';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { StatsCard } from '@/components/dashboard/StatsCard';
@@ -10,32 +9,17 @@ import { VenueOccupancy } from '@/components/dashboard/VenueOccupancy';
 import { QuickActions } from '@/components/dashboard/QuickActions';
 import { LineChartComponent } from '@/components/charts/LineChartComponent';
 import { PieChartComponent } from '@/components/charts/PieChartComponent';
-import {
-  mockDashboardStats,
-  mockActivityFeed,
-  mockEvents,
-  mockVenues,
-  mockCheckInTrends,
-  mockGuestCategories,
-} from '@/constants/mock-data';
-import api from '@/lib/axios';
-import type { DashboardStats } from '@/types';
+import { useDashboardStats, useChartData } from '@/hooks/useReports';
+import { useActivityFeed, useUpcomingEvents } from '@/hooks/use-dashboard';
+import { useVenues } from '@/hooks/useVenues';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>(mockDashboardStats);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    api.get<DashboardStats>('/reports/dashboard-stats')
-      .then((res) => {
-        console.log('[Dashboard] dashboard-stats:', res.data);
-        setStats(res.data);
-      })
-      .catch((err) => {
-        console.error('[Dashboard] Failed to fetch stats, using mock data:', err);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+  const { data: stats, isLoading } = useDashboardStats();
+  const { data: activity }         = useActivityFeed();
+  const { data: upcomingEvents }   = useUpcomingEvents();
+  const { data: venues }           = useVenues();
+  const { data: checkInTrends }    = useChartData('checkins');
+  const { data: guestCategories }  = useChartData('guest-categories');
 
   return (
     <div className="space-y-6">
@@ -45,25 +29,25 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Today's Check-ins"
-          value={loading ? '…' : stats.todayCheckIns}
+          value={isLoading ? '…' : (stats?.todayCheckIns ?? 0)}
           icon={UserCheck}
           trend={{ value: 12, isPositive: true }}
         />
         <StatsCard
           title="Total Guests"
-          value={loading ? '…' : stats.totalGuests}
+          value={isLoading ? '…' : (stats?.totalGuests ?? 0)}
           icon={Users}
           trend={{ value: 8, isPositive: true }}
         />
         <StatsCard
           title="Pending Guests"
-          value={loading ? '…' : stats.pendingGuests}
+          value={isLoading ? '…' : (stats?.pendingGuests ?? 0)}
           icon={Clock}
           trend={{ value: -5, isPositive: false }}
         />
         <StatsCard
           title="Hospitality Bookings"
-          value={loading ? '…' : stats.hospitalityBookings}
+          value={isLoading ? '…' : (stats?.hospitalityBookings ?? 0)}
           icon={Hotel}
           trend={{ value: 15, isPositive: true }}
         />
@@ -77,23 +61,23 @@ export default function DashboardPage() {
         <LineChartComponent
           title="Check-in Trends"
           description="Daily check-ins over the past week"
-          data={mockCheckInTrends}
+          data={checkInTrends ?? []}
           dataKey="value"
-          xAxisKey="name"
+          xAxisKey="label"
         />
         <PieChartComponent
           title="Guest Categories"
           description="Distribution of guest types"
-          data={mockGuestCategories}
+          data={guestCategories ?? []}
         />
       </div>
 
       {/* Content Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <ActivityFeed activities={mockActivityFeed} />
+        <ActivityFeed activities={(activity as any) ?? []} />
         <div className="space-y-6">
-          <UpcomingEvents events={mockEvents} />
-          <VenueOccupancy venues={mockVenues.slice(0, 4)} />
+          <UpcomingEvents events={(upcomingEvents as any) ?? []} />
+          <VenueOccupancy venues={((venues?.data ?? []) as any).slice(0, 4)} />
         </div>
       </div>
     </div>

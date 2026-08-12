@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { mockSpaAppointments, mockCalendarStaff } from '@/constants/mock-data';
-import type { SpaAppointment, AppointmentStatus } from '@/types';
+import type { SpaAppointment, AppointmentStatus, CalendarStaff } from '@/types';
 import NewAppointmentDialog from '@/components/dialogs/NewAppointmentDialog';
+import { appointmentService } from '@/services/appointment.service';
+import { staffService } from '@/services/staff.service';
 
 const REFERENCE_DATE = new Date('2026-08-06');
 const HOUR_START = 8;
@@ -21,10 +22,8 @@ const STATUS_STYLES: Record<AppointmentStatus, { bg: string; text: string; label
   no_show:    { bg: 'bg-orange-50 border-orange-300', text: 'text-orange-700', label: 'No-show' },
 };
 
-// Derive unique rooms in stable insertion order
-const ALL_ROOMS: string[] = Array.from(
-  new Set(mockSpaAppointments.map((a) => a.room))
-);
+// Rooms derived from loaded appointments
+const FALLBACK_ROOMS: string[] = [];
 
 function addDays(date: Date, days: number): Date {
   const d = new Date(date);
@@ -67,7 +66,24 @@ export default function CalendarPage() {
   const [selectedRoom, setSelectedRoom] = useState<string>('All');
   const [selectedAppt, setSelectedAppt] = useState<SpaAppointment | null>(null);
   const [newApptOpen, setNewApptOpen]   = useState(false);
-  const [appointments, setAppointments] = useState<SpaAppointment[]>(mockSpaAppointments);
+  const [appointments, setAppointments] = useState<SpaAppointment[]>([]);
+  const [calendarStaff, setCalendarStaff] = useState<CalendarStaff[]>([]);
+
+  useEffect(() => {
+    appointmentService.getAppointments({ limit: 200 }).then((res) => {
+      setAppointments((res.data as unknown as SpaAppointment[]) ?? []);
+    }).catch(() => {});
+    staffService.getStaff({ limit: 50 }).then((res) => {
+      const mapped: CalendarStaff[] = (res.data ?? []).map((s) => ({
+        id: s.id,
+        shortName: s.name.split(' ')[0],
+        rooms: (s as any).rooms ?? '',
+      }));
+      setCalendarStaff(mapped);
+    }).catch(() => {});
+  }, []);
+
+  const ALL_ROOMS = Array.from(new Set(appointments.map((a) => a.room).filter(Boolean)));
 
   const dateKey = toISODate(currentDate);
 
@@ -118,7 +134,7 @@ export default function CalendarPage() {
   // Staff assigned to the selected room (for column header)
   const roomStaff = selectedRoom === 'All'
     ? null
-    : mockCalendarStaff.find((s) => s.rooms.includes(selectedRoom.replace('Room ', '')));
+    : calendarStaff.find((s) => s.rooms.includes(selectedRoom.replace('Room ', '')));
 
   return (
     <div className="flex flex-col space-y-4">
@@ -219,7 +235,7 @@ export default function CalendarPage() {
               </div>
             </div>
             {ALL_ROOMS.map((room) => {
-              const staff = mockCalendarStaff.find((s) => s.rooms.includes(room.replace('Room ', '')));
+              const staff = calendarStaff.find((s) => s.rooms.includes(room.replace('Room ', '')));
               const roomAppts = dayAppointments.filter((a) => a.room === room);
               return (
                 <div key={room} className="flex-1 border-r last:border-r-0 min-w-[160px]">

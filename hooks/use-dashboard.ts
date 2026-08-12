@@ -1,13 +1,27 @@
-import { mockDashboardStats, mockActivityFeed, mockEvents } from '@/constants/mock-data';
+import { useQuery } from "@tanstack/react-query";
+import { reportService } from "@/services/report.service";
+import { eventService } from "@/services/event.service";
+import { QUERY_KEYS } from "@/constants";
 
 export function useDashboardStats() {
-  return { data: mockDashboardStats, isLoading: false, error: null };
+  return useQuery({
+    queryKey: QUERY_KEYS.REPORTS,
+    queryFn:  reportService.getDashboardStats,
+    refetchInterval: 30000,
+  });
 }
 
-export function useActivityFeed(_limit?: number) {
-  return { data: mockActivityFeed, isLoading: false, error: null };
+export function useActivityFeed() {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.REPORTS, "activity"],
+    queryFn:  reportService.getActivityFeed,
+    refetchInterval: 20000,
+  });
 }
 
 export function useUpcomingEvents() {
-  return { data: mockEvents, isLoading: false, error: null };
+  return useQuery({
+    queryKey: QUERY_KEYS.UPCOMING_EVENTS,
+    queryFn:  eventService.getUpcomingEvents,
+  });
 }

@@ -1,5 +1,6 @@
 {
-  "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
+  "/(dashboard)/apiresponse/page": "app/(dashboard)/apiresponse/page.js",
   "/(dashboard)/calendar/page": "app/(dashboard)/calendar/page.js",
   "/(dashboard)/check-ins/page": "app/(dashboard)/check-ins/page.js",
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
@@ -7,8 +8,7 @@
   "/(dashboard)/guests/page": "app/(dashboard)/guests/page.js",
   "/(dashboard)/hospitality/page": "app/(dashboard)/hospitality/page.js",
   "/(dashboard)/registrations/page": "app/(dashboard)/registrations/page.js",
+  "/(dashboard)/reports/page": "app/(dashboard)/reports/page.js",
   "/(dashboard)/staff/page": "app/(dashboard)/staff/page.js",
-  "/(dashboard)/venues/page": "app/(dashboard)/venues/page.js",
-  "/api/proxy/[...path]/route": "app/api/proxy/[...path]/route.js",
-  "/page": "app/page.js"
+  "/(dashboard)/venues/page": "app/(dashboard)/venues/page.js"
 }

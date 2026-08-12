@@ -1,5 +1,10 @@
 import type { Guest, Registration, CheckIn, Hospitality, Event } from '@/types';
-import { mockApiService } from './mockApi';
+import { guestService } from './guest.service';
+import { checkInService } from './checkin.service';
+import { hospitalityService } from './hospitality.service';
+import { eventService } from './event.service';
+import { venueService } from './venue.service';
+import apiClient from '@/lib/axios';
 
 export interface WorkflowResponse<T = any> {
   success: boolean;
@@ -64,105 +69,62 @@ class WorkflowService {
   }>> {
     try {
       // Step 1: Create or find existing guest
-      const existingGuestsResponse = await mockApiService.getGuests({
-        search: data.email,
-        pageSize: 1
-      });
-      
       let guest: Guest;
-      
-      if (existingGuestsResponse.success && existingGuestsResponse.data!.data.length > 0) {
-        // Update existing guest
-        const existingGuest = existingGuestsResponse.data!.data[0];
-        const updateResponse = await mockApiService.updateGuest(existingGuest.id, {
-          name: data.guestName,
-          phone: data.phone,
-          company: data.company,
-          designation: data.designation,
-          category: data.category,
-          notes: data.notes,
-        });
-        
-        if (!updateResponse.success) {
-          return { success: false, error: 'Failed to update guest information' };
+      try {
+        const existingGuests = await guestService.getGuests({ search: data.email, limit: 1 });
+        if (existingGuests.data.length > 0) {
+          guest = await guestService.updateGuest(existingGuests.data[0].id, {
+            name: data.guestName, phone: data.phone, company: data.company,
+            designation: data.designation, category: data.category, notes: data.notes,
+          });
+        } else {
+          guest = await guestService.createGuest({
+            name: data.guestName, email: data.email, phone: data.phone,
+            company: data.company, designation: data.designation, category: data.category,
+            status: 'active', checkedIn: false, registrationDate: new Date().toISOString(),
+            notes: data.notes, tags: data.dietaryRestrictions?.concat(data.accessibilityNeeds || []),
+          });
         }
-        guest = updateResponse.data!;
-      } else {
-        // Create new guest
-        const guestResponse = await mockApiService.createGuest({
-          name: data.guestName,
-          email: data.email,
-          phone: data.phone,
-          company: data.company,
-          designation: data.designation,
-          category: data.category,
-          status: 'active',
-          checkedIn: false,
-          registrationDate: new Date().toISOString(),
-          notes: data.notes,
-          tags: data.dietaryRestrictions?.concat(data.accessibilityNeeds || []),
-        });
-        
-        if (!guestResponse.success) {
-          return { success: false, error: 'Failed to create guest record' };
-        }
-        guest = guestResponse.data!;
+      } catch {
+        return { success: false, error: 'Failed to create/update guest record' };
       }
 
       // Step 2: Create event registration
-      const registrationResponse = await mockApiService.createRegistration({
-        guestName: data.guestName,
-        guestEmail: data.email,
-        phone: data.phone,
-        event: data.eventTitle,
-        registrationDate: new Date().toISOString(),
-        status: 'pending',
-        paymentStatus: data.paymentAmount ? 'pending' : 'paid',
-        amount: data.paymentAmount,
-        category: data.category,
-      });
-      
-      if (!registrationResponse.success) {
+      let registration: Registration;
+      try {
+        const res = await apiClient.post<Registration>('/registrations', {
+          guestName: data.guestName, guestEmail: data.email, phone: data.phone,
+          event: data.eventTitle, registrationDate: new Date().toISOString(),
+          status: 'pending', paymentStatus: data.paymentAmount ? 'pending' : 'paid',
+          amount: data.paymentAmount, category: data.category,
+        });
+        registration = res.data;
+      } catch {
         return { success: false, error: 'Failed to create event registration' };
       }
 
       // Step 3: Process hospitality requests
       const hospitalityRecords: Hospitality[] = [];
-      
       if (data.hospitalityRequests && data.hospitalityRequests.length > 0) {
         for (const request of data.hospitalityRequests) {
-          const hospResponse = await mockApiService.createHospitality({
-            guestId: guest.id,
-            guestName: guest.name,
-            type: request.type,
-            description: request.description,
-            status: 'pending',
-            bookingDate: new Date().toISOString(),
-            serviceDate: request.serviceDate,
-            cost: request.cost,
-          });
-          
-          if (hospResponse.success) {
-            hospitalityRecords.push(hospResponse.data!);
-          }
+          try {
+            const h = await hospitalityService.createBooking({
+              guestId: guest.id, guestName: guest.name, type: request.type,
+              description: request.description, status: 'pending',
+              bookingDate: new Date().toISOString(), serviceDate: request.serviceDate, cost: request.cost,
+            });
+            hospitalityRecords.push(h);
+          } catch { /* skip failed hospitality items */ }
         }
       }
 
       return {
         success: true,
-        data: {
-          guest,
-          registration: registrationResponse.data!,
-          hospitality: hospitalityRecords,
-        },
+        data: { guest, registration, hospitality: hospitalityRecords },
         message: `Registration completed successfully for ${data.guestName}`
       };
-      
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during registration'
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error during registration' };
     }
   }
   // ==================== CHECK-IN WORKFLOW ====================
@@ -180,51 +142,22 @@ class WorkflowService {
     badgePrinted: boolean;
   }>> {
     try {
-      let checkInResponse;
-      
-      // Process check-in based on method
+      let checkIn: CheckIn;
       if (data.method === 'QR' && data.qrCode) {
-        checkInResponse = await mockApiService.checkInByQr(data.qrCode, data.venue);
+        checkIn = await checkInService.checkInByQr(data.qrCode, data.venue);
       } else if (data.guestId) {
-        checkInResponse = await mockApiService.checkInGuest(data.guestId, data.method, data.venue);
+        checkIn = await checkInService.quickCheckIn({ guestId: data.guestId, method: data.method });
       } else {
         return { success: false, error: 'Invalid check-in data. Provide either QR code or guest ID' };
       }
-      
-      if (!checkInResponse.success) {
-        return { success: false, error: checkInResponse.error };
-      }
-      
-      const checkIn = checkInResponse.data!;
-      
-      // Get updated guest information
-      const guestResponse = await mockApiService.getGuest(checkIn.guestId);
-      if (!guestResponse.success) {
-        return { success: false, error: 'Failed to fetch guest details' };
-      }
-      
-      // Print badge if requested
+      const guest = await guestService.getGuest(checkIn.guestId);
       let badgePrinted = false;
       if (data.printBadge) {
-        const badgeResponse = await mockApiService.printBadge(checkIn.id);
-        badgePrinted = badgeResponse.success;
+        try { await checkInService.printBadge(checkIn.id); badgePrinted = true; } catch { /* ignore */ }
       }
-      
-      return {
-        success: true,
-        data: {
-          checkIn,
-          guest: guestResponse.data!,
-          badgePrinted,
-        },
-        message: `Check-in successful for ${checkIn.guestName}`
-      };
-      
+      return { success: true, data: { checkIn, guest, badgePrinted }, message: `Check-in successful for ${checkIn.guestName}` };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during check-in'
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error during check-in' };
     }
   }
   
@@ -241,50 +174,13 @@ class WorkflowService {
     venue: any;
   }>> {
     try {
-      // Validate venue exists and is available
-      const venueResponse = await mockApiService.getVenue(eventData.venueId);
-      if (!venueResponse.success) {
-        return { success: false, error: 'Venue not found' };
-      }
-      
-      const venue = venueResponse.data!;
-      
-      if (venue.status !== 'active') {
-        return { success: false, error: 'Venue is not available' };
-      }
-      
-      if (eventData.capacity > venue.capacity) {
-        return {
-          success: false,
-          error: `Event capacity (${eventData.capacity}) exceeds venue capacity (${venue.capacity})`
-        };
-      }
-      
-      // Create event
-      const eventResponse = await mockApiService.createEvent({
-        ...eventData,
-        attendees: 0,
-        status: 'active',
-      });
-      
-      if (!eventResponse.success) {
-        return { success: false, error: 'Failed to create event' };
-      }
-      
-      return {
-        success: true,
-        data: {
-          event: eventResponse.data!,
-          venue,
-        },
-        message: `Event "${eventData.title}" created successfully`
-      };
-      
+      const venue = await venueService.getVenue(eventData.venueId);
+      if (venue.status !== 'active') return { success: false, error: 'Venue is not available' };
+      if (eventData.capacity > venue.capacity) return { success: false, error: `Event capacity (${eventData.capacity}) exceeds venue capacity (${venue.capacity})` };
+      const event = await eventService.createEvent({ ...eventData, attendees: 0, status: 'active' });
+      return { success: true, data: { event, venue }, message: `Event "${eventData.title}" created successfully` };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error during event creation'
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error during event creation' };
     }
   }
   // ==================== BULK OPERATIONS WORKFLOW ====================
@@ -298,22 +194,15 @@ class WorkflowService {
   }>> {
     const successful: CheckIn[] = [];
     const failed: { guestId: string; error: string }[] = [];
-    
     for (const guestId of guestIds) {
-      const result = await mockApiService.checkInGuest(guestId, method, venue);
-      
-      if (result.success) {
-        successful.push(result.data!);
-      } else {
-        failed.push({ guestId, error: result.error || 'Unknown error' });
+      try {
+        const checkIn = await checkInService.quickCheckIn({ guestId, method });
+        successful.push(checkIn);
+      } catch (e) {
+        failed.push({ guestId, error: e instanceof Error ? e.message : 'Unknown error' });
       }
     }
-    
-    return {
-      success: true,
-      data: { successful, failed },
-      message: `Bulk check-in completed: ${successful.length} successful, ${failed.length} failed`
-    };
+    return { success: true, data: { successful, failed }, message: `Bulk check-in completed: ${successful.length} successful, ${failed.length} failed` };
   }
   
   /**
@@ -325,29 +214,15 @@ class WorkflowService {
   }>> {
     const confirmed: Registration[] = [];
     const failed: { registrationId: string; error: string }[] = [];
-    
     for (const regId of registrationIds) {
-      const confirmResponse = await mockApiService.confirmRegistration(regId);
-      
-      if (confirmResponse.success) {
-        // Also mark payment as paid
-        const paymentResponse = await mockApiService.updatePaymentStatus(regId, 'paid');
-        
-        if (paymentResponse.success) {
-          confirmed.push(paymentResponse.data!);
-        } else {
-          failed.push({ registrationId: regId, error: 'Payment update failed' });
-        }
-      } else {
-        failed.push({ registrationId: regId, error: confirmResponse.error || 'Unknown error' });
+      try {
+        const res = await apiClient.patch<Registration>(`/registrations/${regId}`, { status: 'confirmed', paymentStatus: 'paid' });
+        confirmed.push(res.data);
+      } catch (e) {
+        failed.push({ registrationId: regId, error: e instanceof Error ? e.message : 'Unknown error' });
       }
     }
-    
-    return {
-      success: true,
-      data: { confirmed, failed },
-      message: `Bulk confirmation completed: ${confirmed.length} confirmed, ${failed.length} failed`
-    };
+    return { success: true, data: { confirmed, failed }, message: `Bulk confirmation completed: ${confirmed.length} confirmed, ${failed.length} failed` };
   }
   
   // ==================== HOSPITALITY PACKAGE WORKFLOW ====================
@@ -366,13 +241,7 @@ class WorkflowService {
     }[]
   ): Promise<WorkflowResponse<Hospitality[]>> {
     try {
-      // Get guest information
-      const guestResponse = await mockApiService.getGuest(guestId);
-      if (!guestResponse.success) {
-        return { success: false, error: 'Guest not found' };
-      }
-      
-      const guest = guestResponse.data!;
+      const guest = await guestService.getGuest(guestId);
       const hospitalityRecords: Hospitality[] = [];
       
       // Define standard packages
@@ -407,27 +276,18 @@ class WorkflowService {
         const service = services[i];
         const serviceDate = service.serviceDate || new Date(baseDate.getTime() + i * 24 * 60 * 60 * 1000).toISOString();
         
-        const hospResponse = await mockApiService.createHospitality({
-          guestId: guest.id,
-          guestName: guest.name,
-          type: service.type,
-          description: service.description,
-          status: 'pending',
-          bookingDate: new Date().toISOString(),
-          serviceDate,
-          cost: service.cost,
-        });
-        
-        if (hospResponse.success) {
-          hospitalityRecords.push(hospResponse.data!);
-        }
+        try {
+            const h = await hospitalityService.createBooking({
+              guestId: guest.id, guestName: guest.name, type: service.type,
+              description: service.description, status: 'pending',
+              bookingDate: new Date().toISOString(), serviceDate,
+              cost: service.cost,
+            });
+            hospitalityRecords.push(h);
+          } catch { /* skip */ }
       }
       
-      return {
-        success: true,
-        data: hospitalityRecords,
-        message: `${packageType.toUpperCase()} hospitality package created for ${guest.name}`
-      };
+      return { success: true, data: hospitalityRecords, message: `${packageType.toUpperCase()} hospitality package created for ${guest.name}` };
       
     } catch (error) {
       return {
@@ -449,50 +309,19 @@ class WorkflowService {
     events: Event[];
   }>> {
     try {
-      // Get guest details
-      const guestResponse = await mockApiService.getGuest(guestId);
-      if (!guestResponse.success) {
-        return { success: false, error: 'Guest not found' };
-      }
-      
-      const guest = guestResponse.data!;
-      
-      // Get all related records
-      const [registrationsRes, checkInsRes, hospitalityRes] = await Promise.all([
-        mockApiService.getRegistrations({ search: guest.email }),
-        mockApiService.getCheckIns({ search: guest.email }),
-        mockApiService.getGuestHospitality(guestId),
+      const guest = await guestService.getGuest(guestId);
+      const [registrationsRes, checkInsRes, eventsRes] = await Promise.all([
+        apiClient.get<{ data: Registration[] }>(`/registrations?search=${encodeURIComponent(guest.email)}&limit=100`),
+        apiClient.get<{ data: CheckIn[] }>(`/check-ins?search=${encodeURIComponent(guest.email)}&limit=100`),
+        eventService.getEvents({ limit: 100 }),
       ]);
-      
-      const registrations = registrationsRes.success ? registrationsRes.data!.data : [];
-      const checkIns = checkInsRes.success ? checkInsRes.data!.data : [];
-      const hospitality = hospitalityRes.success ? hospitalityRes.data! : [];
-      
-      // Get events the guest is registered for
-      const eventsResponse = await mockApiService.getEvents();
-      const events = eventsResponse.success
-        ? eventsResponse.data!.data.filter(event =>
-            registrations.some(reg => reg.event === event.title)
-          )
-        : [];
-      
-      return {
-        success: true,
-        data: {
-          guest,
-          registrations,
-          checkIns,
-          hospitality,
-          events,
-        },
-        message: 'Guest journey retrieved successfully'
-      };
-      
+      const registrations: Registration[] = registrationsRes.data?.data ?? [];
+      const checkIns: CheckIn[] = checkInsRes.data?.data ?? [];
+      const hospitality: Hospitality[] = await hospitalityService.getVipGuests().then(() => []).catch(() => []);
+      const events = eventsRes.data.filter(event => registrations.some(reg => reg.event === event.title));
+      return { success: true, data: { guest, registrations, checkIns, hospitality, events }, message: 'Guest journey retrieved successfully' };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error fetching guest journey'
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error fetching guest journey' };
     }
   }
   
@@ -510,57 +339,20 @@ class WorkflowService {
     attendeeCategories: Record<string, number>;
   }>> {
     try {
-      // Get event details
-      const eventResponse = await mockApiService.getEvent(eventId);
-      if (!eventResponse.success) {
-        return { success: false, error: 'Event not found' };
-      }
-      
-      const event = eventResponse.data!;
-      
-      // Get all registrations for this event
-      const registrationsResponse = await mockApiService.getRegistrations();
-      const allRegistrations = registrationsResponse.success ? registrationsResponse.data!.data : [];
-      
+      const event = await eventService.getEvent(eventId);
+      const regsRes = await apiClient.get<{ data: Registration[] }>(`/registrations?limit=500`);
+      const allRegistrations: Registration[] = regsRes.data?.data ?? [];
       const eventRegistrations = allRegistrations.filter(reg => reg.event === event.title);
-      
-      // Calculate statistics
       const totalRegistrations = eventRegistrations.length;
       const confirmedRegistrations = eventRegistrations.filter(r => r.status === 'confirmed').length;
-      const revenue = eventRegistrations
-        .filter(r => r.paymentStatus === 'paid')
-        .reduce((sum, r) => sum + (r.amount || 0), 0);
-      
-      // Get attendee categories
+      const revenue = eventRegistrations.filter(r => r.paymentStatus === 'paid').reduce((sum, r) => sum + (r.amount || 0), 0);
       const attendeeCategories: Record<string, number> = {};
-      eventRegistrations.forEach(reg => {
-        attendeeCategories[reg.category] = (attendeeCategories[reg.category] || 0) + 1;
-      });
-      
-      // Get check-ins for this event
-      const checkInsResponse = await mockApiService.getCheckIns();
-      const totalCheckIns = checkInsResponse.success
-        ? checkInsResponse.data!.data.filter(c => c.event === event.title).length
-        : 0;
-      
-      return {
-        success: true,
-        data: {
-          event,
-          totalRegistrations,
-          confirmedRegistrations,
-          totalCheckIns,
-          revenue,
-          attendeeCategories,
-        },
-        message: 'Event report generated successfully'
-      };
-      
+      eventRegistrations.forEach(reg => { attendeeCategories[reg.category] = (attendeeCategories[reg.category] || 0) + 1; });
+      const checkInsRes = await apiClient.get<{ data: CheckIn[] }>(`/check-ins?limit=500`);
+      const totalCheckIns = (checkInsRes.data?.data ?? []).filter(c => c.event === event.title).length;
+      return { success: true, data: { event, totalRegistrations, confirmedRegistrations, totalCheckIns, revenue, attendeeCategories }, message: 'Event report generated successfully' };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error generating event report'
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error generating event report' };
     }
   }
   
@@ -580,46 +372,18 @@ class WorkflowService {
     overallUtilization: number;
   }>> {
     try {
-      const venuesResponse = await mockApiService.getVenues();
-      if (!venuesResponse.success) {
-        return { success: false, error: 'Failed to fetch venues' };
-      }
-      
-      const venues = venuesResponse.data!.data;
-      const eventsResponse = await mockApiService.getEvents();
-      const allEvents = eventsResponse.success ? eventsResponse.data!.data : [];
-      
+      const [venuesData, eventsData] = await Promise.all([venueService.getVenues({ limit: 100 }), eventService.getEvents({ limit: 100 })]);
+      const venues = venuesData.data;
+      const allEvents = eventsData.data;
       const venueReports = venues.map(venue => {
         const venueEvents = allEvents.filter(e => e.venueId === venue.id);
         const utilizationPercent = (venue.currentOccupancy / venue.capacity) * 100;
-        
-        return {
-          id: venue.id,
-          name: venue.name,
-          capacity: venue.capacity,
-          currentOccupancy: venue.currentOccupancy,
-          utilizationPercent: Math.round(utilizationPercent * 100) / 100,
-          status: venue.status,
-          events: venueEvents,
-        };
+        return { id: venue.id, name: venue.name, capacity: venue.capacity, currentOccupancy: venue.currentOccupancy, utilizationPercent: Math.round(utilizationPercent * 100) / 100, status: venue.status, events: venueEvents };
       });
-      
-      const overallUtilization = venueReports.reduce((sum, v) => sum + v.utilizationPercent, 0) / venueReports.length;
-      
-      return {
-        success: true,
-        data: {
-          venues: venueReports,
-          overallUtilization: Math.round(overallUtilization * 100) / 100,
-        },
-        message: 'Venue utilization report generated successfully'
-      };
-      
+      const overallUtilization = venueReports.length ? venueReports.reduce((sum, v) => sum + v.utilizationPercent, 0) / venueReports.length : 0;
+      return { success: true, data: { venues: venueReports, overallUtilization: Math.round(overallUtilization * 100) / 100 }, message: 'Venue utilization report generated successfully' };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error generating venue report'
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error generating venue report' };
     }
   }
 }

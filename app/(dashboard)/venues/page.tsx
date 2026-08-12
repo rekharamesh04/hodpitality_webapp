@@ -6,9 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { mockVenues } from '@/constants/mock-data';
+import { useVenues } from '@/hooks/useVenues';
 
 export default function VenuesPage() {
+  const { data, isLoading } = useVenues();
+  const venues = data?.data ?? [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -58,7 +61,8 @@ export default function VenuesPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {mockVenues.map((venue) => {
+        {isLoading && <p className="text-muted-foreground col-span-3">Loading venues…</p>}
+        {venues.map((venue) => {
           const occupancyPercent = (venue.currentOccupancy / venue.capacity) * 100;
           return (
             <Card key={venue.id} className="card-hover">

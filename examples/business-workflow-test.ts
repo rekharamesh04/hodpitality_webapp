@@ -5,7 +5,7 @@
  * Run this in the browser console to test all functionality
  */
 
-import { hospitalityService, workflowService } from '@/services';
+import { guestService, reportService, workflowService } from '@/services';
 
 export class BusinessWorkflowTester {
   private results: any[] = [];
@@ -165,7 +165,7 @@ export class BusinessWorkflowTester {
     try {
       // CREATE Guest
       this.log('Creating new guest...');
-      const createResult = await hospitalityService.createGuest({
+      const guest = await guestService.createGuest({
         name: "CRUD Test Guest",
         email: "crud@test.com",
         phone: "+1 (555) 111-2222",
@@ -175,37 +175,24 @@ export class BusinessWorkflowTester {
         registrationDate: new Date().toISOString()
       });
 
-      if (createResult.success) {
-        const guestId = createResult.data!.id;
-        this.success('Guest Created', { id: guestId });
+      const guestId = guest.id;
+      this.success('Guest Created', { id: guestId });
 
         // READ Guest
         this.log('Reading guest...');
-        const readResult = await hospitalityService.getGuest(guestId);
-        if (readResult.success) {
-          this.success('Guest Retrieved', { name: readResult.data!.name });
-        }
+        const readGuest = await guestService.getGuest(guestId);
+        this.success('Guest Retrieved', { name: readGuest.name });
 
         // UPDATE Guest
         this.log('Updating guest...');
-        const updateResult = await hospitalityService.updateGuest(guestId, {
+        const updatedGuest = await guestService.updateGuest(guestId, {
           designation: "Senior Developer",
           category: "Speaker"
         });
-        if (updateResult.success) {
-          this.success('Guest Updated', { 
-            designation: updateResult.data!.designation,
-            category: updateResult.data!.category 
-          });
-        }
-
-        // Don't delete in test to avoid affecting other tests
-        // DELETE Guest
-        // const deleteResult = await hospitalityService.deleteGuest(guestId);
-        // if (deleteResult.success) {
-        //   this.success('Guest Deleted');
-        // }
-      }
+        this.success('Guest Updated', { 
+          designation: updatedGuest.designation,
+          category: updatedGuest.category
+        });
 
     } catch (error) {
       this.error('CRUD Operations Error', error);
@@ -293,21 +280,17 @@ export class BusinessWorkflowTester {
 
     try {
       // Dashboard Stats
-      const statsResult = await hospitalityService.getDashboardStats();
-      if (statsResult.success) {
-        this.success('Dashboard Stats Retrieved', {
-          totalGuests: statsResult.data?.totalGuests,
-          todayCheckIns: statsResult.data?.todayCheckIns
-        });
-      }
+      const stats = await reportService.getDashboardStats();
+      this.success('Dashboard Stats Retrieved', {
+        totalGuests: stats.totalGuests,
+        todayCheckIns: stats.todayCheckIns
+      });
 
       // Chart Data
-      const chartResult = await hospitalityService.getChartData('checkin-trends');
-      if (chartResult.success) {
-        this.success('Chart Data Retrieved', {
-          dataPoints: chartResult.data?.length
-        });
-      }
+      const chartData = await reportService.getChartData('checkin-trends');
+      this.success('Chart Data Retrieved', {
+        dataPoints: chartData.length
+      });
 
       // Venue Utilization Report
       const venueReportResult = await workflowService.getVenueUtilizationReport();

@@ -11,7 +11,11 @@
 
 import { useWorkflow } from '@/hooks/useWorkflow';
 import { useGuests } from '@/hooks/useGuests';
-import { mockApiService } from '@/services/mockApi';
+import { guestService } from '@/services/guest.service';
+import { venueService } from '@/services/venue.service';
+import { eventService } from '@/services/event.service';
+import { staffService } from '@/services/staff.service';
+import apiClient from '@/lib/axios';
 
 // ============================================
 // EXAMPLE 1: Complete Guest Registration
@@ -305,8 +309,8 @@ export async function demonstrateAllCRUDOperations() {
   
   // GUESTS
   console.log("📝 GUESTS CRUD:");
-  const guestsResponse = await mockApiService.getGuests({ page: 1, pageSize: 10 });
-  const createGuestResponse = await mockApiService.createGuest({
+  const guestsResponse = await guestService.getGuests({ limit: 10 });
+  const createGuestResponse = await guestService.createGuest({
     name: "Test Guest",
     email: "test@example.com",
     phone: "+1234567890",
@@ -315,79 +319,57 @@ export async function demonstrateAllCRUDOperations() {
     checkedIn: false,
     registrationDate: new Date().toISOString(),
   });
+  void guestsResponse; void createGuestResponse;
   
   // REGISTRATIONS
   console.log("📝 REGISTRATIONS CRUD:");
-  await mockApiService.getRegistrations();
-  await mockApiService.createRegistration({
-    guestName: "Test Guest",
-    guestEmail: "test@example.com",
-    phone: "+1234567890",
-    event: "Tech Summit 2024",
-    registrationDate: new Date().toISOString(),
-    status: "pending",
-    paymentStatus: "pending",
-    category: "Delegate",
+  await apiClient.get('/registrations?limit=50');
+  await apiClient.post('/registrations', {
+    guestName: "Test Guest", guestEmail: "test@example.com", phone: "+1234567890",
+    event: "Tech Summit 2024", registrationDate: new Date().toISOString(),
+    status: "pending", paymentStatus: "pending", category: "Delegate",
   });
   
   // CHECK-INS
   console.log("📝 CHECK-INS:");
-  await mockApiService.checkInByQr('QR001', 'Main Hall');
+  await apiClient.post('/check-ins/qr', { qrCode: 'QR001', venue: 'Main Hall' });
   
   // HOSPITALITY
   console.log("📝 HOSPITALITY CRUD:");
-  await mockApiService.getHospitality();
-  await mockApiService.createHospitality({
-    guestId: "guest_1",
-    guestName: "Test Guest",
-    type: "Hotel",
-    description: "Standard room",
-    status: "pending",
-    bookingDate: new Date().toISOString(),
-    serviceDate: new Date().toISOString(),
+  await apiClient.get('/hospitality?limit=50');
+  await apiClient.post('/hospitality', {
+    guestId: "guest_1", guestName: "Test Guest", type: "Hotel",
+    description: "Standard room", status: "pending",
+    bookingDate: new Date().toISOString(), serviceDate: new Date().toISOString(),
   });
   
   // VENUES
   console.log("📝 VENUES CRUD:");
-  await mockApiService.getVenues();
-  await mockApiService.createVenue({
-    name: "New Conference Room",
-    capacity: 100,
-    currentOccupancy: 0,
-    type: "Meeting Room",
-    location: "Building B - 3rd Floor",
-    status: "active",
-    amenities: ["WiFi", "Projector", "AC"],
+  await venueService.getVenues({ limit: 50 });
+  await venueService.createVenue({
+    name: "New Conference Room", capacity: 100, currentOccupancy: 0,
+    type: "Meeting Room", location: "Building B - 3rd Floor",
+    status: "active", amenities: ["WiFi", "Projector", "AC"],
   });
   
   // EVENTS
   console.log("📝 EVENTS CRUD:");
-  await mockApiService.getEvents();
-  await mockApiService.createEvent({
-    title: "Workshop: AI Development",
-    description: "Hands-on AI workshop",
-    startDate: "2024-02-01T10:00:00Z",
-    endDate: "2024-02-01T17:00:00Z",
-    venue: "Conference Room A",
-    venueId: "venue_1",
-    status: "active",
-    attendees: 0,
-    capacity: 50,
-    category: "Workshop",
-    organizer: "Tech Academy",
+  await eventService.getEvents({ limit: 50 });
+  await eventService.createEvent({
+    title: "Workshop: AI Development", description: "Hands-on AI workshop",
+    startDate: "2024-02-01T10:00:00Z", endDate: "2024-02-01T17:00:00Z",
+    venue: "Conference Room A", venueId: "venue_1",
+    status: "active", attendees: 0, capacity: 50,
+    category: "Workshop", organizer: "Tech Academy",
   });
   
   // STAFF
   console.log("📝 STAFF CRUD:");
-  await mockApiService.getStaff();
-  await mockApiService.createStaff({
-    name: "Jane Manager",
-    email: "jane@example.com",
-    phone: "+1234567890",
-    role: "manager",
-    department: "Operations",
-    status: "active",
-    joinedDate: new Date().toISOString(),
+  await staffService.getStaff({ limit: 50 });
+  await staffService.createStaff({
+    name: "Jane Manager", email: "jane@example.com", phone: "+1234567890",
+    role: "manager", department: "Operations",
+    status: "active", joinedDate: new Date().toISOString(),
   });
   
   console.log("✅ All CRUD operations demonstrated!");

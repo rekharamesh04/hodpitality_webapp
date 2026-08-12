@@ -1,19 +1,21 @@
 'use client';
 
-import { TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChartComponent } from '@/components/charts/LineChartComponent';
 import { BarChartComponent } from '@/components/charts/BarChartComponent';
 import { PieChartComponent } from '@/components/charts/PieChartComponent';
 import { AreaChartComponent } from '@/components/charts/AreaChartComponent';
-import {
-  mockCheckInTrends,
-  mockGuestCategories,
-  mockVenueUtilization,
-  mockMonthlyStats,
-} from '@/constants/mock-data';
+import { useChartData, useRevenueTrendChart, useGuestArrivalsChart, useMonthlyEventsChart } from '@/hooks/useReports';
+import { useDashboardStats } from '@/hooks/useReports';
 
 export default function AnalyticsPage() {
+  const { data: stats }            = useDashboardStats();
+  const { data: checkInTrends }    = useChartData('checkins');
+  const { data: venueUtilization } = useChartData('venue-utilization');
+  const { data: guestCategories }  = useGuestArrivalsChart();
+  const { data: revenueTrend }     = useRevenueTrendChart();
+  const { data: monthlyEvents }    = useMonthlyEventsChart();
+
   return (
     <div className="space-y-6">
       <div>
@@ -24,38 +26,34 @@ export default function AnalyticsPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Guests</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$487K</div>
-            <p className="text-xs text-success">+18.2% from last month</p>
+            <div className="text-2xl font-bold">{stats?.totalGuests ?? '—'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Avg. Occupancy</CardTitle>
+            <CardTitle className="text-sm font-medium">Today Check-Ins</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">68%</div>
-            <p className="text-xs text-success">+5.1% from last month</p>
+            <div className="text-2xl font-bold">{stats?.todayCheckIns ?? '—'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Guest Satisfaction</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Events</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">4.8/5</div>
-            <p className="text-xs text-success">+0.3 from last month</p>
+            <div className="text-2xl font-bold">{stats?.totalEvents ?? '—'}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Events Held</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Staff</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground">This month</p>
+            <div className="text-2xl font-bold">{stats?.activeStaff ?? '—'}</div>
           </CardContent>
         </Card>
       </div>
@@ -64,51 +62,48 @@ export default function AnalyticsPage() {
         <LineChartComponent
           title="Check-in Trends"
           description="Daily check-ins for the past week"
-          data={mockCheckInTrends}
+          data={checkInTrends ?? []}
           dataKey="value"
-          xAxisKey="name"
+          xAxisKey="label"
         />
         <BarChartComponent
           title="Venue Utilization"
           description="Current occupancy by venue"
-          data={mockVenueUtilization}
+          data={venueUtilization ?? []}
           dataKey="value"
-          xAxisKey="name"
+          xAxisKey="label"
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
         <PieChartComponent
-          title="Guest Categories"
-          description="Distribution of guest types"
-          data={mockGuestCategories}
+          title="Guest Arrivals"
+          description="Arrival flow breakdown"
+          data={guestCategories ?? []}
         />
         <AreaChartComponent
-          title="Monthly Revenue"
-          description="Revenue trend over 6 months"
-          data={mockMonthlyStats}
-          dataKey="revenue"
-          xAxisKey="name"
+          title="Revenue Trend"
+          description="Revenue trend over time"
+          data={revenueTrend ?? []}
+          dataKey="value"
+          xAxisKey="label"
         />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Monthly Performance</CardTitle>
-          <CardDescription>Guests, events, and revenue by month</CardDescription>
+          <CardTitle>Monthly Events</CardTitle>
+          <CardDescription>Event attendance trends by month</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {mockMonthlyStats.map((stat) => (
-              <div key={stat.name} className="flex items-center justify-between border-b pb-4 last:border-0">
+            {(monthlyEvents ?? []).map((stat) => (
+              <div key={stat.label} className="flex items-center justify-between border-b pb-4 last:border-0">
                 <div>
-                  <p className="font-medium">{stat.name} 2024</p>
-                  <p className="text-sm text-muted-foreground">
-                    {stat.guests} guests • {stat.events} events
-                  </p>
+                  <p className="font-medium">{stat.label}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold">${(stat.revenue / 1000).toFixed(0)}K</p>
+                  <p className="font-bold">{stat.value}</p>
                 </div>
               </div>
             ))}

@@ -1,27 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { checkInService } from "@/services/checkin.service";
-import type { TableFilters, CheckIn } from "@/types";
+import { QUERY_KEYS } from "@/constants";
+import type { TableFilters } from "@/types";
 type FilterOptions = TableFilters;
 
 export const checkInKeys = {
-  all: ["check-ins"] as const,
-  list: (filters: FilterOptions) => ["check-ins", "list", filters] as const,
-  stats: ["check-ins", "stats"] as const,
+  all:   QUERY_KEYS.CHECKINS,
+  list:  (filters: FilterOptions) => [...QUERY_KEYS.CHECKINS, "list", filters] as const,
+  stats: QUERY_KEYS.CHECKIN_STATS,
 };
 
 export function useCheckIns(filters: FilterOptions = {}) {
   return useQuery({
     queryKey: checkInKeys.list(filters),
-    queryFn: () => checkInService.getCheckIns(filters),
-    refetchInterval: 15000, // refresh every 15s for live feel
+    queryFn:  () => checkInService.getCheckIns(filters),
+    refetchInterval: 15000,
   });
 }
 
 export function useCheckInStats() {
   return useQuery({
     queryKey: checkInKeys.stats,
-    queryFn: checkInService.getStats,
+    queryFn:  checkInService.getStats,
     refetchInterval: 15000,
   });
 }
@@ -29,15 +30,38 @@ export function useCheckInStats() {
 export function useCheckIn() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ guestId, method }: { guestId: string; method: string }) =>
-      checkInService.checkIn(guestId, method),
-    onSuccess: (data: any) => {
+    mutationFn: (payload: { guestId: string; method?: string; venue?: string }) =>
+      checkInService.quickCheckIn(payload),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
-      if (data?.status === "success")    toast.success(`${data.guestName} checked in!`);
-      if (data?.status === "duplicate")  toast.warning("Already checked in!");
-      if (data?.status === "failed")     toast.error("Check-in failed");
+      toast.success("Guest checked in successfully!");
     },
-    onError: () => toast.error("Check-in error"),
+    onError: () => toast.error("Check-in failed"),
+  });
+}
+
+export function useQrCheckIn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ qrCode, venue }: { qrCode: string; venue?: string }) =>
+      checkInService.checkInByQr(qrCode, venue),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: checkInKeys.all });
+      toast.success("QR check-in successful!");
+    },
+    onError: () => toast.error("QR check-in failed"),
+  });
+}
+
+export function useFacialCheckIn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (imageData: string) => checkInService.checkInByFacial(imageData),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: checkInKeys.all });
+      toast.success("Facial recognition check-in successful!");
+    },
+    onError: () => toast.error("Facial check-in failed"),
   });
 }
 
