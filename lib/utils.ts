@@ -79,7 +79,7 @@ export function getStatusColor(status: string): string {
     checked_in: 'text-blue-600 bg-blue-50 border-blue-200',
     checked_out: 'text-gray-600 bg-gray-50 border-gray-200',
   };
-  return statusMap[status.toLowerCase()] || statusMap.inactive;
+  return statusMap[(status ?? '').toLowerCase()] || statusMap.inactive;
 }
 
 export function getStatusColorDark(status: string): string {
@@ -93,7 +93,7 @@ export function getStatusColorDark(status: string): string {
     checked_in: 'text-blue-400 bg-blue-950/30 border-blue-800',
     checked_out: 'text-gray-400 bg-gray-900/30 border-gray-700',
   };
-  return statusMap[status.toLowerCase()] || statusMap.inactive;
+  return statusMap[(status ?? '').toLowerCase()] || statusMap.inactive;
 }
 
 export function generateQRCode(data: string): string {

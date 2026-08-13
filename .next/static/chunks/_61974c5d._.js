@@ -136,7 +136,7 @@ function getStatusColor(status) {
         checked_in: 'text-blue-600 bg-blue-50 border-blue-200',
         checked_out: 'text-gray-600 bg-gray-50 border-gray-200'
     };
-    return statusMap[status.toLowerCase()] || statusMap.inactive;
+    return statusMap[(status !== null && status !== void 0 ? status : '').toLowerCase()] || statusMap.inactive;
 }
 function getStatusColorDark(status) {
     const statusMap = {
@@ -149,7 +149,7 @@ function getStatusColorDark(status) {
         checked_in: 'text-blue-400 bg-blue-950/30 border-blue-800',
         checked_out: 'text-gray-400 bg-gray-900/30 border-gray-700'
     };
-    return statusMap[status.toLowerCase()] || statusMap.inactive;
+    return statusMap[(status !== null && status !== void 0 ? status : '').toLowerCase()] || statusMap.inactive;
 }
 function generateQRCode(data) {
     // In production, use a proper QR code library

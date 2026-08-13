@@ -760,6 +760,16 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$
 var __TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__ = __turbopack_context__.i("[project]/constants/index.ts [app-client] (ecmascript) <locals>");
 ;
 ;
+/** Normalise any API response into a plain array regardless of wrapping shape. */ function toArray(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (raw && typeof raw === 'object') {
+        const r = raw;
+        if (Array.isArray(r.data)) return r.data;
+        if (Array.isArray(r.entries)) return r.entries;
+        if (Array.isArray(r.items)) return r.items;
+    }
+    return [];
+}
 const reportService = {
     async getDashboardStats () {
         const { data } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["API_ENDPOINTS"].REPORTS.DASHBOARD_STATS);
@@ -768,27 +778,27 @@ const reportService = {
     async getDailyReports () {
         let days = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : 7;
         const { data } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get("".concat(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["API_ENDPOINTS"].REPORTS.DAILY, "?days=").concat(days));
-        return data;
+        return toArray(data);
     },
     async getActivityFeed () {
         const { data } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["API_ENDPOINTS"].DASHBOARD.ACTIVITY);
-        return data;
+        return toArray(data);
     },
     async getChartData (type) {
         const { data } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["API_ENDPOINTS"].DASHBOARD.CHARTS(type));
-        return data;
+        return toArray(data);
     },
     async getGuestArrivalsChart () {
         const { data } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["API_ENDPOINTS"].REPORTS.GUEST_ARRIVALS);
-        return data;
+        return toArray(data);
     },
     async getMonthlyEventsChart () {
         const { data } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["API_ENDPOINTS"].REPORTS.MONTHLY_EVENTS);
-        return data;
+        return toArray(data);
     },
     async getRevenueTrendChart () {
         const { data } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].get(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["API_ENDPOINTS"].REPORTS.REVENUE_TREND);
-        return data;
+        return toArray(data);
     },
     async exportReport (payload) {
         const { data } = await __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$axios$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"].post(__TURBOPACK__imported__module__$5b$project$5d2f$constants$2f$index$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$locals$3e$__["API_ENDPOINTS"].REPORTS.EXPORT, payload);
