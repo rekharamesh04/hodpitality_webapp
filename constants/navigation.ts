@@ -1,6 +1,5 @@
 import {
   LayoutDashboard,
-  Hotel,
   Users,
   CheckCircle2,
   MapPin,
@@ -41,7 +40,6 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Operations",
     items: [
-      { label: "Hospitality",    href: "/hospitality",    icon: Hotel,        roles: ['admin', 'super_admin'] },
       { label: "Customers",      href: "/guests",         icon: Users },
       { label: "Calendar",       href: "/calendar",       icon: CalendarDays },
       { label: "Check-ins",      href: "/check-ins",      icon: CheckCircle2 },
