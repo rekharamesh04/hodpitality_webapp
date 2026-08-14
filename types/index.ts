@@ -1,6 +1,14 @@
 export type Status = 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled' | 'confirmed' | 'checked_in' | 'checked_out';
 
-export type UserRole = 'super_admin' | 'admin' | 'manager' | 'staff' | 'viewer' | 'reseller';
+export type UserRole =
+  | 'super_admin'     // sees everything: resellers + companies + all ops
+  | 'reseller_admin'  // sees companies under their reseller + all ops
+  | 'company_admin'   // sees only their company's ops tabs
+  | 'admin'
+  | 'manager'
+  | 'staff'
+  | 'viewer'
+  | 'reseller';
 
 export interface User {
   id: string;

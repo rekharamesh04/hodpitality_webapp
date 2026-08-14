@@ -141,9 +141,22 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-5 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
-              <p className="font-semibold text-foreground mb-1">Test credentials</p>
-              <p><span className="font-medium text-foreground">Admins</span> — sarah / james / priya @entryflow.com · <code>admin123</code></p>
-              <p><span className="font-medium text-foreground">Resellers</span> — alex / nina @reseller.com · <code>reseller123</code></p>
+              <p className="font-semibold text-foreground mb-2">Test credentials</p>
+              <p>
+                <span className="font-medium text-foreground">Super Admin</span>
+                {' '}— super@admin.com · <code>super123</code>
+              </p>
+              <p className="text-[11px] text-muted-foreground/70 pl-2">↳ Sees everything: Resellers + Companies + all ops</p>
+              <p className="mt-1">
+                <span className="font-medium text-foreground">Reseller Admin</span>
+                {' '}— reseller@admin.com · <code>reseller123</code>
+              </p>
+              <p className="text-[11px] text-muted-foreground/70 pl-2">↳ Sees Companies tab + all operational tabs</p>
+              <p className="mt-1">
+                <span className="font-medium text-foreground">Company Admin</span>
+                {' '}— company@admin.com · <code>company123</code>
+              </p>
+              <p className="text-[11px] text-muted-foreground/70 pl-2">↳ Sees operational tabs only (Guests, Staff, Check-ins, Venues, Events)</p>
             </div>
           </CardContent>
         </Card>

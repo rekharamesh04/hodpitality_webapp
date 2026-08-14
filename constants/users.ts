@@ -6,18 +6,40 @@ interface HardcodedUser {
   email: string;
   password: string;
   role: UserRole;
+  /** For reseller_admin: their own reseller id. For company_admin: their company id. */
+  tenantId?: string;
 }
 
 // Hard-coded credentials — replace with real auth when backend is ready
 export const HARDCODED_USERS: HardcodedUser[] = [
-  // ── Admins ──────────────────────────────────────────────────────────────────
-  { id: 'admin-1', name: 'Sarah Mitchell',  email: 'sarah@entryflow.com',   password: 'admin123',    role: 'admin' },
-  { id: 'admin-2', name: 'James Cooper',    email: 'james@entryflow.com',    password: 'admin123',    role: 'admin' },
-  { id: 'admin-3', name: 'Priya Sharma',    email: 'priya@entryflow.com',    password: 'admin123',    role: 'admin' },
+  // ── Super Admin — sees everything ─────────────────────────────────────────
+  {
+    id: 'super-1',
+    name: 'Manikanta (Super Admin)',
+    email: 'super@admin.com',
+    password: 'super123',
+    role: 'super_admin',
+  },
 
-  // ── Resellers ────────────────────────────────────────────────────────────────
-  { id: 'reseller-1', name: 'Alex Fernandez', email: 'alex@reseller.com',   password: 'reseller123', role: 'reseller' },
-  { id: 'reseller-2', name: 'Nina Walsh',      email: 'nina@reseller.com',   password: 'reseller123', role: 'reseller' },
+  // ── Reseller Admin — sees Companies tab only (no Resellers tab) ───────────
+  {
+    id: 'reseller-admin-1',
+    name: 'Alex Fernandez (Reseller Admin)',
+    email: 'reseller@admin.com',
+    password: 'reseller123',
+    role: 'reseller_admin',
+    tenantId: 'reseller-1',
+  },
+
+  // ── Company Admin — sees operational tabs only ────────────────────────────
+  {
+    id: 'company-admin-1',
+    name: 'Dr. Priya Sharma (Company Admin)',
+    email: 'company@admin.com',
+    password: 'company123',
+    role: 'company_admin',
+    tenantId: 'company-1',
+  },
 ];
 
 export function findUser(email: string, password: string): HardcodedUser | null {

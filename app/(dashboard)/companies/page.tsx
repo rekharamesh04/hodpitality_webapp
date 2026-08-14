@@ -18,15 +18,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
+import { useAuthStore } from '@/store';
 import type { Company } from '@/types';
 
+// Hardcoded resellers — replace with useResellers() hook when API is ready
+const MOCK_RESELLERS = [
+  { id: 'reseller-1', name: 'Alex Fernandez (Reseller 1)' },
+  { id: 'reseller-2', name: 'Nina Walsh (Reseller 2)' },
+];
+
 export default function CompaniesPage() {
+  const { user } = useAuthStore();
+  const isSuperAdmin = user?.role === 'super_admin';
+
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
-  const [form, setForm] = useState({ name: '', email: '' });
+  const [form, setForm] = useState({ name: '', email: '', resellerId: '' });
 
   const { data, isLoading } = useCompanies({ search });
   const companies = data?.data ?? [];
@@ -37,21 +54,25 @@ export default function CompaniesPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ name: '', email: '' });
+    setForm({ name: '', email: '', resellerId: '' });
     setDialogOpen(true);
   }
 
   function openEdit(c: Company) {
     setEditing(c);
-    setForm({ name: c.name, email: c.email ?? '' });
+    setForm({ name: c.name, email: c.email ?? '', resellerId: c.resellerId ?? '' });
     setDialogOpen(true);
   }
 
   function handleSubmit() {
+    const payload = isSuperAdmin
+      ? { name: form.name, email: form.email, resellerId: form.resellerId || undefined }
+      : { name: form.name, email: form.email };
+
     if (editing) {
-      update.mutate({ id: editing.id, data: form }, { onSuccess: () => setDialogOpen(false) });
+      update.mutate({ id: editing.id, data: payload }, { onSuccess: () => setDialogOpen(false) });
     } else {
-      create.mutate(form, { onSuccess: () => setDialogOpen(false) });
+      create.mutate(payload, { onSuccess: () => setDialogOpen(false) });
     }
   }
 
@@ -185,6 +206,27 @@ export default function CompaniesPage() {
                 placeholder="company@example.com"
               />
             </div>
+            {/* Super Admin only: assign company to a reseller */}
+            {isSuperAdmin && (
+              <div className="space-y-1">
+                <Label htmlFor="reseller">Assign to Reseller</Label>
+                <Select
+                  value={form.resellerId}
+                  onValueChange={(val) => setForm((f) => ({ ...f, resellerId: val }))}
+                >
+                  <SelectTrigger id="reseller">
+                    <SelectValue placeholder="Select a reseller (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MOCK_RESELLERS.map((r) => (
+                      <SelectItem key={r.id} value={r.id}>
+                        {r.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
