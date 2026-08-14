@@ -50,7 +50,9 @@ function cn() {
 }
 function formatDate(date) {
     let format = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : 'MMM dd, yyyy';
+    if (!date) return '—';
     const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return '—';
     const months = [
         'Jan',
         'Feb',

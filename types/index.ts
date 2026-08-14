@@ -37,7 +37,7 @@ export interface Guest {
   status: Status;
   checkedIn: boolean;
   checkInTime?: string;
-  registrationDate: string;
+  registrationDate?: string;
   createdAt?: string;
   avatar?: string;
   qrCode?: string;
@@ -80,7 +80,7 @@ export interface Registration {
   guestEmail: string;
   phone: string;
   event: string;
-  registrationDate: string;
+  registrationDate?: string;
   status: Status;
   paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded';
   amount?: number;

@@ -50,7 +50,9 @@ function cn() {
 }
 function formatDate(date) {
     let format = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : 'MMM dd, yyyy';
+    if (!date) return '—';
     const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return '—';
     const months = [
         'Jan',
         'Feb',
@@ -136,7 +138,7 @@ function getStatusColor(status) {
         checked_in: 'text-blue-600 bg-blue-50 border-blue-200',
         checked_out: 'text-gray-600 bg-gray-50 border-gray-200'
     };
-    return statusMap[status.toLowerCase()] || statusMap.inactive;
+    return statusMap[(status !== null && status !== void 0 ? status : '').toLowerCase()] || statusMap.inactive;
 }
 function getStatusColorDark(status) {
     const statusMap = {
@@ -149,7 +151,7 @@ function getStatusColorDark(status) {
         checked_in: 'text-blue-400 bg-blue-950/30 border-blue-800',
         checked_out: 'text-gray-400 bg-gray-900/30 border-gray-700'
     };
-    return statusMap[status.toLowerCase()] || statusMap.inactive;
+    return statusMap[(status !== null && status !== void 0 ? status : '').toLowerCase()] || statusMap.inactive;
 }
 function generateQRCode(data) {
     // In production, use a proper QR code library
@@ -536,7 +538,6 @@ __turbopack_context__.s([
     ()=>NAV_SECTIONS
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$layout$2d$dashboard$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__LayoutDashboard$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/layout-dashboard.js [app-client] (ecmascript) <export default as LayoutDashboard>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$hotel$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Hotel$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/hotel.js [app-client] (ecmascript) <export default as Hotel>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$users$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Users$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/users.js [app-client] (ecmascript) <export default as Users>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$circle$2d$check$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__CheckCircle2$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/circle-check.js [app-client] (ecmascript) <export default as CheckCircle2>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$map$2d$pin$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__MapPin$3e$__ = __turbopack_context__.i("[project]/node_modules/lucide-react/dist/esm/icons/map-pin.js [app-client] (ecmascript) <export default as MapPin>");
@@ -564,15 +565,6 @@ const NAV_SECTIONS = [
     {
         label: "Operations",
         items: [
-            {
-                label: "Hospitality",
-                href: "/hospitality",
-                icon: __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$hotel$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Hotel$3e$__["Hotel"],
-                roles: [
-                    'admin',
-                    'super_admin'
-                ]
-            },
             {
                 label: "Customers",
                 href: "/guests",
