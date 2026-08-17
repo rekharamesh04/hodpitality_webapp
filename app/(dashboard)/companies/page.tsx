@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Briefcase, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Briefcase, Plus, Pencil, Trash2, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
+import { useCreateStaff } from '@/hooks/useStaff';
 import { useAuthStore } from '@/store';
 import type { Company } from '@/types';
 
@@ -39,18 +40,42 @@ const MOCK_RESELLERS = [
 export default function CompaniesPage() {
   const { user } = useAuthStore();
   const isSuperAdmin = user?.role === 'super_admin';
+  const canInviteAdmin = user?.role === 'super_admin' || user?.role === 'reseller_admin';
 
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Company | null>(null);
   const [form, setForm] = useState({ name: '', email: '', resellerId: '' });
 
-  const { data, isLoading } = useCompanies({ search });
-  const companies = data?.data ?? [];
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteCompany, setInviteCompany] = useState<Company | null>(null);
+  const [inviteForm, setInviteForm] = useState({ name: '', email: '' });
+
+  const { data: companies = [], isLoading, error } = useCompanies({ search });
 
   const create = useCreateCompany();
   const update = useUpdateCompany();
   const remove = useDeleteCompany();
+  const inviteStaff = useCreateStaff();
+
+  function openInvite(c: Company) {
+    setInviteCompany(c);
+    setInviteForm({ name: '', email: '' });
+    setInviteOpen(true);
+  }
+
+  function handleInviteSubmit() {
+    if (!inviteCompany) return;
+    inviteStaff.mutate(
+      {
+        name: inviteForm.name,
+        email: inviteForm.email,
+        role: 'company_admin',
+        tenant_id: inviteCompany.id,
+      },
+      { onSuccess: () => setInviteOpen(false) }
+    );
+  }
 
   function openCreate() {
     setEditing(null);
@@ -91,6 +116,12 @@ export default function CompaniesPage() {
           Add Company
         </Button>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <strong>Access denied:</strong> The backend returned an error — please log out and log back in with your super admin account. If the issue persists, contact the backend team to verify the <code>custom:role</code> Cognito attribute.
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2">
@@ -154,26 +185,38 @@ export default function CompaniesPage() {
                   <span className="font-medium truncate max-w-[140px]">{c.resellerId}</span>
                 </div>
               )}
-              <div className="flex gap-2 pt-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => openEdit(c)}
-                >
-                  <Pencil className="mr-1 h-3 w-3" />
-                  Edit
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => remove.mutate(c.id ?? c.PK?.replace('COMPANY#', ''))}
-                  disabled={remove.isPending}
-                >
-                  <Trash2 className="mr-1 h-3 w-3" />
-                  Delete
-                </Button>
+              <div className="flex flex-col gap-2 pt-1">
+                {canInviteAdmin && (
+                  <Button
+                    size="sm"
+                    className="w-full"
+                    onClick={() => openInvite(c)}
+                  >
+                    <UserPlus className="mr-1 h-3 w-3" />
+                    Invite Admin
+                  </Button>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => openEdit(c)}
+                  >
+                    <Pencil className="mr-1 h-3 w-3" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="flex-1"
+                    onClick={() => remove.mutate(c.id ?? c.PK?.replace('COMPANY#', ''))}
+                    disabled={remove.isPending}
+                  >
+                    <Trash2 className="mr-1 h-3 w-3" />
+                    Delete
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -234,6 +277,51 @@ export default function CompaniesPage() {
             </Button>
             <Button onClick={handleSubmit} disabled={isPending || !form.name}>
               {isPending ? 'Saving…' : editing ? 'Save Changes' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite Admin Dialog */}
+      <Dialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite Admin — {inviteCompany?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="invite-name">Name</Label>
+              <Input
+                id="invite-name"
+                value={inviteForm.name}
+                onChange={(e) => setInviteForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="John Doe"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="invite-email">Email</Label>
+              <Input
+                id="invite-email"
+                type="email"
+                value={inviteForm.email}
+                onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
+                placeholder="admin@hospital.com"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Role: <span className="font-medium">Company Admin</span> · Tenant:{' '}
+              <span className="font-medium">{inviteCompany?.id}</span>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleInviteSubmit}
+              disabled={inviteStaff.isPending || !inviteForm.name || !inviteForm.email}
+            >
+              {inviteStaff.isPending ? 'Sending…' : 'Send Invite'}
             </Button>
           </DialogFooter>
         </DialogContent>

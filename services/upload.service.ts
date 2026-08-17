@@ -12,14 +12,14 @@ export const uploadService = {
     return data;
   },
 
-  /** Convenience: get URL then upload the file directly to S3 via PUT. Returns the public URL. */
+  /** Get URL then upload file directly to S3 via PUT. Returns the public fileUrl. */
   async uploadFile(file: File): Promise<string> {
-    const { uploadUrl, publicUrl } = await uploadService.getPresignedUrl(file.name, file.type);
+    const { uploadUrl, fileUrl } = await uploadService.getPresignedUrl(file.name, file.type);
     await fetch(uploadUrl, {
       method: 'PUT',
       body: file,
       headers: { 'Content-Type': file.type },
     });
-    return publicUrl;
+    return fileUrl;
   },
 };

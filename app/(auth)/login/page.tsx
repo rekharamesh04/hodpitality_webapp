@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthStore } from '@/store';
-import { findUser } from '@/constants/users';
+import { authService } from '@/services/auth.service';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
@@ -39,40 +39,19 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const matched = findUser(data.email, data.password);
-      if (!matched) {
-        toast.error('Invalid email or password.');
-        return;
-      }
-
-      const mockToken = `mock-jwt-${matched.id}`;
+      const result = await authService.login(data);
       const user = {
-        id: matched.id,
-        name: matched.name,
-        email: matched.email,
-        role: matched.role,
-        avatar: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        ...result.user,
+        // Derive display name from email if API doesn't return one
+        name: result.user.name || result.user.email.split('@')[0],
+        createdAt: result.user.createdAt ?? new Date().toISOString(),
+        updatedAt: result.user.updatedAt ?? new Date().toISOString(),
       };
-
-      login(user, mockToken);
-      localStorage.setItem('auth_token', mockToken);
-      
-      // Set cookie for middleware
-      document.cookie = `auth_token=${mockToken}; path=/; max-age=${7 * 24 * 60 * 60}`; // 7 days
-      
+      login(user, result.token);
       toast.success('Login successful!');
-      router.push('/dashboard');
-      
-      // Force page refresh to ensure middleware picks up the cookie
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 100);
-    } catch (error) {
-      toast.error('Login failed. Please try again.');
+      window.location.href = '/dashboard';
+    } catch {
+      toast.error('Invalid email or password.');
     } finally {
       setIsLoading(false);
     }
@@ -141,22 +120,12 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-5 rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
-              <p className="font-semibold text-foreground mb-2">Test credentials</p>
+              <p className="font-semibold text-foreground mb-2">Test credentials (Live API)</p>
               <p>
                 <span className="font-medium text-foreground">Super Admin</span>
-                {' '}— super@admin.com · <code>super123</code>
+                {' '}— super@entryflow.com · <code>Admin123</code>
               </p>
               <p className="text-[11px] text-muted-foreground/70 pl-2">↳ Sees everything: Resellers + Companies + all ops</p>
-              <p className="mt-1">
-                <span className="font-medium text-foreground">Reseller Admin</span>
-                {' '}— reseller@admin.com · <code>reseller123</code>
-              </p>
-              <p className="text-[11px] text-muted-foreground/70 pl-2">↳ Sees Companies tab + all operational tabs</p>
-              <p className="mt-1">
-                <span className="font-medium text-foreground">Company Admin</span>
-                {' '}— company@admin.com · <code>company123</code>
-              </p>
-              <p className="text-[11px] text-muted-foreground/70 pl-2">↳ Sees operational tabs only (Guests, Staff, Check-ins, Venues, Events)</p>
             </div>
           </CardContent>
         </Card>

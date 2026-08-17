@@ -28,8 +28,7 @@ export default function ResellersPage() {
   const [editing, setEditing] = useState<Reseller | null>(null);
   const [form, setForm] = useState({ name: '', email: '' });
 
-  const { data, isLoading } = useResellers({ search });
-  const resellers = data?.data ?? [];
+  const { data: resellers = [], isLoading, error } = useResellers({ search });
 
   const create = useCreateReseller();
   const update = useUpdateReseller();
@@ -70,6 +69,12 @@ export default function ResellersPage() {
           Add Reseller
         </Button>
       </div>
+
+      {error && (
+        <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          <strong>Access denied:</strong> The backend returned an error — please log out and log back in with your super admin account. If the issue persists, contact the backend team to verify the <code>custom:role</code> Cognito attribute.
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-2">

@@ -318,7 +318,7 @@ class WorkflowService {
       const registrations: Registration[] = registrationsRes.data?.data ?? [];
       const checkIns: CheckIn[] = checkInsRes.data?.data ?? [];
       const hospitality: Hospitality[] = await hospitalityService.getVipGuests().then(() => []).catch(() => []);
-      const events = eventsRes.data.filter(event => registrations.some(reg => reg.event === event.title));
+      const events = eventsRes.filter(event => registrations.some(reg => reg.event === event.title));
       return { success: true, data: { guest, registrations, checkIns, hospitality, events }, message: 'Guest journey retrieved successfully' };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error fetching guest journey' };
@@ -373,8 +373,8 @@ class WorkflowService {
   }>> {
     try {
       const [venuesData, eventsData] = await Promise.all([venueService.getVenues({ limit: 100 }), eventService.getEvents({ limit: 100 })]);
-      const venues = venuesData.data;
-      const allEvents = eventsData.data;
+      const venues = venuesData;
+      const allEvents = eventsData;
       const venueReports = venues.map(venue => {
         const venueEvents = allEvents.filter(e => e.venueId === venue.id);
         const utilizationPercent = ((venue.currentOccupancy ?? 0) / (venue.capacity || 1)) * 100;

@@ -1,17 +1,14 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Reseller, CursorPaginatedResponse, TableFilters } from '@/types';
+import type { Reseller, TableFilters } from '@/types';
 
 export const resellerService = {
-  async getResellers(filters: TableFilters = {}): Promise<CursorPaginatedResponse<Reseller>> {
+  async getResellers(filters: TableFilters = {}): Promise<Reseller[]> {
     const p = new URLSearchParams();
-    p.set('limit', String(filters.limit ?? 50));
-    if (filters.cursor) p.set('cursor', filters.cursor);
     if (filters.search) p.set('search', filters.search);
-    const { data } = await api.get<CursorPaginatedResponse<Reseller>>(
-      `${API_ENDPOINTS.RESELLERS}?${p}`
-    );
-    return data;
+    const { data } = await api.get(`${API_ENDPOINTS.RESELLERS}?${p}`);
+    return unwrapList<Reseller>(data);
   },
 
   async getReseller(id: string): Promise<Reseller> {

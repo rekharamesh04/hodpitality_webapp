@@ -5,11 +5,11 @@ import { QUERY_KEYS } from "@/constants";
 
 export const notificationKeys = {
   all:  QUERY_KEYS.NOTIFICATIONS,
-  list: (params?: { limit?: number; cursor?: string }) =>
+  list: (params?: { limit?: number; read?: boolean }) =>
     [...QUERY_KEYS.NOTIFICATIONS, "list", params] as const,
 };
 
-export function useNotifications(params?: { limit?: number; cursor?: string }) {
+export function useNotifications(params?: { limit?: number; read?: boolean }) {
   return useQuery({
     queryKey: notificationKeys.list(params),
     queryFn:  () => notificationService.getNotifications(params),

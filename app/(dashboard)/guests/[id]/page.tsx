@@ -49,7 +49,7 @@ export default function CustomerProfilePage({
 
   useEffect(() => {
     guestService.getGuest(id).then(setCustomer).catch(console.error);
-    appointmentService.getAppointments({ limit: 100 }).then(res => setAppointments((res.data ?? []) as unknown as SpaAppointment[])).catch(console.error);
+    appointmentService.getAppointments({ limit: 100 }).then(res => setAppointments((Array.isArray(res) ? res : []) as unknown as SpaAppointment[])).catch(console.error);
   }, [id]);
 
   const upcomingAppts = useMemo(

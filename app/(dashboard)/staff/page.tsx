@@ -30,13 +30,11 @@ function formatDate(val?: string) {
 const EMPTY_FORM = { name: '', email: '', phone: '', department: '', role: 'Staff' };
 
 export default function StaffPage() {
-  const { data, isLoading } = useStaff();
+  const { data: staffList = [], isLoading } = useStaff();
   const createStaff  = useCreateStaff();
   const updateStaff  = useUpdateStaff();
   const deleteStaff  = useDeleteStaff();
   const updateSchedule = useUpdateStaffSchedule();
-
-  const staffList: Staff[] = data?.data ?? [];
 
   const totalStaff  = staffList.length;
   const activeCount = staffList.filter((s) => s.status === 'active').length;

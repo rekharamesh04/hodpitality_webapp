@@ -1,17 +1,19 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Hospitality as HospitalityBooking, CursorPaginatedResponse, TableFilters } from '@/types';
+import type { Hospitality as HospitalityBooking, TableFilters } from '@/types';
 
 export const hospitalityService = {
-  async getBookings(filters: TableFilters = {}): Promise<CursorPaginatedResponse<HospitalityBooking>> {
+  async getBookings(filters: TableFilters = {}): Promise<HospitalityBooking[]> {
     const p = new URLSearchParams();
-    p.set('limit', String(filters.limit ?? 50));
-    if (filters.cursor) p.set('cursor', filters.cursor);
-    if (filters.search) p.set('search', filters.search);
     if (filters.status) p.set('status', filters.status);
-    const { data } = await api.get<CursorPaginatedResponse<HospitalityBooking>>(
-      `${API_ENDPOINTS.HOSPITALITY}?${p}`
-    );
+    if (filters.search) p.set('search', filters.search);
+    const { data } = await api.get(`${API_ENDPOINTS.HOSPITALITY}?${p}`);
+    return unwrapList<HospitalityBooking>(data);
+  },
+
+  async getBooking(id: string): Promise<HospitalityBooking> {
+    const { data } = await api.get<HospitalityBooking>(`${API_ENDPOINTS.HOSPITALITY}/${id}`);
     return data;
   },
 
@@ -20,16 +22,22 @@ export const hospitalityService = {
     return data;
   },
 
-  async updateBookingStatus(id: string, status: HospitalityBooking['status']): Promise<HospitalityBooking> {
-    const { data } = await api.put<HospitalityBooking>(`${API_ENDPOINTS.HOSPITALITY}/${id}`, { status });
+  async updateBookingStatus(id: string, status: HospitalityBooking['status']): Promise<{ success: boolean }> {
+    const { data } = await api.put<{ success: boolean }>(`${API_ENDPOINTS.HOSPITALITY}/${id}/status`, { status });
     return data;
   },
 
+  async deleteBooking(id: string): Promise<void> {
+    await api.delete(`${API_ENDPOINTS.HOSPITALITY}/${id}`);
+  },
+
   async getVipGuests(): Promise<HospitalityBooking[]> {
-    const p = new URLSearchParams({ isVip: 'true', limit: '100' });
-    const { data } = await api.get<CursorPaginatedResponse<HospitalityBooking>>(
-      `${API_ENDPOINTS.HOSPITALITY}?${p}`
-    );
-    return data.data;
+    const { data } = await api.get(`${API_ENDPOINTS.HOSPITALITY}/vip-guests`);
+    return unwrapList<HospitalityBooking>(data);
+  },
+
+  async getGuestBookings(guestId: string): Promise<HospitalityBooking[]> {
+    const { data } = await api.get(`${API_ENDPOINTS.HOSPITALITY}/guest/${guestId}`);
+    return unwrapList<HospitalityBooking>(data);
   },
 };

@@ -52,8 +52,8 @@ export default function NewAppointmentDialog({
     guestService.getGuests({ limit: 100 }).then((res) => {
       setCustomers((res.data as unknown as Customer[]) ?? []);
     }).catch(() => {});
-    staffService.getStaff({ limit: 50 }).then((res) => {
-      const mapped: CalendarStaff[] = (res.data ?? []).map((s) => ({
+    staffService.getStaff({ limit: 50 }).then((staffArr) => {
+      const mapped: CalendarStaff[] = (Array.isArray(staffArr) ? staffArr : []).map((s) => ({
         id: s.id,
         shortName: s.name.split(' ')[0],
         rooms: (s as any).rooms ?? '',

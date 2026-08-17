@@ -8,11 +8,10 @@ import { getRelativeTime } from '@/lib/utils';
 import { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteAllNotifications } from '@/hooks/use-notifications';
 
 export default function NotificationsPage() {
-  const { data: notifData, isLoading } = useNotifications({ limit: 50 });
+  const { data: notifications = [], isLoading } = useNotifications({ limit: 50 });
   const markRead    = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
   const deleteAll   = useDeleteAllNotifications();
-  const notifications = notifData?.data ?? [];
   const unread = notifications.filter((n) => !n.read).length;
 
   return (

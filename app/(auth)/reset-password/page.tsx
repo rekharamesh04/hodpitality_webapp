@@ -38,10 +38,15 @@ export default function ResetPasswordPage() {
   const onSubmit = async (data: ResetPasswordFormData) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const email = sessionStorage.getItem('reset_email') ?? '';
+      const otp   = sessionStorage.getItem('reset_otp')   ?? '';
+      const { authService } = await import('@/services/auth.service');
+      await authService.resetPassword(email, otp, data.password);
+      sessionStorage.removeItem('reset_email');
+      sessionStorage.removeItem('reset_otp');
       toast.success('Password reset successfully!');
       router.push('/login');
-    } catch (error) {
+    } catch {
       toast.error('Failed to reset password. Please try again.');
     } finally {
       setIsLoading(false);

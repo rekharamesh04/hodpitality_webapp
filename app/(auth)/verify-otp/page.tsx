@@ -24,10 +24,13 @@ export default function VerifyOTPPage() {
 
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const { authService } = await import('@/services/auth.service');
+      await authService.verifyOtp(otp);
+      // Persist OTP for reset-password step
+      sessionStorage.setItem('reset_otp', otp);
       toast.success('OTP verified successfully!');
       router.push('/reset-password');
-    } catch (error) {
+    } catch {
       toast.error('Invalid OTP. Please try again.');
     } finally {
       setIsLoading(false);

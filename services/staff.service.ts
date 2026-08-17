@@ -1,18 +1,15 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Staff, CursorPaginatedResponse, TableFilters } from '@/types';
+import type { Staff, TableFilters } from '@/types';
 
 export const staffService = {
-  async getStaff(filters: TableFilters = {}): Promise<CursorPaginatedResponse<Staff>> {
+  async getStaff(filters: TableFilters = {}): Promise<Staff[]> {
     const p = new URLSearchParams();
-    p.set('limit', String(filters.limit ?? 50));
-    if (filters.cursor) p.set('cursor', filters.cursor);
     if (filters.search) p.set('search', filters.search);
     if (filters.status) p.set('status', filters.status);
-    const { data } = await api.get<CursorPaginatedResponse<Staff>>(
-      `${API_ENDPOINTS.STAFF}?${p}`
-    );
-    return data;
+    const { data } = await api.get(`${API_ENDPOINTS.STAFF}?${p}`);
+    return unwrapList<Staff>(data);
   },
 
   async getStaffMember(id: string): Promise<Staff> {
@@ -35,7 +32,7 @@ export const staffService = {
   },
 
   async updateSchedule(id: string, schedule: Record<string, unknown>): Promise<Staff> {
-    const { data } = await api.put<Staff>(`${API_ENDPOINTS.STAFF}/${id}/schedule`, schedule);
+    const { data } = await api.put<Staff>(`${API_ENDPOINTS.STAFF}/${id}/schedule`, { schedule });
     return data;
   },
 };

@@ -1,16 +1,15 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Notification, CursorPaginatedResponse } from '@/types';
+import type { Notification } from '@/types';
 
 export const notificationService = {
-  async getNotifications(params?: { limit?: number; cursor?: string }): Promise<CursorPaginatedResponse<Notification>> {
+  async getNotifications(params?: { read?: boolean; type?: string }): Promise<Notification[]> {
     const p = new URLSearchParams();
-    p.set('limit', String(params?.limit ?? 50));
-    if (params?.cursor) p.set('cursor', params.cursor);
-    const { data } = await api.get<CursorPaginatedResponse<Notification>>(
-      `${API_ENDPOINTS.NOTIFICATIONS}?${p}`
-    );
-    return data;
+    if (params?.read !== undefined) p.set('read', String(params.read));
+    if (params?.type) p.set('type', params.type);
+    const { data } = await api.get(`${API_ENDPOINTS.NOTIFICATIONS}?${p}`);
+    return unwrapList<Notification>(data);
   },
 
   async markRead(id: string): Promise<void> {

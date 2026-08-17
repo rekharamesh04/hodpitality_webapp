@@ -50,3 +50,15 @@ export function useUpdateBookingStatus() {
     onError: () => toast.error("Update failed"),
   });
 }
+
+export function useDeleteBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => hospitalityService.deleteBooking(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: hospitalityKeys.all });
+      toast.success("Booking deleted");
+    },
+    onError: () => toast.error("Failed to delete booking"),
+  });
+}

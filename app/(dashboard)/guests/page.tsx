@@ -48,8 +48,11 @@ export default function GuestsPage() {
   const { data: registrationsData } = useQuery<Registration[]>({
     queryKey: ['registrations'],
     queryFn: async () => {
-      const res = await apiClient.get<{ data: Registration[] }>('/registrations?limit=100');
-      return res.data?.data ?? [];
+      const res = await apiClient.get('/registrations?limit=100');
+      const raw = res.data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.data)) return raw.data;
+      return [];
     },
   });
   const registrations = registrationsData ?? [];

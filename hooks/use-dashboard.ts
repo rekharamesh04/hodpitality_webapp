@@ -22,6 +22,6 @@ export function useActivityFeed() {
 export function useUpcomingEvents() {
   return useQuery({
     queryKey: QUERY_KEYS.UPCOMING_EVENTS,
-    queryFn:  eventService.getUpcomingEvents,
+    queryFn:  () => eventService.getUpcomingEvents(),
   });
 }

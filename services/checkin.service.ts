@@ -1,18 +1,14 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { CheckIn, CheckInStats, CursorPaginatedResponse, TableFilters } from '@/types';
+import type { CheckIn, CheckInStats, TableFilters } from '@/types';
 
 export const checkInService = {
-  async getCheckIns(filters: TableFilters = {}): Promise<CursorPaginatedResponse<CheckIn>> {
+  async getCheckIns(filters: TableFilters = {}): Promise<CheckIn[]> {
     const p = new URLSearchParams();
-    p.set('limit', String(filters.limit ?? 50));
-    if (filters.cursor) p.set('cursor', filters.cursor);
-    if (filters.search) p.set('search', filters.search);
     if (filters.status) p.set('status', filters.status);
-    const { data } = await api.get<CursorPaginatedResponse<CheckIn>>(
-      `${API_ENDPOINTS.CHECK_INS}?${p}`
-    );
-    return data;
+    const { data } = await api.get(`${API_ENDPOINTS.CHECK_INS}?${p}`);
+    return unwrapList<CheckIn>(data);
   },
 
   async getStats(): Promise<CheckInStats> {
@@ -22,13 +18,20 @@ export const checkInService = {
     return data;
   },
 
-  async checkIn(payload: { guestId?: string; method?: string; venue?: string }): Promise<CheckIn> {
-    const { data } = await api.post<CheckIn>(API_ENDPOINTS.CHECK_INS, payload);
+  async checkIn(payload: { guestId?: string; method?: string; venue?: string; event?: string }): Promise<CheckIn> {
+    const { data } = await api.post<CheckIn>(API_ENDPOINTS.CHECK_INS, {
+      ...payload,
+      checkInMethod: payload.method ?? 'Manual',
+    });
     return data;
   },
 
-  async quickCheckIn(payload: { guestId: string; method?: string }): Promise<CheckIn> {
-    const { data } = await api.post<CheckIn>(`${API_ENDPOINTS.CHECK_INS}/quick`, payload);
+  async quickCheckIn(payload: { guestId: string; method?: string; venue?: string }): Promise<CheckIn> {
+    const { data } = await api.post<CheckIn>(`${API_ENDPOINTS.CHECK_INS}/quick`, {
+      guestId: payload.guestId,
+      method: payload.method ?? 'Manual',
+      venue: payload.venue ?? 'Lobby',
+    });
     return data;
   },
 
@@ -37,8 +40,8 @@ export const checkInService = {
     return data;
   },
 
-  async checkInByFacial(imageData: string): Promise<CheckIn> {
-    const { data } = await api.post<CheckIn>(`${API_ENDPOINTS.CHECK_INS}/facial-recognition`, { imageData });
+  async checkInByFacial(image: string, eventId?: string): Promise<CheckIn> {
+    const { data } = await api.post<CheckIn>(`${API_ENDPOINTS.CHECK_INS}/facial-recognition`, { image, eventId });
     return data;
   },
 

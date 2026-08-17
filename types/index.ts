@@ -12,19 +12,21 @@ export type UserRole =
 
 export interface User {
   id: string;
-  name: string;
+  /** API may not return name (Cognito doesn't always populate it) */
+  name?: string;
   email: string;
   role: UserRole;
+  tenant_id?: string;
   avatar?: string;
   phone?: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 export interface LoginCredentials {
@@ -101,9 +103,11 @@ export interface Hospitality {
   guestName: string;
   type: 'Hotel' | 'Transport' | 'Meal' | 'Airport Pickup' | 'Special Request';
   description: string;
+  details?: string;
   status: Status;
   bookingDate: string;
   serviceDate: string;
+  scheduledAt?: string;
   venue?: string;
   notes?: string;
   cost?: number;
@@ -162,6 +166,8 @@ export interface Staff {
   createdAt?: string;
   avatar?: string;
   schedule?: Record<string, unknown>;
+  /** Cognito tenant scope — required when a Reseller invites a company_admin */
+  tenant_id?: string;
 }
 
 export interface Notification {
@@ -317,7 +323,16 @@ export interface PaginatedResponse<T = any> {
   totalPages: number;
 }
 
-/** AWS Lambda cursor-based pagination shape returned by all GET list endpoints */
+/** AWS Lambda paginated response shape returned by GET /guests and GET /customers */
+export interface PaginatedResponse<T = any> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  nextCursor?: string | null;
+}
+
+/** Alias kept for backwards compatibility – prefer PaginatedResponse for guests/customers */
 export interface CursorPaginatedResponse<T = any> {
   data: T[];
   nextCursor?: string;
@@ -423,8 +438,8 @@ export interface CalendarDayView {
 
 export interface PresignedUrlResponse {
   uploadUrl: string;
-  fileKey: string;
-  publicUrl: string;
+  fileUrl: string;
+  objectKey: string;
 }
 
 // ============ Report / Chart types ============

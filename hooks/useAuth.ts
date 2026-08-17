@@ -13,7 +13,7 @@ export function useLogin() {
     mutationFn: (creds: LoginCredentials) => authService.login(creds),
     onSuccess: (data) => {
       login(data.user, data.token);
-      toast.success(`Welcome back, ${data.user.name.split(" ")[0]}!`);
+      toast.success(`Welcome back, ${(data.user.name ?? data.user.email).split(' ')[0]}!`);
       router.push("/dashboard");
     },
     onError: (err: Error) => {
@@ -51,8 +51,8 @@ export function useForgotPassword() {
 
 export function useVerifyOtp() {
   return useMutation({
-    mutationFn: ({ email, otp }: { email: string; otp: string }) =>
-      authService.verifyOtp(email, otp),
+    mutationFn: (otp: string) =>
+      authService.verifyOtp(otp),
     onError: (err: Error) => {
       toast.error(err.message ?? "Invalid OTP");
     },
@@ -62,8 +62,8 @@ export function useVerifyOtp() {
 export function useResetPassword() {
   const router = useRouter();
   return useMutation({
-    mutationFn: ({ resetToken, password }: { resetToken: string; password: string }) =>
-      authService.resetPassword(resetToken, password),
+    mutationFn: ({ email, otp, newPassword }: { email: string; otp: string; newPassword: string }) =>
+      authService.resetPassword(email, otp, newPassword),
     onSuccess: () => {
       toast.success("Password reset successfully!");
       router.push("/login");
@@ -77,7 +77,7 @@ export function useResetPassword() {
 export function useCurrentUser() {
   return useQuery({
     queryKey: ["me"],
-    queryFn: authService.getMe,
+    queryFn: () => authService.getMe(),
     staleTime: 1000 * 60 * 15,
   });
 }

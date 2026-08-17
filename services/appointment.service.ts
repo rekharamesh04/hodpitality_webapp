@@ -1,18 +1,14 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Appointment, CursorPaginatedResponse, TableFilters } from '@/types';
+import type { Appointment, TableFilters } from '@/types';
 
 export const appointmentService = {
-  async getAppointments(filters: TableFilters = {}): Promise<CursorPaginatedResponse<Appointment>> {
+  async getAppointments(filters: TableFilters = {}): Promise<Appointment[]> {
     const p = new URLSearchParams();
-    p.set('limit', String(filters.limit ?? 50));
-    if (filters.cursor) p.set('cursor', filters.cursor);
-    if (filters.search) p.set('search', filters.search);
-    if (filters.status) p.set('status', filters.status);
-    const { data } = await api.get<CursorPaginatedResponse<Appointment>>(
-      `${API_ENDPOINTS.APPOINTMENTS}?${p}`
-    );
-    return data;
+    if (filters.dateFrom) p.set('date', filters.dateFrom);
+    const { data } = await api.get(`${API_ENDPOINTS.APPOINTMENTS}?${p}`);
+    return unwrapList<Appointment>(data);
   },
 
   async createAppointment(input: Partial<Appointment>): Promise<Appointment> {

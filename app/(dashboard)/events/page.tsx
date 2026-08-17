@@ -28,10 +28,10 @@ export default function EventsPage() {
   const [editing, setEditing]       = useState<Event | null>(null);
   const [form, setForm]             = useState<EventForm>(EMPTY_FORM);
 
-  const { data, isLoading }       = useEvents();
-  const { data: upcomingRaw }     = useUpcomingEvents();
-  const events   = data?.data ?? [];
-  const upcoming = Array.isArray(upcomingRaw) ? upcomingRaw : ((upcomingRaw as any)?.data ?? []);
+  const { data = [], isLoading }       = useEvents();
+  const { data: upcomingRaw }          = useUpcomingEvents();
+  const events   = data as Event[];
+  const upcoming = ((upcomingRaw ?? []) as Event[]);
 
   const create = useCreateEvent();
   const update = useUpdateEvent();

@@ -77,7 +77,7 @@ export default function DashboardPage() {
         <ActivityFeed activities={(activity as any) ?? []} />
         <div className="space-y-6">
           <UpcomingEvents events={(upcomingEvents as any) ?? []} />
-          <VenueOccupancy venues={((venues?.data ?? []) as any).slice(0, 4)} />
+          <VenueOccupancy venues={((venues ?? []) as any).slice(0, 4)} />
         </div>
       </div>
     </div>

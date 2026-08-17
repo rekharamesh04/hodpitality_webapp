@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { authService } from '@/services/auth.service';
 import { toast } from 'sonner';
 
 const forgotPasswordSchema = z.object({
@@ -35,11 +36,13 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      toast.success('Password reset link sent to your email!');
+      await authService.forgotPassword(data.email);
+      // Persist email so verify-otp and reset-password can use it
+      sessionStorage.setItem('reset_email', data.email);
+      toast.success('OTP sent to your email!');
       router.push('/verify-otp');
-    } catch (error) {
-      toast.error('Failed to send reset link. Please try again.');
+    } catch {
+      toast.error('Failed to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }

@@ -1,17 +1,14 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Venue, CursorPaginatedResponse, TableFilters } from '@/types';
+import type { Venue, TableFilters } from '@/types';
 
 export const venueService = {
-  async getVenues(filters: TableFilters = {}): Promise<CursorPaginatedResponse<Venue>> {
+  async getVenues(filters: TableFilters = {}): Promise<Venue[]> {
     const p = new URLSearchParams();
-    p.set('limit', String(filters.limit ?? 50));
-    if (filters.cursor) p.set('cursor', filters.cursor);
     if (filters.search) p.set('search', filters.search);
-    const { data } = await api.get<CursorPaginatedResponse<Venue>>(
-      `${API_ENDPOINTS.VENUES}?${p}`
-    );
-    return data;
+    const { data } = await api.get(`${API_ENDPOINTS.VENUES}?${p}`);
+    return unwrapList<Venue>(data);
   },
 
   async getVenue(id: string): Promise<Venue> {
@@ -33,8 +30,8 @@ export const venueService = {
     await api.delete(`${API_ENDPOINTS.VENUES}/${id}`);
   },
 
-  async updateOccupancy(id: string, currentOccupancy: number): Promise<Venue> {
-    const { data } = await api.put<Venue>(`${API_ENDPOINTS.VENUES}/${id}/occupancy`, { currentOccupancy });
+  async updateOccupancy(id: string, occupancy: number): Promise<Venue> {
+    const { data } = await api.put<Venue>(`${API_ENDPOINTS.VENUES}/${id}/occupancy`, { occupancy });
     return data;
   },
 };

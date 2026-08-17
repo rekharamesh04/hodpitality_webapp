@@ -31,9 +31,8 @@ export default function CheckInsPage() {
   const [guestId, setGuestId]     = useState('');
   const [qrCode, setQrCode]       = useState('');
 
-  const { data: checkInsData, isLoading, refetch } = useCheckIns();
+  const { data: checkIns = [], isLoading, refetch } = useCheckIns();
   const { data: stats }                            = useCheckInStats();
-  const checkIns = checkInsData?.data ?? [];
 
   const quickCheckIn = useCheckIn();
   const qrCheckIn    = useQrCheckIn();

@@ -1,17 +1,14 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Company, CursorPaginatedResponse, TableFilters } from '@/types';
+import type { Company, TableFilters } from '@/types';
 
 export const companyService = {
-  async getCompanies(filters: TableFilters = {}): Promise<CursorPaginatedResponse<Company>> {
+  async getCompanies(filters: TableFilters = {}): Promise<Company[]> {
     const p = new URLSearchParams();
-    p.set('limit', String(filters.limit ?? 50));
-    if (filters.cursor) p.set('cursor', filters.cursor);
     if (filters.search) p.set('search', filters.search);
-    const { data } = await api.get<CursorPaginatedResponse<Company>>(
-      `${API_ENDPOINTS.COMPANIES}?${p}`
-    );
-    return data;
+    const { data } = await api.get(`${API_ENDPOINTS.COMPANIES}?${p}`);
+    return unwrapList<Company>(data);
   },
 
   async getCompany(id: string): Promise<Company> {

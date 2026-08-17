@@ -24,7 +24,7 @@ export default function VenuesPage() {
   const deleteVenue  = useDeleteVenue();
   const updateOccupancy = useUpdateVenueOccupancy();
 
-  const venues: Venue[] = data?.data ?? (Array.isArray(data) ? data as Venue[] : []);
+  const venues: Venue[] = Array.isArray(data) ? data as Venue[] : [];
 
   const totalVenues    = venues.length;
   const activeVenues   = venues.filter((v) => v.status === 'active' || !v.status).length;

@@ -46,9 +46,8 @@ const emptyForm = {
 };
 
 export default function HospitalityPage() {
-  const { data: bookingsData, isLoading } = useHospitalityBookings();
+  const { data: bookings = [], isLoading } = useHospitalityBookings();
   const createBookingMutation = useCreateBooking();
-  const bookings = bookingsData?.data ?? [];
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
 

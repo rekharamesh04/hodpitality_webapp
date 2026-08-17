@@ -24,7 +24,13 @@ export default function RegistrationsPage() {
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
   const { data: regs, isLoading } = useQuery<Registration[]>({
     queryKey: ['registrations'],
-    queryFn: async () => { const r = await api.get('/registrations?limit=50'); return r.data?.data ?? []; },
+    queryFn: async () => {
+      const r = await api.get('/registrations?limit=50');
+      const raw = r.data;
+      if (Array.isArray(raw)) return raw;
+      if (Array.isArray(raw?.data)) return raw.data;
+      return [];
+    },
   });
   const registrations = regs ?? [];
 

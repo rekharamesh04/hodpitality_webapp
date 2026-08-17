@@ -39,7 +39,7 @@ export function useEventAttendees(id: string) {
 export function useUpcomingEvents() {
   return useQuery({
     queryKey: eventKeys.upcoming,
-    queryFn:  eventService.getUpcomingEvents,
+    queryFn:  () => eventService.getUpcomingEvents(),
   });
 }
 
