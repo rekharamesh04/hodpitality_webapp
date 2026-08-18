@@ -24,7 +24,8 @@ export const settingsService = {
   },
 
   async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<{ message: string }> {
-    const { data } = await api.put<{ message: string }>(API_ENDPOINTS.SETTINGS.PASSWORD, payload);
+    // Cognito requires the Access Token (not the ID Token) to authorise a password change
+    const { data } = await api.put<{ message: string }>(API_ENDPOINTS.SETTINGS.PASSWORD, payload, { useAccessToken: true });
     return data;
   },
 };

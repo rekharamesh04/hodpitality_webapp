@@ -18,7 +18,9 @@ export const staffService = {
   },
 
   async createStaff(input: Partial<Staff>): Promise<Staff> {
+    console.log('[INVITE] createStaff payload →', JSON.stringify(input));
     const { data } = await api.post<Staff>(API_ENDPOINTS.STAFF, input);
+    console.log('[INVITE] createStaff response ←', JSON.stringify(data));
     return data;
   },
 

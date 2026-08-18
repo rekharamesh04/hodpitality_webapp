@@ -1,6 +1,13 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { STORAGE_KEYS } from '@/constants';
 
+// Allow callers to signal that the Access Token should be used instead of the ID Token
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    useAccessToken?: boolean;
+  }
+}
+
 export const BASE_URL = 'https://x8nrv9hcrf.execute-api.ap-south-1.amazonaws.com/dev';
 const API_KEY = 'entryflow-secret-key-2026!@';
 
@@ -29,10 +36,16 @@ const api: AxiosInstance = axios.create({
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      // PUT /settings/password requires the Cognito Access Token, not the ID Token
+      const key = (config as any).useAccessToken ? STORAGE_KEYS.ACCESS_TOKEN : STORAGE_KEYS.AUTH_TOKEN;
+      const token = localStorage.getItem(key);
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+    }
+    // Log all POST/PUT requests so invite payloads are visible in the browser console
+    if (config.method === 'post' || config.method === 'put') {
+      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.data);
     }
     return config;
   },
@@ -43,7 +56,13 @@ api.interceptors.request.use(
 
 // Response interceptor
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log POST/PUT responses so we can see what the backend confirms
+    if (response.config.method === 'post' || response.config.method === 'put') {
+      console.log(`[API] ← ${response.status} ${response.config.url}`, response.data);
+    }
+    return response;
+  },
   async (error: AxiosError<{ error?: string; message?: string }>) => {
     const status = error.response?.status;
     if (status === 401) {

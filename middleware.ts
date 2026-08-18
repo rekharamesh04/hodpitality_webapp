@@ -22,14 +22,19 @@ export function middleware(request: NextRequest) {
   
   // Get auth token from cookie
   const token = request.cookies.get('auth_token')?.value;
-  
+  const allCookies = request.cookies.getAll().map((c) => c.name).join(', ') || 'NONE';
+
+  console.log(`[MIDDLEWARE] ${pathname} | token: ${token ? token.slice(0, 20) + '...' : 'MISSING'} | all cookies: ${allCookies} | public: ${isPublicRoute}`);
+
   // If accessing auth routes while authenticated, redirect to dashboard
   if (isPublicRoute && token) {
+    console.log(`[MIDDLEWARE] authenticated user on public route → redirecting to /dashboard`);
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
   
   // If accessing protected routes without authentication, redirect to login
   if (!isPublicRoute && !token && pathname !== '/') {
+    console.log(`[MIDDLEWARE] no token for protected route "${pathname}" → redirecting to /login`);
     return NextResponse.redirect(new URL('/login', request.url));
   }
   

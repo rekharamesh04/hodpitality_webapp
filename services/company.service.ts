@@ -17,7 +17,9 @@ export const companyService = {
   },
 
   async createCompany(input: Partial<Company>): Promise<Company> {
+    console.log('[INVITE] createCompany payload →', JSON.stringify(input));
     const { data } = await api.post<Company>(API_ENDPOINTS.COMPANIES, input);
+    console.log('[INVITE] createCompany response ←', JSON.stringify(data));
     return data;
   },
 

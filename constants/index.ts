@@ -56,6 +56,7 @@ export const API_ENDPOINTS = {
     FORGOT_PASSWORD: '/auth/forgot-password',
     VERIFY_OTP: '/auth/verify-otp',
     RESET_PASSWORD: '/auth/reset-password',
+    RESPOND_CHALLENGE: '/auth/respond-challenge',
   },
   SETTINGS: {
     PROFILE: '/settings/profile',
@@ -129,6 +130,7 @@ export const QUERY_KEYS = {
 // Local Storage Keys
 export const STORAGE_KEYS = {
   AUTH_TOKEN: 'entryflow_auth_token',
+  ACCESS_TOKEN: 'entryflow_access_token',
   REFRESH_TOKEN: 'entryflow_refresh_token',
   USER: 'entryflow_user',
   THEME: 'entryflow_theme',

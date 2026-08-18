@@ -17,7 +17,9 @@ export const resellerService = {
   },
 
   async createReseller(input: Partial<Reseller>): Promise<Reseller> {
+    console.log('[INVITE] createReseller payload →', JSON.stringify(input));
     const { data } = await api.post<Reseller>(API_ENDPOINTS.RESELLERS, input);
+    console.log('[INVITE] createReseller response ←', JSON.stringify(data));
     return data;
   },
 

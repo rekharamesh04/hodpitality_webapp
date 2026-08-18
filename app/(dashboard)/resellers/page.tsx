@@ -26,7 +26,7 @@ export default function ResellersPage() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Reseller | null>(null);
-  const [form, setForm] = useState({ name: '', email: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '' });
 
   const { data: resellers = [], isLoading, error } = useResellers({ search });
 
@@ -36,13 +36,13 @@ export default function ResellersPage() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ name: '', email: '' });
+    setForm({ name: '', email: '', phone: '' });
     setDialogOpen(true);
   }
 
   function openEdit(r: Reseller) {
     setEditing(r);
-    setForm({ name: r.name, email: r.email ?? '' });
+    setForm({ name: r.name, email: r.email ?? '', phone: r.phone ?? '' });
     setDialogOpen(true);
   }
 
@@ -182,6 +182,16 @@ export default function ResellersPage() {
                 value={form.email}
                 onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                 placeholder="reseller@example.com"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                placeholder="+91 98765 43210"
               />
             </div>
           </div>

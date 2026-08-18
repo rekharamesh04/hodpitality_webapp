@@ -26,7 +26,13 @@ export interface User {
 export interface AuthResponse {
   user: User;
   token: string;
+  /** Cognito Access Token — required for PUT /settings/password */
+  accessToken?: string;
   refreshToken?: string;
+  /** Present on first-time login: must complete challenge before getting a token */
+  ChallengeName?: string;
+  Session?: string;
+  email?: string;
 }
 
 export interface LoginCredentials {
