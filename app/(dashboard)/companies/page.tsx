@@ -27,15 +27,10 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
+import { useResellers } from '@/hooks/useResellers';
 import { useCreateStaff } from '@/hooks/useStaff';
 import { useAuthStore } from '@/store';
 import type { Company } from '@/types';
-
-// Hardcoded resellers — replace with useResellers() hook when API is ready
-const MOCK_RESELLERS = [
-  { id: 'reseller-1', name: 'Alex Fernandez (Reseller 1)' },
-  { id: 'reseller-2', name: 'Nina Walsh (Reseller 2)' },
-];
 
 export default function CompaniesPage() {
   const { user } = useAuthStore();
@@ -52,6 +47,7 @@ export default function CompaniesPage() {
   const [inviteForm, setInviteForm] = useState({ name: '', email: '' });
 
   const { data: companies = [], isLoading, error } = useCompanies({ search });
+  const { data: resellers = [] } = useResellers();
 
   const create = useCreateCompany();
   const update = useUpdateCompany();
@@ -261,8 +257,8 @@ export default function CompaniesPage() {
                     <SelectValue placeholder="Select a reseller (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {MOCK_RESELLERS.map((r) => (
-                      <SelectItem key={r.id} value={r.id}>
+                    {resellers.map((r) => (
+                      <SelectItem key={r.id ?? r.PK} value={r.id ?? r.PK ?? ''}>
                         {r.name}
                       </SelectItem>
                     ))}

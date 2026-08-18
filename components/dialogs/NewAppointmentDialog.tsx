@@ -12,6 +12,7 @@ import type { SpaAppointment, AppointmentStatus, Customer, CalendarStaff, SpaSer
 import { cn } from '@/lib/utils';
 import { guestService } from '@/services/guest.service';
 import { staffService } from '@/services/staff.service';
+import { calendarService } from '@/services/calendar.service';
 
 interface NewAppointmentDialogProps {
   open: boolean;
@@ -29,8 +30,7 @@ const TIME_SLOTS = Array.from({ length: 19 }, (_, i) => {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 });
 
-// Busy slots from the server will be empty by default (server-side logic handles conflicts)
-const MOCK_BUSY: Record<string, string[]> = {};
+// Server handles booking conflicts — no client-side busy-slot tracking needed
 
 export default function NewAppointmentDialog({
   open,
@@ -46,6 +46,7 @@ export default function NewAppointmentDialog({
   const [selectedTime, setSelectedTime] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [staffList, setStaffList] = useState<CalendarStaff[]>([]);
+  const [spaServices, setSpaServices] = useState<SpaService[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -60,10 +61,10 @@ export default function NewAppointmentDialog({
       }));
       setStaffList(mapped);
     }).catch(() => {});
+    calendarService.getServices().then((svcs) => {
+      setSpaServices(Array.isArray(svcs) ? (svcs as unknown as SpaService[]) : []);
+    }).catch(() => {});
   }, [open]);
-
-  // Static service list — no API endpoint defined for spa services
-  const spaServices: SpaService[] = [];
 
   function reset() {
     setStep(1);
@@ -255,7 +256,7 @@ function Step2({
   selectedTime: string;
   onSelectTime: (t: string) => void;
 }) {
-  const busySlots = selectedStaffId ? (MOCK_BUSY[selectedStaffId] ?? []) : [];
+  const busySlots: string[] = [];
 
   return (
     <div className="space-y-4 py-2">
@@ -284,7 +285,7 @@ function Step2({
 
       {selectedStaffId && (
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Available times · Thursday</label>
+          <label className="text-sm font-medium">Available times</label>
           <div className="grid grid-cols-4 gap-2">
             {TIME_SLOTS.map((t) => {
               const busy = busySlots.includes(t);

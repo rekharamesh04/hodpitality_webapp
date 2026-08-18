@@ -61,7 +61,10 @@ export function useUpdateVenueOccupancy() {
   return useMutation({
     mutationFn: ({ id, currentOccupancy }: { id: string; currentOccupancy: number }) =>
       venueService.updateOccupancy(id, currentOccupancy),
-    onSuccess: () => qc.invalidateQueries({ queryKey: QUERY_KEYS.VENUES }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.VENUES });
+      toast.success("Occupancy updated");
+    },
     onError: () => toast.error("Failed to update occupancy"),
   });
 }

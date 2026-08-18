@@ -32,7 +32,7 @@ export function useGuests(initialFilters?: TableFilters) {
     setError(null);
     try {
       const guest = await guestService.createGuest(guestData);
-      await fetchGuests(initialFilters);
+      setGuests((prev) => [...prev, guest]);
       return { success: true, data: guest };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error';
@@ -41,14 +41,14 @@ export function useGuests(initialFilters?: TableFilters) {
     } finally {
       setLoading(false);
     }
-  }, [fetchGuests, initialFilters]);
+  }, []);
 
   const updateGuest = useCallback(async (id: string, updates: Partial<Guest>) => {
     setLoading(true);
     setError(null);
     try {
       const guest = await guestService.updateGuest(id, updates);
-      await fetchGuests(initialFilters);
+      setGuests((prev) => prev.map((g) => (g.id === id ? guest : g)));
       return { success: true, data: guest };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error';
@@ -57,14 +57,14 @@ export function useGuests(initialFilters?: TableFilters) {
     } finally {
       setLoading(false);
     }
-  }, [fetchGuests, initialFilters]);
+  }, []);
 
   const deleteGuest = useCallback(async (id: string) => {
     setLoading(true);
     setError(null);
     try {
       await guestService.deleteGuest(id);
-      await fetchGuests(initialFilters);
+      setGuests((prev) => prev.filter((g) => g.id !== id));
       return { success: true };
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Unknown error';
@@ -73,7 +73,7 @@ export function useGuests(initialFilters?: TableFilters) {
     } finally {
       setLoading(false);
     }
-  }, [fetchGuests, initialFilters]);
+  }, []);
 
   useEffect(() => {
     fetchGuests(initialFilters);

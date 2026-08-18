@@ -91,6 +91,7 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: '/notifications',
   HOSPITALITY: '/hospitality',
   REGISTRATIONS: '/registrations',
+  SERVICES: '/services',
 } as const;
 
 // Query Keys
@@ -99,6 +100,8 @@ export const QUERY_KEYS = {
   HOSPITALITY: ['hospitality'],
   GUESTS: ['guests'],
   GUEST_DETAIL: (id: string) => ['guests', id],
+  CUSTOMERS: ['customers'],
+  CUSTOMER_DETAIL: (id: string) => ['customers', id],
   CHECKINS: ['check-ins'],
   CHECKIN_STATS: ['check-ins', 'stats'],
   REGISTRATIONS: ['registrations'],

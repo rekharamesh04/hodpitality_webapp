@@ -31,25 +31,21 @@ export default function DashboardPage() {
           title="Today's Check-ins"
           value={isLoading ? '…' : (stats?.todayCheckIns ?? 0)}
           icon={UserCheck}
-          trend={{ value: 12, isPositive: true }}
         />
         <StatsCard
           title="Total Guests"
           value={isLoading ? '…' : (stats?.totalGuests ?? 0)}
           icon={Users}
-          trend={{ value: 8, isPositive: true }}
         />
         <StatsCard
           title="Pending Guests"
           value={isLoading ? '…' : (stats?.pendingGuests ?? 0)}
           icon={Clock}
-          trend={{ value: -5, isPositive: false }}
         />
         <StatsCard
           title="Hospitality Bookings"
           value={isLoading ? '…' : (stats?.hospitalityBookings ?? 0)}
           icon={Hotel}
-          trend={{ value: 15, isPositive: true }}
         />
       </div>
 

@@ -6,6 +6,7 @@
 
 export { authService }        from './auth.service';
 export { guestService }       from './guest.service';
+export { customerService }    from './customer.service';
 export { checkInService }     from './checkin.service';
 export { eventService }       from './event.service';
 export { venueService }       from './venue.service';

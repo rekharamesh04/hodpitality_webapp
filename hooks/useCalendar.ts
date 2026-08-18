@@ -14,5 +14,6 @@ export function useCalendarEvents(month?: string) {
   return useQuery<CalendarEventsResponse>({
     queryKey: [...QUERY_KEYS.CALENDAR, "events", month],
     queryFn:  () => calendarService.getCalendarEvents(month),
+    staleTime: 60_000,
   });
 }

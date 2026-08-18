@@ -50,8 +50,12 @@ export const reportService = {
     return toArray<ChartDataPoint>(data);
   },
 
-  async exportReport(payload: { type: string; format: 'pdf' | 'excel'; dateFrom?: string; dateTo?: string }): Promise<{ downloadUrl: string }> {
-    const { data } = await api.post<{ downloadUrl: string }>(API_ENDPOINTS.REPORTS.EXPORT, payload);
+  async exportReport(payload: { type: string; format?: 'pdf' | 'excel'; dateFrom?: string; dateTo?: string }): Promise<{ downloadUrl: string }> {
+    const body: Record<string, unknown> = { reportType: payload.type };
+    if (payload.dateFrom || payload.dateTo) {
+      body.filters = { from: payload.dateFrom, to: payload.dateTo };
+    }
+    const { data } = await api.post<{ downloadUrl: string }>(API_ENDPOINTS.REPORTS.EXPORT, body);
     return data;
   },
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWorkflow } from '@/hooks/useWorkflow';
 import {
   Dialog,
@@ -24,6 +24,8 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2 } from 'lucide-react';
+import { eventService } from '@/services/event.service';
+import type { Event } from '@/types';
 
 interface CompleteRegistrationDialogProps {
   open: boolean;
@@ -40,19 +42,27 @@ interface HospitalityRequest {
 export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegistrationDialogProps) {
   const { completeRegistration, loading } = useWorkflow();
   const { toast } = useToast();
+  const [events, setEvents] = useState<Event[]>([]);
   
-  const [formData, setFormData] = useState({
+  useEffect(() => {
+    if (!open) return;
+    eventService.getEvents().then(setEvents).catch(() => {});
+  }, [open]);
+  
+  const emptyForm = {
     guestName: '',
     email: '',
     phone: '',
     company: '',
     designation: '',
     category: 'Delegate' as 'VIP' | 'Speaker' | 'Delegate' | 'Staff' | 'Press',
-    eventId: 'evt_001',
-    eventTitle: 'Tech Summit 2024',
+    eventId: '',
+    eventTitle: '',
     paymentAmount: 0,
     notes: '',
-  });
+  };
+
+  const [formData, setFormData] = useState(emptyForm);
 
   const [hospitalityRequests, setHospitalityRequests] = useState<HospitalityRequest[]>([]);
   const [includePayment, setIncludePayment] = useState(false);
@@ -92,18 +102,7 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
       });
       onOpenChange(false);
       // Reset form
-      setFormData({
-        guestName: '',
-        email: '',
-        phone: '',
-        company: '',
-        designation: '',
-        category: 'Delegate',
-        eventId: 'evt_001',
-        eventTitle: 'Tech Summit 2024',
-        paymentAmount: 0,
-        notes: '',
-      });
+      setFormData(emptyForm);
       setHospitalityRequests([]);
       setIncludePayment(false);
     } else {
@@ -199,24 +198,33 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
             {/* Event Information */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Event Information</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="eventTitle">Event *</Label>
-                  <Input
-                    id="eventTitle"
-                    value={formData.eventTitle}
-                    onChange={(e) => setFormData({ ...formData, eventTitle: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="eventId">Event ID</Label>
-                  <Input
-                    id="eventId"
-                    value={formData.eventId}
-                    onChange={(e) => setFormData({ ...formData, eventId: e.target.value })}
-                  />
-                </div>
+              <div className="grid gap-2">
+                <Label htmlFor="eventTitle">Event *</Label>
+                <Select
+                  value={formData.eventId}
+                  onValueChange={(val) => {
+                    const ev = events.find((e) => (e.id ?? e.PK?.replace('EVENT#', '')) === val);
+                    setFormData({ ...formData, eventId: val, eventTitle: ev?.title ?? val });
+                  }}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {events.map((ev) => {
+                      const id = ev.id ?? ev.PK?.replace('EVENT#', '') ?? '';
+                      return (
+                        <SelectItem key={id} value={id}>
+                          {ev.title}
+                        </SelectItem>
+                      );
+                    })}
+                    {events.length === 0 && (
+                      <SelectItem value="" disabled>No events found</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

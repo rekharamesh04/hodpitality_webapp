@@ -24,7 +24,7 @@ export const calendarService = {
   },
 
   async getServices(): Promise<SpaService[]> {
-    const { data } = await api.get('/services');
+    const { data } = await api.get(API_ENDPOINTS.SERVICES);
     return unwrapList<SpaService>(data);
   },
 

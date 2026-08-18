@@ -30,7 +30,7 @@ export function QuickCheckInDialog({ open, onOpenChange, guestId }: QuickCheckIn
   
   const [method, setMethod] = useState<'QR' | 'Manual'>('Manual');
   const [qrCode, setQrCode] = useState('');
-  const [venue, setVenue] = useState('Main Hall');
+  const [venue, setVenue] = useState('');
   const [printBadge, setPrintBadge] = useState(true);
 
   const handleSubmit = async (e: React.FormEvent) => {

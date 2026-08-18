@@ -33,6 +33,9 @@ export default function RegistrationsPage() {
     },
   });
   const registrations = regs ?? [];
+  const confirmed = registrations.filter((r) => r.status === 'confirmed').length;
+  const pending   = registrations.filter((r) => r.status === 'pending').length;
+  const revenue   = registrations.reduce((sum, r) => sum + (r.amount ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -58,7 +61,7 @@ export default function RegistrationsPage() {
             <CardTitle className="text-sm font-medium">Total Registrations</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,400</div>
+            <div className="text-2xl font-bold">{registrations.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -66,7 +69,7 @@ export default function RegistrationsPage() {
             <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,247</div>
+            <div className="text-2xl font-bold">{confirmed}</div>
           </CardContent>
         </Card>
         <Card>
@@ -74,7 +77,7 @@ export default function RegistrationsPage() {
             <CardTitle className="text-sm font-medium">Pending</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">153</div>
+            <div className="text-2xl font-bold">{pending}</div>
           </CardContent>
         </Card>
         <Card>
@@ -82,7 +85,7 @@ export default function RegistrationsPage() {
             <CardTitle className="text-sm font-medium">Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$487K</div>
+            <div className="text-2xl font-bold">${revenue >= 1000 ? `${(revenue / 1000).toFixed(1)}K` : revenue}</div>
           </CardContent>
         </Card>
       </div>

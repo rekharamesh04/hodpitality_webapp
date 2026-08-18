@@ -4,10 +4,11 @@ import { API_ENDPOINTS } from '@/constants';
 import type { Hospitality as HospitalityBooking, TableFilters } from '@/types';
 
 export const hospitalityService = {
-  async getBookings(filters: TableFilters = {}): Promise<HospitalityBooking[]> {
+  async getBookings(filters: TableFilters & { guestId?: string; type?: string } = {}): Promise<HospitalityBooking[]> {
     const p = new URLSearchParams();
-    if (filters.status) p.set('status', filters.status);
-    if (filters.search) p.set('search', filters.search);
+    if (filters.status)  p.set('status',  filters.status);
+    if (filters.type)    p.set('type',    filters.type);
+    if (filters.guestId) p.set('guestId', filters.guestId);
     const { data } = await api.get(`${API_ENDPOINTS.HOSPITALITY}?${p}`);
     return unwrapList<HospitalityBooking>(data);
   },

@@ -63,8 +63,7 @@ export default function HospitalityPage() {
       type: form.type,
       description: form.description,
       status: 'pending',
-      bookingDate: new Date().toISOString(),
-      serviceDate: form.serviceDate ? new Date(form.serviceDate).toISOString() : new Date().toISOString(),
+      serviceDate: form.serviceDate || new Date().toISOString().slice(0, 10),
       venue: form.venue || undefined,
       cost: form.cost ? Number(form.cost) : undefined,
     });

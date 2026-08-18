@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { hospitalityService } from "@/services/hospitality.service";
 import type { TableFilters, Hospitality } from "@/types";
-type FilterOptions = TableFilters;
+type FilterOptions = TableFilters & { guestId?: string; type?: string };
 type HospitalityBooking = Hospitality;
 
 export const hospitalityKeys = {

@@ -12,7 +12,7 @@ export const notificationKeys = {
 export function useNotifications(params?: { limit?: number; read?: boolean }) {
   return useQuery({
     queryKey: notificationKeys.list(params),
-    queryFn:  () => notificationService.getNotifications(params),
+    queryFn:  () => notificationService.getNotifications({ read: params?.read }),
     refetchInterval: 30000,
   });
 }
