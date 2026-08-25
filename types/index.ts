@@ -40,6 +40,12 @@ export interface LoginCredentials {
   password: string;
 }
 
+export interface RegisterCredentials {
+  name: string;
+  email: string;
+  password: string;
+}
+
 export interface Guest {
   id: string;
   PK?: string;

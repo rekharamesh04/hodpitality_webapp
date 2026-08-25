@@ -1,5 +1,12 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { STORAGE_KEYS } from '@/constants';
+import { STORAGE_KEYS, API_ENDPOINTS } from '@/constants';
+import { mockAdapter } from './mock-adapter';
+
+// Endpoints that run without a session — a 401 here means "request rejected",
+// not "your session expired", so it must not trigger the global logout redirect.
+const UNAUTHENTICATED_PATHS: string[] = Object.values(API_ENDPOINTS.AUTH).filter(
+  (path) => path !== API_ENDPOINTS.AUTH.ME && path !== API_ENDPOINTS.AUTH.LOGOUT
+);
 
 // Allow callers to signal that the Access Token should be used instead of the ID Token
 declare module 'axios' {
@@ -42,6 +49,13 @@ api.interceptors.request.use(
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // TEMP: local-only sessions have no real backend to talk to, so every
+      // request is served from the in-memory mock backend instead of the
+      // network — this is what keeps the app free of 401s while there's no
+      // real login. Remove once real backend auth is wired up.
+      if ((localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ?? '').startsWith('local-')) {
+        config.adapter = mockAdapter;
+      }
     }
     // Log all POST/PUT requests so invite payloads are visible in the browser console
     if (config.method === 'post' || config.method === 'put') {
@@ -65,7 +79,14 @@ api.interceptors.response.use(
   },
   async (error: AxiosError<{ error?: string; message?: string }>) => {
     const status = error.response?.status;
-    if (status === 401) {
+    const requestUrl = error.config?.url ?? '';
+    const isUnauthenticatedRoute = UNAUTHENTICATED_PATHS.some((path) => requestUrl.includes(path));
+    // TEMP: login is currently local-only (no real backend session — see the
+    // login page), so a 401 here just means "this fake token isn't a real
+    // Cognito token," not "your session expired." Don't force-logout for it.
+    const isLocalSession = typeof window !== 'undefined'
+      && (localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ?? '').startsWith('local-');
+    if (status === 401 && !isUnauthenticatedRoute && !isLocalSession) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
         localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);

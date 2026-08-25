@@ -1,8 +1,8 @@
 // Brand Colors
 export const BRAND_COLORS = {
-  primary: '#2563EB',
-  primaryHover: '#1D4ED8',
-  primaryLight: '#DBEAFE',
+  primary: '#0F766E',
+  primaryHover: '#0D5F58',
+  primaryLight: '#CCFBF1',
   secondary: '#0F172A',
   accent: '#06B6D4',
   success: '#22C55E',
@@ -51,6 +51,8 @@ export const PAGINATION = {
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
+    REGISTER: '/auth/register',
+    GOOGLE: '/auth/google',
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
     FORGOT_PASSWORD: '/auth/forgot-password',
@@ -139,7 +141,7 @@ export const STORAGE_KEYS = {
 
 // Chart Colors
 export const CHART_COLORS = {
-  PRIMARY: '#2563EB',
+  PRIMARY: '#0F766E',
   SECONDARY: '#06B6D4',
   SUCCESS: '#22C55E',
   WARNING: '#F59E0B',

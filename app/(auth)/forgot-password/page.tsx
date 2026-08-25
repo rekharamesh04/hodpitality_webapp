@@ -56,37 +56,41 @@ export default function ForgotPasswordPage() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-md"
       >
-        <Card>
+        <Card className="border-border/60 shadow-2xl backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Mail className="h-6 w-6 text-primary" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-[var(--shadow-primary)]">
+                <Mail className="h-6 w-6 text-white" />
               </div>
             </div>
             <CardTitle className="text-2xl">Forgot Password?</CardTitle>
             <CardDescription>
-              Enter your email and we'll send you a link to reset your password
+              Enter your email and we'll send you a code to reset your password
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@entryflow.com"
-                  {...register('email')}
-                  disabled={isLoading}
-                />
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="admin@entryflow.com"
+                    className="pl-9"
+                    {...register('email')}
+                    disabled={isLoading}
+                  />
+                </div>
                 {errors.email && (
                   <p className="text-sm text-danger">{errors.email.message}</p>
                 )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Send Reset Link
+                Send Reset Code
               </Button>
             </form>
 

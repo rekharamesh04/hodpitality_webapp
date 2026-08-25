@@ -1,9 +1,44 @@
 import api from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import { STORAGE_KEYS } from '@/constants';
-import type { LoginCredentials, AuthResponse as LoginResponse, User } from '@/types';
+import type { LoginCredentials, RegisterCredentials, AuthResponse as LoginResponse, User } from '@/types';
 
 export const authService = {
+  async register(payload: RegisterCredentials): Promise<{ message?: string }> {
+    try {
+      const { data } = await api.post<{ message?: string }>(API_ENDPOINTS.AUTH.REGISTER, payload);
+      console.log('[REGISTER] raw response ←', JSON.stringify(data));
+      return data;
+    } catch (err: any) {
+      console.error('[REGISTER] HTTP error ←', err?.response?.status, JSON.stringify(err?.response?.data));
+      throw err;
+    }
+  },
+
+  /** Exchange a Google ID token (from Google Identity Services) for this app's session. */
+  async loginWithGoogle(idToken: string): Promise<LoginResponse> {
+    let raw: unknown;
+    try {
+      const { data } = await api.post(API_ENDPOINTS.AUTH.GOOGLE, { idToken });
+      raw = data;
+      console.log('[GOOGLE] raw response ←', JSON.stringify(data));
+    } catch (err: any) {
+      console.error('[GOOGLE] HTTP error ←', err?.response?.status, JSON.stringify(err?.response?.data));
+      throw err;
+    }
+    const data = raw as LoginResponse;
+    if (typeof window !== 'undefined') {
+      if (data.token) {
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, data.token);
+        document.cookie = `auth_token=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+      }
+      if (data.accessToken) {
+        localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken);
+      }
+    }
+    return data;
+  },
+
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     let raw: unknown;
     try {

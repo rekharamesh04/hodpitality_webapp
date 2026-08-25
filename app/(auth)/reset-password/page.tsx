@@ -61,11 +61,11 @@ export default function ResetPasswordPage() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-md"
       >
-        <Card>
+        <Card className="border-border/60 shadow-2xl backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Key className="h-6 w-6 text-primary" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-[var(--shadow-primary)]">
+                <Key className="h-6 w-6 text-white" />
               </div>
             </div>
             <CardTitle className="text-2xl">Reset Password</CardTitle>
@@ -103,7 +103,7 @@ export default function ResetPasswordPage() {
                 )}
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Reset Password
               </Button>

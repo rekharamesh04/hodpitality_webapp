@@ -12,7 +12,7 @@
   --card-foreground: #111827;
   --popover: #FFFFFF;
   --popover-foreground: #111827;
-  --primary: #2563EB;
+  --primary: #0F766E;
   --primary-foreground: #FFFFFF;
   --secondary: #F1F5F9;
   --secondary-foreground: #0F172A;
@@ -24,9 +24,13 @@
   --destructive-foreground: #FFFFFF;
   --border: #E5E7EB;
   --input: #E5E7EB;
-  --ring: #2563EB;
-  --sidebar-bg: #FFFFFF;
-  --sidebar-border: #F1F5F9;
+  --ring: #0F766E;
+  --sidebar-bg: #0F766E;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-foreground: #F0FDFA;
+  --sidebar-muted-foreground: rgba(240, 253, 250, 0.68);
+  --sidebar-accent-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.16);
 
   /* brand */
   --brand-accent: #06B6D4;
@@ -44,8 +48,8 @@
   --card-foreground: #F1F5F9;
   --popover: #0F172A;
   --popover-foreground: #F1F5F9;
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
+  --primary: #14B8A6;
+  --primary-foreground: #052E2B;
   --secondary: #1E293B;
   --secondary-foreground: #F1F5F9;
   --muted: #1E293B;
@@ -56,9 +60,13 @@
   --destructive-foreground: #FFFFFF;
   --border: #1E293B;
   --input: #1E293B;
-  --ring: #3B82F6;
-  --sidebar-bg: #0F172A;
-  --sidebar-border: #1E293B;
+  --ring: #14B8A6;
+  --sidebar-bg: #0F766E;
+  --sidebar-border: rgba(255, 255, 255, 0.12);
+  --sidebar-foreground: #F0FDFA;
+  --sidebar-muted-foreground: rgba(240, 253, 250, 0.68);
+  --sidebar-accent-bg: rgba(255, 255, 255, 0.08);
+  --sidebar-active-bg: rgba(255, 255, 255, 0.16);
 }
 
 /* ─── Tailwind Theme ────────────────────────────────────── */
@@ -86,6 +94,10 @@
   --color-ring: var(--ring);
   --color-sidebar: var(--sidebar-bg);
   --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted-foreground);
+  --color-sidebar-accent: var(--sidebar-accent-bg);
+  --color-sidebar-active: var(--sidebar-active-bg);
 
   --color-brand-accent: var(--brand-accent);
   --color-success: var(--brand-success);
@@ -107,7 +119,7 @@
   --shadow-medium:   0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
   --shadow-large:    0 10px 30px -5px rgb(0 0 0 / 0.1),  0 4px 10px -5px rgb(0 0 0 / 0.06);
   --shadow-floating: 0 20px 40px -10px rgb(0 0 0 / 0.15), 0 8px 16px -8px rgb(0 0 0 / 0.08);
-  --shadow-primary:  0 4px 16px -2px rgb(37 99 235 / 0.35);
+  --shadow-primary:  0 4px 16px -2px rgb(15 118 110 / 0.35);
 }
 
 /* ─── Base Styles ───────────────────────────────────────── */
@@ -132,8 +144,8 @@ body {
 
 /* ─── Selection ─────────────────────────────────────────── */
 ::selection {
-  background-color: rgba(37, 99, 235, 0.18);
-  color: #1D4ED8;
+  background-color: rgba(15, 118, 110, 0.18);
+  color: #0F766E;
 }
 
 /* ─── Glassmorphism ─────────────────────────────────────── */
@@ -150,7 +162,7 @@ body {
 
 /* ─── Gradient text ─────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #2563EB 0%, #06B6D4 100%);
+  background: linear-gradient(135deg, #0F766E 0%, #06B6D4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -34,11 +34,11 @@ function NavItems({
       {visibleSections.map((section) => (
         <div key={section.label}>
           {!collapsed && (
-            <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-sidebar-muted">
               {section.label}
             </h3>
           )}
-          {collapsed && <div className="mb-2 h-px bg-border" />}
+          {collapsed && <div className="mb-2 h-px bg-sidebar-border" />}
           <div className="space-y-1">
             {section.items.map((item) => {
               const isActive = pathname === item.href;
@@ -51,8 +51,8 @@ function NavItems({
                     className={cn(
                       'group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all',
                       isActive
-                        ? 'bg-primary text-primary-foreground shadow-primary'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        ? 'bg-sidebar-active text-sidebar-foreground shadow-sm'
+                        : 'text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground'
                     )}
                   >
                     <Icon className="h-5 w-5 shrink-0" />
@@ -61,8 +61,10 @@ function NavItems({
                         <span className="flex-1">{item.label}</span>
                         {item.badge !== undefined && (
                           <Badge
-                            variant={isActive ? 'secondary' : 'default'}
-                            className="h-5 min-w-[20px] px-1.5 text-xs"
+                            className={cn(
+                              'h-5 min-w-[20px] border-transparent px-1.5 text-xs',
+                              isActive ? 'bg-white text-primary' : 'bg-white/20 text-white'
+                            )}
                           >
                             {item.badge}
                           </Badge>
@@ -70,7 +72,7 @@ function NavItems({
                       </>
                     )}
                     {collapsed && item.badge !== undefined && (
-                      <div className="absolute right-1 top-1 h-2 w-2 rounded-full bg-primary" />
+                      <div className="absolute right-1 top-1 h-2 w-2 rounded-full bg-white" />
                     )}
                   </motion.div>
                 </Link>
@@ -91,10 +93,10 @@ export function Sidebar() {
       href="/dashboard"
       className={cn('flex items-center', full ? 'space-x-2' : 'justify-center w-full')}
     >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary">
-        <span className="text-lg font-bold text-white">H</span>
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+        <span className="text-lg font-bold text-primary">H</span>
       </div>
-      {full && <span className="text-lg font-semibold">HospitalityAdmin</span>}
+      {full && <span className="text-lg font-semibold text-sidebar-foreground">HospitalityAdmin</span>}
     </Link>
   );
 
@@ -116,7 +118,12 @@ export function Sidebar() {
         </ScrollArea>
 
         <div className="border-t border-sidebar-border p-4">
-          <Button variant="ghost" size="sm" onClick={toggleSidebar} className="w-full justify-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleSidebar}
+            className="w-full justify-center text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+          >
             {sidebarCollapsed ? (
               <ChevronRight className="h-4 w-4" />
             ) : (
@@ -152,7 +159,12 @@ export function Sidebar() {
             >
               <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
                 {logo(true)}
-                <Button variant="ghost" size="icon" onClick={closeMobileSidebar}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={closeMobileSidebar}
+                  className="text-sidebar-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                >
                   <X className="h-5 w-5" />
                 </Button>
               </div>

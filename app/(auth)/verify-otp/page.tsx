@@ -45,11 +45,11 @@ export default function VerifyOTPPage() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-md"
       >
-        <Card>
+        <Card className="border-border/60 shadow-2xl backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-                <Shield className="h-6 w-6 text-primary" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-[var(--shadow-primary)]">
+                <Shield className="h-6 w-6 text-white" />
               </div>
             </div>
             <CardTitle className="text-2xl">Verify OTP</CardTitle>
@@ -69,11 +69,11 @@ export default function VerifyOTPPage() {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
                   disabled={isLoading}
-                  className="text-center text-2xl tracking-widest"
+                  className="text-center text-2xl tracking-[0.5em] pl-[0.5em]"
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Verify OTP
               </Button>
