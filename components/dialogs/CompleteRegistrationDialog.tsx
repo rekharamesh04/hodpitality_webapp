@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useWorkflow } from '@/hooks/useWorkflow';
+import { QUERY_KEYS } from '@/constants';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +44,7 @@ interface HospitalityRequest {
 export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegistrationDialogProps) {
   const { completeRegistration, loading } = useWorkflow();
   const { toast } = useToast();
+  const qc = useQueryClient();
   const [events, setEvents] = useState<Event[]>([]);
   
   useEffect(() => {
@@ -96,6 +99,13 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
     });
 
     if (result.success) {
+      // completeRegistration() calls the backend directly (via workflowService), bypassing
+      // TanStack Query entirely — so the Registrations/Guests lists have no idea new data
+      // exists until something tells their queries to refetch. Without this, the new
+      // registration only ever shows up after a full page reload.
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.REGISTRATIONS });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.HOSPITALITY });
       toast({
         title: 'Registration Complete!',
         description: `${formData.guestName} has been successfully registered with ${hospitalityRequests.length} hospitality services.`,

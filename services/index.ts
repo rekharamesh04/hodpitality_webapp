@@ -14,11 +14,13 @@ export { staffService }       from './staff.service';
 export { appointmentService } from './appointment.service';
 export { calendarService }    from './calendar.service';
 export { hospitalityService } from './hospitality.service';
+export { registrationService } from './registration.service';
 export { reportService }      from './report.service';
 export { notificationService } from './notification.service';
 export { settingsService }    from './settings.service';
 export { resellerService }    from './reseller.service';
 export { companyService }     from './company.service';
+export { paymentService }     from './payment.service';
 export { uploadService }      from './upload.service';
 
 export { workflowService } from './workflowService';

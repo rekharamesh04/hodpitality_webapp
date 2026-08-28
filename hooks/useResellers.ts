@@ -1,46 +1,53 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { resellerService } from "@/services/reseller.service";
+import type { CreateResellerPayload, UpdateResellerPayload } from "@/services/reseller.service";
 import { QUERY_KEYS } from "@/constants";
-import type { TableFilters, Reseller } from "@/types";
+import { getFriendlyErrorMessage, extractInvitationWarning } from "@/lib/utils";
 
-export function useResellers(filters: TableFilters = {}) {
-  return useQuery({
-    queryKey: [...QUERY_KEYS.RESELLERS, "list", filters],
-    queryFn:  () => resellerService.getResellers(filters),
-  });
-}
+export const resellerKeys = {
+  all: QUERY_KEYS.RESELLERS,
+};
 
-export function useReseller(id: string) {
+export function useResellers(options: { enabled?: boolean } = {}) {
   return useQuery({
-    queryKey: QUERY_KEYS.RESELLER_DETAIL(id),
-    queryFn:  () => resellerService.getReseller(id),
-    enabled:  !!id,
+    queryKey: resellerKeys.all,
+    queryFn:  () => resellerService.getResellers(),
+    enabled:  options.enabled ?? true,
   });
 }
 
 export function useCreateReseller() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: Partial<Reseller>) => resellerService.createReseller(input),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.RESELLERS });
-      toast.success("Reseller created");
+    mutationFn: (input: CreateResellerPayload) => resellerService.createReseller(input),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: resellerKeys.all });
+      const invitationWarning = extractInvitationWarning(data);
+      if (invitationWarning) {
+        toast.warning("Reseller created — invitation issue", { description: invitationWarning });
+      } else {
+        toast.success("Reseller created");
+      }
     },
-    onError: () => toast.error("Failed to create reseller"),
+    onError: (err: any) => {
+      const status = err?.response?.status;
+      if (status === 409) return toast.error(err?.backendMessage ?? "A reseller with this email already exists.");
+      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create reseller"));
+    },
   });
 }
 
 export function useUpdateReseller() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Reseller> }) =>
+    mutationFn: ({ id, data }: { id: string; data: UpdateResellerPayload }) =>
       resellerService.updateReseller(id, data),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.RESELLERS });
+      qc.invalidateQueries({ queryKey: resellerKeys.all });
       toast.success("Reseller updated");
     },
-    onError: () => toast.error("Failed to update reseller"),
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update reseller")),
   });
 }
 
@@ -49,9 +56,13 @@ export function useDeleteReseller() {
   return useMutation({
     mutationFn: (id: string) => resellerService.deleteReseller(id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: QUERY_KEYS.RESELLERS });
-      toast.success("Reseller removed");
+      qc.invalidateQueries({ queryKey: resellerKeys.all });
+      toast.success("Reseller deleted");
     },
-    onError: () => toast.error("Failed to remove reseller"),
+    onError: (err: any) => {
+      const status = err?.response?.status;
+      if (status === 409) return toast.error(err?.backendMessage ?? "This reseller can't be deleted — it still has companies attached.");
+      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete reseller"));
+    },
   });
 }

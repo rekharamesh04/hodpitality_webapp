@@ -1,8 +1,37 @@
 import api from '@/lib/axios';
+import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { Guest, PaginatedResponse, TableFilters } from '@/types';
 
-function buildParams(filters: TableFilters): URLSearchParams {
+export type GuestListResponse = PaginatedResponse<Guest>;
+
+export interface GuestFilters extends TableFilters {
+  category?: string;
+}
+
+export interface CreateGuestPayload {
+  name: string;
+  email: string;
+  phone: string;
+  company?: string;
+  designation?: string;
+  category?: Guest['category'];
+  notes?: string;
+  /** Rarely set directly by the Guest form (the backend defaults these) — used by the registration workflow, which seeds a guest record ahead of check-in. */
+  status?: Guest['status'];
+  checkedIn?: boolean;
+  registrationDate?: string;
+  tags?: string[];
+}
+
+export type UpdateGuestPayload = Partial<CreateGuestPayload>;
+
+export interface GuestExportResult {
+  downloadUrl?: string;
+  data?: Guest[];
+}
+
+function buildParams(filters: GuestFilters): URLSearchParams {
   const p = new URLSearchParams();
   if (filters.page)     p.set('page',   String(filters.page));
   if (filters.limit)    p.set('limit',  String(filters.limit));
@@ -12,9 +41,9 @@ function buildParams(filters: TableFilters): URLSearchParams {
 }
 
 export const guestService = {
-  async getGuests(filters: TableFilters = {}): Promise<PaginatedResponse<Guest>> {
+  async getGuests(filters: GuestFilters = {}): Promise<GuestListResponse> {
     const params = buildParams({ limit: 20, ...filters });
-    const { data } = await api.get<PaginatedResponse<Guest>>(
+    const { data } = await api.get<GuestListResponse>(
       `${API_ENDPOINTS.GUESTS}?${params}`
     );
     return data;
@@ -25,12 +54,12 @@ export const guestService = {
     return data;
   },
 
-  async createGuest(input: Partial<Guest>): Promise<Guest> {
+  async createGuest(input: CreateGuestPayload): Promise<Guest> {
     const { data } = await api.post<Guest>(API_ENDPOINTS.GUESTS, input);
     return data;
   },
 
-  async updateGuest(id: string, input: Partial<Guest>): Promise<Guest> {
+  async updateGuest(id: string, input: UpdateGuestPayload): Promise<Guest> {
     const { data } = await api.put<Guest>(`${API_ENDPOINTS.GUESTS}/${id}`, input);
     return data;
   },
@@ -54,13 +83,18 @@ export const guestService = {
     return data;
   },
 
-  async exportGuests(): Promise<unknown> {
+  /** The export endpoint may return either a downloadable URL or the raw record set — never fabricate a download if neither shape is present. */
+  async exportGuests(): Promise<GuestExportResult> {
     const { data } = await api.get(`${API_ENDPOINTS.GUESTS}/export`);
-    return data;
+    if (data && typeof data === 'object' && !Array.isArray(data) && typeof (data as { downloadUrl?: unknown }).downloadUrl === 'string') {
+      return { downloadUrl: (data as { downloadUrl: string }).downloadUrl };
+    }
+    const list = unwrapList<Guest>(data);
+    return list.length ? { data: list } : {};
   },
 
-  async enrollFace(guestId: string, image: string): Promise<{ success: boolean }> {
-    const { data } = await api.post<{ success: boolean }>(`${API_ENDPOINTS.GUESTS}/${guestId}/face`, { image });
+  async enrollFace(guestId: string, payload: { image?: string; s3_key?: string }): Promise<{ success: boolean; message?: string; faceId?: string }> {
+    const { data } = await api.post(`${API_ENDPOINTS.GUESTS}/${guestId}/face`, payload);
     return data;
   },
 

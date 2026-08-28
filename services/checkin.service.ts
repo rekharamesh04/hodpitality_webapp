@@ -3,10 +3,19 @@ import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { CheckIn, CheckInStats, TableFilters } from '@/types';
 
+export interface CheckInFilters extends TableFilters {}
+
+function buildParams(filters: CheckInFilters): URLSearchParams {
+  const p = new URLSearchParams();
+  if (filters.status) p.set('status', filters.status);
+  if (filters.search) p.set('search', filters.search);
+  return p;
+}
+
 export const checkInService = {
-  async getCheckIns(filters: TableFilters = {}): Promise<CheckIn[]> {
-    const p = new URLSearchParams();
-    if (filters.status) p.set('status', filters.status);
+  /** GET /check-ins returns a flat, unpaginated list (no page/limit/total in the response) — the page windows it client-side. */
+  async getCheckIns(filters: CheckInFilters = {}): Promise<CheckIn[]> {
+    const p = buildParams(filters);
     const { data } = await api.get(`${API_ENDPOINTS.CHECK_INS}?${p}`);
     return unwrapList<CheckIn>(data);
   },
@@ -40,8 +49,16 @@ export const checkInService = {
     return data;
   },
 
-  async checkInByFacial(image: string, eventId?: string): Promise<CheckIn> {
-    const { data } = await api.post<CheckIn>(`${API_ENDPOINTS.CHECK_INS}/facial-recognition`, { image, eventId });
+  async checkInByFacial(payload: { image: string; venue?: string; eventId?: string }): Promise<{
+    success: boolean;
+    message?: string;
+    error?: string;
+    guestId?: string;
+    guestName?: string;
+    matchConfidence?: number;
+    checkin?: CheckIn;
+  }> {
+    const { data } = await api.post(`${API_ENDPOINTS.CHECK_INS}/facial-recognition`, payload);
     return data;
   },
 

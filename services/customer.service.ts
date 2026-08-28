@@ -3,21 +3,55 @@ import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { PaginatedResponse, TableFilters } from '@/types';
 
+/** Backend customer record. Field naming is inconsistent in places (createdAt vs created_at) — treat everything but id/name/email/phone as optional and read both spellings where relevant. */
 export interface Customer {
   id: string;
   PK?: string;
+  entity_type?: string;
   name: string;
   email: string;
   phone: string;
+  company?: string;
+  designation?: string;
   tier?: string;
+  balance?: number;
   visits?: number;
   allergyNotes?: string;
+  preferredContact?: string;
   nextAppointment?: string;
   createdAt?: string;
+  created_at?: string;
   [key: string]: unknown;
 }
 
-function buildParams(filters: TableFilters & { tier?: string }): URLSearchParams {
+export type CustomerListResponse = PaginatedResponse<Customer>;
+
+export interface CustomerFilters extends TableFilters {
+  tier?: string;
+}
+
+export interface CreateCustomerPayload {
+  name: string;
+  email: string;
+  phone: string;
+  company?: string;
+  designation?: string;
+  tier?: string;
+  balance?: number;
+  visits?: number;
+  allergyNotes?: string;
+  preferredContact?: string;
+  nextAppointment?: string;
+}
+
+export type UpdateCustomerPayload = Partial<CreateCustomerPayload>;
+
+export interface CustomerExportResult {
+  downloadUrl?: string;
+  data?: Customer[];
+}
+
+function buildParams(filters: CustomerFilters): URLSearchParams {
   const p = new URLSearchParams();
   if (filters.page)   p.set('page',   String(filters.page));
   if (filters.limit)  p.set('limit',  String(filters.limit));
@@ -27,9 +61,9 @@ function buildParams(filters: TableFilters & { tier?: string }): URLSearchParams
 }
 
 export const customerService = {
-  async getCustomers(filters: TableFilters & { tier?: string } = {}): Promise<PaginatedResponse<Customer>> {
+  async getCustomers(filters: CustomerFilters = {}): Promise<CustomerListResponse> {
     const params = buildParams({ limit: 20, ...filters });
-    const { data } = await api.get<PaginatedResponse<Customer>>(
+    const { data } = await api.get<CustomerListResponse>(
       `${API_ENDPOINTS.CUSTOMERS}?${params}`
     );
     return data;
@@ -40,12 +74,12 @@ export const customerService = {
     return data;
   },
 
-  async createCustomer(input: Partial<Customer>): Promise<Customer> {
+  async createCustomer(input: CreateCustomerPayload): Promise<Customer> {
     const { data } = await api.post<Customer>(API_ENDPOINTS.CUSTOMERS, input);
     return data;
   },
 
-  async updateCustomer(id: string, input: Partial<Customer>): Promise<Customer> {
+  async updateCustomer(id: string, input: UpdateCustomerPayload): Promise<Customer> {
     const { data } = await api.put<Customer>(`${API_ENDPOINTS.CUSTOMERS}/${id}`, input);
     return data;
   },
@@ -54,16 +88,18 @@ export const customerService = {
     await api.delete(`${API_ENDPOINTS.CUSTOMERS}/${id}`);
   },
 
-  async exportCustomers(): Promise<Customer[]> {
+  /** The export endpoint may return either a downloadable URL or the raw record set — never fabricate a download if neither shape is present. */
+  async exportCustomers(): Promise<CustomerExportResult> {
     const { data } = await api.get(`${API_ENDPOINTS.CUSTOMERS}/export`);
-    return unwrapList<Customer>(data);
+    if (data && typeof data === 'object' && !Array.isArray(data) && typeof (data as { downloadUrl?: unknown }).downloadUrl === 'string') {
+      return { downloadUrl: (data as { downloadUrl: string }).downloadUrl };
+    }
+    const list = unwrapList<Customer>(data);
+    return list.length ? { data: list } : {};
   },
 
-  async enrollFace(customerId: string, image: string): Promise<{ success: boolean }> {
-    const { data } = await api.post<{ success: boolean }>(
-      `${API_ENDPOINTS.CUSTOMERS}/${customerId}/face`,
-      { image }
-    );
+  async enrollFace(customerId: string, payload: { image?: string; s3_key?: string }): Promise<{ success: boolean; message?: string; faceId?: string }> {
+    const { data } = await api.post(`${API_ENDPOINTS.CUSTOMERS}/${customerId}/face`, payload);
     return data;
   },
 

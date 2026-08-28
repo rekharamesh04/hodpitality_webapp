@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, KeyRound, Mail, Lock, User, Sparkles } from 'lucide-react';
+import { Loader2, KeyRound, Mail, User, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
@@ -62,20 +63,32 @@ export default function LoginPage() {
 
   const onLoginSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    // TEMP: local-only login — the backend's /auth/login requires real Cognito
-    // credentials we don't have, so any email/password logs in locally without
-    // an API call. Swap back to authService.login(data) + the NEW_PASSWORD_REQUIRED
-    // challenge handling once real backend auth works again.
-    completeLogin({
-      token: `local-session-${Date.now()}`,
-      user: {
-        id: data.email,
-        email: data.email,
-        name: data.email.split('@')[0],
-        role: 'admin',
-      },
-    });
-    setIsLoading(false);
+    try {
+      const result = await authService.login(data);
+
+      if (result.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
+        if (!result.Session) {
+          toast.error('Unexpected response from server. Please try again.');
+          return;
+        }
+        setChallenge({ session: result.Session, email: result.email ?? data.email });
+        return;
+      }
+
+      if (!result.token) {
+        toast.error('Login failed: no session token received.');
+        return;
+      }
+
+      completeLogin(result);
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const backendMsg = err?.backendMessage ?? err?.response?.data?.error ?? err?.response?.data?.message;
+      console.error('[LOGIN] failed — status:', status, 'body:', err?.response?.data);
+      toast.error(status === 401 ? 'Invalid email or password.' : (backendMsg || 'Login failed. Please try again.'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const onNewPasswordSubmit = async (data: NewPasswordFormData) => {
@@ -157,7 +170,7 @@ export default function LoginPage() {
       createdAt: result.user.createdAt ?? new Date().toISOString(),
       updatedAt: result.user.updatedAt ?? new Date().toISOString(),
     };
-    login(user, result.token);
+    login(user, { token: result.token, refreshToken: result.refreshToken, accessToken: result.accessToken });
     toast.success('Login successful!');
     window.location.href = '/dashboard';
   }
@@ -250,34 +263,26 @@ export default function LoginPage() {
                   </p>
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
-                    <div className="relative">
-                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        placeholder="Min. 8 characters"
-                        className="pl-9"
-                        {...newPwForm.register('newPassword')}
-                        disabled={isLoading}
-                      />
-                    </div>
+                    <PasswordInput
+                      showLeftIcon
+                      id="newPassword"
+                      placeholder="Min. 8 characters"
+                      {...newPwForm.register('newPassword')}
+                      disabled={isLoading}
+                    />
                     {newPwForm.formState.errors.newPassword && (
                       <p className="text-sm text-destructive">{newPwForm.formState.errors.newPassword.message}</p>
                     )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="confirm">Confirm Password</Label>
-                    <div className="relative">
-                      <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        id="confirm"
-                        type="password"
-                        placeholder="Re-enter new password"
-                        className="pl-9"
-                        {...newPwForm.register('confirm')}
-                        disabled={isLoading}
-                      />
-                    </div>
+                    <PasswordInput
+                      showLeftIcon
+                      id="confirm"
+                      placeholder="Re-enter new password"
+                      {...newPwForm.register('confirm')}
+                      disabled={isLoading}
+                    />
                     {newPwForm.formState.errors.confirm && (
                       <p className="text-sm text-destructive">{newPwForm.formState.errors.confirm.message}</p>
                     )}
@@ -349,34 +354,26 @@ export default function LoginPage() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="reg-password">Password</Label>
-                      <div className="relative">
-                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="reg-password"
-                          type="password"
-                          placeholder="Min. 8 characters"
-                          className="pl-9"
-                          {...registerForm.register('password')}
-                          disabled={isLoading}
-                        />
-                      </div>
+                      <PasswordInput
+                        showLeftIcon
+                        id="reg-password"
+                        placeholder="Min. 8 characters"
+                        {...registerForm.register('password')}
+                        disabled={isLoading}
+                      />
                       {registerForm.formState.errors.password && (
                         <p className="text-sm text-destructive">{registerForm.formState.errors.password.message}</p>
                       )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="reg-confirm">Confirm password</Label>
-                      <div className="relative">
-                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="reg-confirm"
-                          type="password"
-                          placeholder="Re-enter password"
-                          className="pl-9"
-                          {...registerForm.register('confirm')}
-                          disabled={isLoading}
-                        />
-                      </div>
+                      <PasswordInput
+                        showLeftIcon
+                        id="reg-confirm"
+                        placeholder="Re-enter password"
+                        {...registerForm.register('confirm')}
+                        disabled={isLoading}
+                      />
                       {registerForm.formState.errors.confirm && (
                         <p className="text-sm text-destructive">{registerForm.formState.errors.confirm.message}</p>
                       )}
@@ -433,17 +430,13 @@ export default function LoginPage() {
                           Forgot password?
                         </Link>
                       </div>
-                      <div className="relative">
-                        <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="••••••••"
-                          className="pl-9"
-                          {...loginForm.register('password')}
-                          disabled={isLoading}
-                        />
-                      </div>
+                      <PasswordInput
+                        showLeftIcon
+                        id="password"
+                        placeholder="••••••••"
+                        {...loginForm.register('password')}
+                        disabled={isLoading}
+                      />
                       {loginForm.formState.errors.password && (
                         <p className="text-sm text-destructive">{loginForm.formState.errors.password.message}</p>
                       )}

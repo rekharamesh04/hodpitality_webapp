@@ -192,8 +192,8 @@ export const mockResellers: any[] = [
   { id: uid('resell'), name: 'Premier Hospitality Group', email: 'info@premierhg.example', status: 'active', createdAt: daysAgo(300), updatedAt: daysAgo(5) },
 ];
 export const mockCompanies: any[] = [
-  { id: uid('co'), name: 'Acme Hospitality', status: 'active', resellerId: mockResellers[0].id, createdAt: daysAgo(200), updatedAt: daysAgo(2) },
-  { id: uid('co'), name: 'Skyline Venues', status: 'active', resellerId: mockResellers[1].id, createdAt: daysAgo(150), updatedAt: daysAgo(8) },
+  { id: uid('co'), name: 'Acme Hospitality', email: 'admin@acmehospitality.example', status: 'active', reseller_id: mockResellers[0].id, tenant_id: `tenant-${mockResellers[0].id}`, createdAt: daysAgo(200), updatedAt: daysAgo(2) },
+  { id: uid('co'), name: 'Skyline Venues', email: 'admin@skylinevenues.example', status: 'active', reseller_id: mockResellers[1].id, tenant_id: `tenant-${mockResellers[1].id}`, createdAt: daysAgo(150), updatedAt: daysAgo(8) },
 ];
 
 // ---------------------------------------------------------------------------

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useTheme } from 'next-themes';
+import { useQueryClient } from '@tanstack/react-query';
 import { Bell, Moon, Sun, Search, Settings, LogOut, User, Command, Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -19,19 +20,27 @@ import { Input } from '@/components/ui/input';
 import { useAuthStore, useUIStore, useNotificationStore } from '@/store';
 import { useRouter } from 'next/navigation';
 import { getInitials } from '@/lib/utils';
+import { authService } from '@/services/auth.service';
 
 export function TopNav() {
   const router = useRouter();
+  const qc = useQueryClient();
   const { theme, setTheme } = useTheme();
   const { user, logout } = useAuthStore();
   const { openCommandPalette, toggleMobileSidebar } = useUIStore();
   const { unreadCount } = useNotificationStore();
   const [searchFocused, setSearchFocused] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (loggingOut) return;
+    setLoggingOut(true);
+    // Best-effort — invalidate the session server-side too, but a failure here (e.g. the
+    // access token already expired) must never block clearing the local session.
+    await authService.logout().catch(() => {});
     logout();
+    qc.clear();
     router.push('/login');
-    setTimeout(() => { window.location.href = '/login'; }, 100);
   };
 
   return (
@@ -163,8 +172,8 @@ export function TopNav() {
               <Settings className="mr-2 h-4 w-4" />Settings
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-destructive">
-              <LogOut className="mr-2 h-4 w-4" />Logout
+            <DropdownMenuItem onClick={handleLogout} disabled={loggingOut} className="cursor-pointer text-destructive">
+              <LogOut className="mr-2 h-4 w-4" />{loggingOut ? 'Signing out…' : 'Logout'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

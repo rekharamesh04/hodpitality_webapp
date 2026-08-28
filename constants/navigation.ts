@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   Users,
+  Contact,
   CheckCircle2,
   MapPin,
   Calendar,
@@ -12,6 +13,8 @@ import {
   Settings,
   Building2,
   Briefcase,
+  ClipboardList,
+  Hotel,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -34,6 +37,7 @@ export interface NavSection {
 const ALL_ROLES = undefined; // no restriction
 const SUPER_ONLY = ['super_admin'];
 const SUPER_AND_RESELLER = ['super_admin', 'reseller_admin'];
+const COMPANY_ROLES = ['super_admin', 'reseller_admin', 'reseller', 'company_admin'];
 
 export const NAV_SECTIONS: NavSection[] = [
   {
@@ -45,26 +49,25 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Operations",
     items: [
-      { label: "Customers",  href: "/guests",    icon: Users },
-      { label: "Calendar",   href: "/calendar",  icon: CalendarDays },
-      { label: "Check-ins",  href: "/check-ins", icon: CheckCircle2 },
+      { label: "Registrations", href: "/registrations", icon: ClipboardList },
+      { label: "Calendar",      href: "/calendar",       icon: CalendarDays },
+      { label: "Check-ins",     href: "/check-ins",      icon: CheckCircle2 },
+      { label: "Hospitality",   href: "/hospitality",    icon: Hotel },
     ],
   },
   {
-    label: "Venue & Events",
+    label: "People",
     items: [
-      { label: "Venues", href: "/venues", icon: MapPin },
+      { label: "Guests",    href: "/guests",    icon: Users },
+      { label: "Customers", href: "/customers", icon: Contact },
+      { label: "Staff",     href: "/staff",     icon: UserCog },
+    ],
+  },
+  {
+    label: "Events & Locations",
+    items: [
       { label: "Events", href: "/events", icon: Calendar },
-      { label: "Staff",  href: "/staff",  icon: UserCog },
-    ],
-  },
-  {
-    label: "Multi-Tenant",
-    items: [
-      // Resellers tab: Super Admin only
-      { label: "Resellers", href: "/resellers", icon: Building2, roles: SUPER_ONLY },
-      // Companies tab: Super Admin + Reseller Admin
-      { label: "Companies", href: "/companies", icon: Briefcase, roles: SUPER_AND_RESELLER },
+      { label: "Venues", href: "/venues", icon: MapPin },
     ],
   },
   {
@@ -75,8 +78,12 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    label: "System",
+    label: "Administration",
     items: [
+      // Resellers tab: Super Admin only
+      { label: "Resellers", href: "/resellers", icon: Building2, roles: SUPER_ONLY },
+      // Companies tab: Super Admin + Reseller Admin (manage) + Company Admin (their own company)
+      { label: "Companies", href: "/companies", icon: Briefcase, roles: COMPANY_ROLES },
       { label: "Notifications", href: "/notifications", icon: Bell, badge: 5 },
       { label: "Settings",      href: "/settings",      icon: Settings },
     ],

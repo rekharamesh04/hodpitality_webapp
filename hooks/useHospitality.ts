@@ -8,6 +8,7 @@ type HospitalityBooking = Hospitality;
 export const hospitalityKeys = {
   all: ["hospitality"] as const,
   list: (filters: FilterOptions) => ["hospitality", "list", filters] as const,
+  detail: (id: string) => ["hospitality", id] as const,
   vip: ["hospitality", "vip"] as const,
 };
 
@@ -15,6 +16,14 @@ export function useHospitalityBookings(filters: FilterOptions = {}) {
   return useQuery({
     queryKey: hospitalityKeys.list(filters),
     queryFn: () => hospitalityService.getBookings(filters),
+  });
+}
+
+export function useHospitalityBooking(id: string) {
+  return useQuery({
+    queryKey: hospitalityKeys.detail(id),
+    queryFn: () => hospitalityService.getBooking(id),
+    enabled: !!id,
   });
 }
 
@@ -43,8 +52,9 @@ export function useUpdateBookingStatus() {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: HospitalityBooking["status"] }) =>
       hospitalityService.updateBookingStatus(id, status),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: hospitalityKeys.all });
+      qc.invalidateQueries({ queryKey: hospitalityKeys.detail(vars.id) });
       toast.success("Booking updated");
     },
     onError: () => toast.error("Update failed"),

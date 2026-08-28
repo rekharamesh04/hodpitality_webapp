@@ -1,220 +1,379 @@
 'use client';
 
-import { useState } from 'react';
-import { UserCog, Plus, Pencil, Trash2, Clock } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+import { Suspense, useMemo, useState } from 'react';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
-  Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import { toast } from 'sonner';
-import { useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff, useUpdateStaffSchedule } from '@/hooks/useStaff';
+  Plus, MoreHorizontal, Eye, Pencil, Trash2, UserCog, Clock, CalendarDays,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+} from '@/components/ui/table';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { SearchInput } from '@/components/common/SearchInput';
+import { Pagination } from '@/components/common/Pagination';
+import { EmptyState } from '@/components/common/EmptyState';
+import { ErrorState } from '@/components/common/ErrorState';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { TableSkeleton } from '@/components/common/SkeletonLoader';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { StaffFormDialog } from '@/components/dialogs/StaffFormDialog';
+import { StaffScheduleDialog } from '@/components/dialogs/StaffScheduleDialog';
+import {
+  useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff, useUpdateStaffSchedule,
+} from '@/hooks/useStaff';
+import { cn, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
+import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
 import type { Staff } from '@/types';
 
-const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
-
-function getInitials(name?: string) {
-  if (!name) return '??';
-  return name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2);
+function getStaffId(s: Staff): string {
+  return s.id ?? (s.PK ? s.PK.replace('STAFF#', '') : '') ?? '';
 }
-
-function formatDate(val?: string) {
-  if (!val) return '—';
-  try { return new Date(val).toLocaleDateString(); } catch { return val; }
+function formErrorMessage(err: unknown): string | null {
+  if (!err) return null;
+  const backendMsg = (err as { backendMessage?: string } | undefined)?.backendMessage;
+  return backendMsg || getFriendlyErrorMessage(err, 'Unable to save staff member.');
 }
-
-const EMPTY_FORM = { name: '', email: '', phone: '', department: '', role: 'Staff' };
 
 export default function StaffPage() {
-  const { data: staffList = [], isLoading } = useStaff();
-  const createStaff  = useCreateStaff();
-  const updateStaff  = useUpdateStaff();
-  const deleteStaff  = useDeleteStaff();
-  const updateSchedule = useUpdateStaffSchedule();
+  return (
+    <Suspense fallback={<StaffPageSkeleton />}>
+      <StaffPageInner />
+    </Suspense>
+  );
+}
 
-  const totalStaff  = staffList.length;
-  const activeCount = staffList.filter((s) => s.status === 'active').length;
-  const departments = new Set(staffList.map((s) => s.department).filter(Boolean)).size;
-  const roles       = new Set(staffList.map((s) => s.role).filter(Boolean)).size;
+function StaffPageInner() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing]       = useState<Staff | null>(null);
-  const [form, setForm]             = useState(EMPTY_FORM);
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
+  const [status, setStatus] = useState(searchParams.get('status') ?? '');
+  const [department, setDepartment] = useState(searchParams.get('department') ?? '');
+  const [role, setRole] = useState(searchParams.get('role') ?? '');
+  const [page, setPage] = useState(Number(searchParams.get('page') ?? '1') || 1);
+  const [limit, setLimit] = useState(Number(searchParams.get('limit') ?? '20') || 20);
 
-  function openCreate() { setEditing(null); setForm(EMPTY_FORM); setDialogOpen(true); }
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Staff | null>(null);
+  const [scheduleTarget, setScheduleTarget] = useState<Staff | null>(null);
 
-  function openEdit(s: Staff) {
-    setEditing(s);
-    setForm({ name: s.name ?? '', email: s.email ?? '', phone: s.phone ?? '', department: s.department ?? '', role: s.role ?? 'Staff' });
-    setDialogOpen(true);
+  // search/status are confirmed server-supported (the same generic list-filtering helper the
+  // backend uses for check-ins/venues/events). department/role aren't confirmed, so they're
+  // applied client-side over this fetched set — which also keeps their dropdown options stable.
+  const { data: staffData, isLoading, isError, error, refetch } = useStaff({ search: search || undefined, status: status || undefined });
+
+  const createMutation = useCreateStaff();
+  const updateMutation = useUpdateStaff();
+  const deleteMutation = useDeleteStaff();
+  const scheduleMutation = useUpdateStaffSchedule();
+
+  const allStaff = useMemo(() => staffData ?? [], [staffData]);
+
+  const departmentOptions = useMemo(
+    () => Array.from(new Set(allStaff.map((s) => s.department).filter((d): d is string => !!d))),
+    [allStaff]
+  );
+  const roleOptions = useMemo(
+    () => Array.from(new Set(allStaff.map((s) => s.role).filter((r): r is string => !!r && typeof r === 'string'))) as string[],
+    [allStaff]
+  );
+
+  const filtered = useMemo(() => {
+    return allStaff.filter((s) => {
+      if (department && s.department !== department) return false;
+      if (role && s.role !== role) return false;
+      return true;
+    });
+  }, [allStaff, department, role]);
+
+  const total = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  const pageItems = filtered.slice((page - 1) * limit, page * limit);
+
+  function syncUrl(next: { search?: string; status?: string; department?: string; role?: string; page?: number; limit?: number }) {
+    const s = next.search ?? search;
+    const st = next.status ?? status;
+    const dep = next.department ?? department;
+    const rl = next.role ?? role;
+    const p = next.page ?? page;
+    const l = next.limit ?? limit;
+    const params = new URLSearchParams();
+    if (s) params.set('search', s);
+    if (st) params.set('status', st);
+    if (dep) params.set('department', dep);
+    if (rl) params.set('role', rl);
+    if (p > 1) params.set('page', String(p));
+    if (l !== 20) params.set('limit', String(l));
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
-  function handleSave() {
-    if (!form.name) return toast.error('Name is required');
-    if (editing) {
-      const id = editing.id ?? editing.PK?.replace('STAFF#', '') ?? '';
-      updateStaff.mutate({ id, data: form }, {
-        onSuccess: () => { toast.success('Staff updated'); setDialogOpen(false); },
-        onError:   () => toast.error('Failed to update staff'),
-      });
+  function handleSearch(value: string) { setSearch(value); setPage(1); syncUrl({ search: value, page: 1 }); }
+  function handleStatusChange(value: string) { const v = value === 'all' ? '' : value; setStatus(v); setPage(1); syncUrl({ status: v, page: 1 }); }
+  function handleDepartmentChange(value: string) { const v = value === 'all' ? '' : value; setDepartment(v); setPage(1); syncUrl({ department: v, page: 1 }); }
+  function handleRoleChange(value: string) { const v = value === 'all' ? '' : value; setRole(v); setPage(1); syncUrl({ role: v, page: 1 }); }
+  function handlePageChange(p: number) { setPage(p); syncUrl({ page: p }); }
+  function handlePageSizeChange(l: number) { setLimit(l); setPage(1); syncUrl({ limit: l, page: 1 }); }
+  function clearFilters() {
+    setSearch(''); setStatus(''); setDepartment(''); setRole(''); setPage(1);
+    router.replace(pathname, { scroll: false });
+  }
+
+  function openCreate() { setEditingStaff(null); setFormOpen(true); }
+  function openEdit(s: Staff) { setEditingStaff(s); setFormOpen(true); }
+
+  function handleFormSubmit(payload: CreateStaffPayload | UpdateStaffPayload) {
+    if (editingStaff) {
+      updateMutation.mutate({ id: getStaffId(editingStaff), data: payload }, { onSuccess: () => setFormOpen(false) });
     } else {
-      createStaff.mutate(form, {
-        onSuccess: () => { toast.success('Staff created'); setDialogOpen(false); },
-        onError:   () => toast.error('Failed to create staff'),
-      });
+      createMutation.mutate(payload as CreateStaffPayload, { onSuccess: () => setFormOpen(false) });
     }
   }
 
-  function handleDelete(s: Staff) {
-    if (!confirm(`Delete ${s.name}?`)) return;
-    const id = s.id ?? s.PK?.replace('STAFF#', '') ?? '';
-    deleteStaff.mutate(id, {
-      onSuccess: () => toast.success('Staff deleted'),
-      onError:   () => toast.error('Failed to delete staff'),
-    });
+  function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    deleteMutation.mutate(getStaffId(deleteTarget), { onSuccess: () => setDeleteTarget(null) });
   }
 
-  const [scheduleOpen, setScheduleOpen]   = useState(false);
-  const [scheduleStaff, setScheduleStaff] = useState<Staff | null>(null);
-  const [schedule, setSchedule]           = useState<Record<string, string>>({});
-
-  function openSchedule(s: Staff) {
-    setScheduleStaff(s);
-    setSchedule((s.schedule as Record<string, string>) ?? {});
-    setScheduleOpen(true);
+  function handleScheduleSubmit(schedule: Record<string, string>) {
+    if (!scheduleTarget) return;
+    scheduleMutation.mutate(
+      { id: getStaffId(scheduleTarget), schedule },
+      { onSuccess: () => setScheduleTarget(null) }
+    );
   }
 
-  function handleScheduleUpdate() {
-    if (!scheduleStaff) return;
-    const id   = scheduleStaff.id ?? scheduleStaff.PK?.replace('STAFF#', '') ?? '';
-    const data = Object.fromEntries(Object.entries(schedule).filter(([, v]) => v.trim() !== ''));
-    updateSchedule.mutate({ id, schedule: data }, {
-      onSuccess: () => { toast.success('Schedule updated'); setScheduleOpen(false); },
-      onError:   () => toast.error('Failed to update schedule'),
-    });
-  }
+  const isSubmittingForm = createMutation.isPending || updateMutation.isPending;
+  const formSubmitError = formErrorMessage(createMutation.error ?? updateMutation.error);
+  const hasActiveFilters = !!search || !!status || !!department || !!role;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Staff</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Staff</h1>
           <p className="text-muted-foreground">Manage your team members</p>
         </div>
-        <Button onClick={openCreate}><Plus className="mr-2 h-4 w-4" />Add Staff</Button>
+        <Button size="sm" onClick={openCreate}>
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+          Add Staff
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        {[
-          { label: 'Total Staff',  value: totalStaff  },
-          { label: 'Active',       value: activeCount  },
-          { label: 'Departments',  value: departments  },
-          { label: 'Roles',        value: roles        },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardHeader className="pb-3"><CardTitle className="text-sm font-medium">{s.label}</CardTitle></CardHeader>
-            <CardContent><div className="text-2xl font-bold">{s.value}</div></CardContent>
-          </Card>
-        ))}
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <SearchInput
+          placeholder="Search staff…"
+          defaultValue={search}
+          onSearch={handleSearch}
+          className="max-w-sm"
+        />
+        <Select value={department || 'all'} onValueChange={handleDepartmentChange}>
+          <SelectTrigger className="w-full sm:w-[170px]" aria-label="Filter by department">
+            <SelectValue placeholder="All departments" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All departments</SelectItem>
+            {departmentOptions.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={role || 'all'} onValueChange={handleRoleChange}>
+          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by role">
+            <SelectValue placeholder="All roles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All roles</SelectItem>
+            {roleOptions.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={status || 'all'} onValueChange={handleStatusChange}>
+          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by status">
+            <SelectValue placeholder="All statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+        {hasActiveFilters && (
+          <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
+        )}
       </div>
 
-      {isLoading && <p className="text-muted-foreground py-10 text-center">Loading staff…</p>}
-      {!isLoading && staffList.length === 0 && (
-        <Card><CardContent className="py-10 text-center text-muted-foreground">No staff found.</CardContent></Card>
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <div className="p-6">
+              <TableSkeleton rows={8} />
+            </div>
+          ) : isError ? (
+            <div className="p-6">
+              <ErrorState
+                title="Unable to load staff"
+                message={getFriendlyErrorMessage(error)}
+                onRetry={() => refetch()}
+              />
+            </div>
+          ) : pageItems.length === 0 ? (
+            <div className="p-6">
+              {hasActiveFilters ? (
+                <EmptyState
+                  icon={UserCog}
+                  title="No staff members found"
+                  description="Try changing your search or filters."
+                  action={{ label: 'Clear filters', onClick: clearFilters }}
+                />
+              ) : (
+                <EmptyState
+                  icon={UserCog}
+                  title="No staff members yet"
+                  description="Add your first staff member to get started."
+                  action={{ label: 'Add Staff', onClick: openCreate }}
+                />
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Staff</TableHead>
+                    <TableHead className="hidden sm:table-cell">Contact</TableHead>
+                    <TableHead className="hidden md:table-cell">Department</TableHead>
+                    <TableHead className="hidden md:table-cell">Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pageItems.map((s) => {
+                    const id = getStaffId(s);
+                    return (
+                      <TableRow key={id} className="cursor-pointer" onClick={() => router.push(`/staff/${id}`)}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar className="h-8 w-8 shrink-0">
+                              <AvatarImage src={s.avatar} alt={s.name} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                {s.name ? getInitials(s.name) : '?'}
+                              </AvatarFallback>
+                            </Avatar>
+                            <p className="text-sm font-semibold truncate max-w-[180px]">{s.name || 'Unnamed'}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <p className="text-sm truncate max-w-[180px]">{s.email || '—'}</p>
+                          <p className="text-xs text-muted-foreground">{s.phone || '—'}</p>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{s.department || '—'}</TableCell>
+                        <TableCell className="hidden md:table-cell whitespace-nowrap text-sm capitalize">{typeof s.role === 'string' ? s.role : '—'}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          <StatusBadge status={s.status} className="whitespace-nowrap" />
+                        </TableCell>
+                        <TableCell className="text-right" onClick={(evt) => evt.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${s.name}`}>
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/staff/${id}`)}>
+                                <Eye className="mr-2 h-4 w-4" /> View
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit(s)}>
+                                <Pencil className="mr-2 h-4 w-4" /> Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => setScheduleTarget(s)}>
+                                <Clock className="mr-2 h-4 w-4" /> Set Schedule
+                              </DropdownMenuItem>
+                              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/calendar')}>
+                                <CalendarDays className="mr-2 h-4 w-4" /> View Calendar
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(s)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {!isLoading && !isError && pageItems.length > 0 && (
+        <Pagination
+          currentPage={page}
+          totalPages={totalPages}
+          pageSize={limit}
+          total={total}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {staffList.map((s) => (
-          <Card key={s.id ?? s.PK} className="card-hover">
-            <CardContent className="pt-5">
-              <div className="flex items-start gap-3">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">{getInitials(s.name)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{s.name ?? '—'}</h3>
-                  <p className="text-sm text-muted-foreground truncate">{s.email ?? '—'}</p>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    <Badge variant="outline" className="text-xs">{s.role ?? 'Staff'}</Badge>
-                    {s.department && <Badge variant="secondary" className="text-xs">{s.department}</Badge>}
-                    {s.status && (
-                      <Badge className={`text-xs ${s.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'}`}>{s.status}</Badge>
-                    )}
-                  </div>
-                  {(s.joinedDate || s.createdAt) && (
-                    <p className="text-xs text-muted-foreground mt-1">Joined: {formatDate(s.joinedDate ?? s.createdAt)}</p>
-                  )}
-                </div>
-              </div>
-              <div className="mt-3 flex gap-2 flex-wrap">
-                <Button variant="outline" size="sm" className="text-xs flex-1" onClick={() => openSchedule(s)}>
-                  <Clock className="mr-1 h-3 w-3" />Set Schedule
-                </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => handleDelete(s)}><Trash2 className="h-3.5 w-3.5" /></Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <StaffFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        staff={editingStaff}
+        isSubmitting={isSubmittingForm}
+        submitError={formSubmitError}
+        roleOptions={roleOptions}
+        departmentOptions={departmentOptions}
+        onSubmit={handleFormSubmit}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(v) => !v && setDeleteTarget(null)}
+        title="Delete Staff Member?"
+        description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this staff member'}? This action cannot be undone.`}
+        confirmLabel="Delete Staff"
+        confirmingLabel="Deleting…"
+        destructive
+        isConfirming={deleteMutation.isPending}
+        onConfirm={handleDeleteConfirm}
+      />
+
+      <StaffScheduleDialog
+        open={!!scheduleTarget}
+        onOpenChange={(v) => !v && setScheduleTarget(null)}
+        staff={scheduleTarget}
+        isSubmitting={scheduleMutation.isPending}
+        onSubmit={handleScheduleSubmit}
+      />
+    </div>
+  );
+}
+
+function StaffPageSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold sm:text-3xl">Staff</h1>
+        <p className="text-muted-foreground">Manage your team members</p>
       </div>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>{editing ? 'Edit Staff' : 'Add Staff Member'}</DialogTitle></DialogHeader>
-          <div className="space-y-3 py-2">
-            {[
-              { id: 'name',       label: 'Name',       placeholder: 'Full name' },
-              { id: 'email',      label: 'Email',      placeholder: 'email@example.com' },
-              { id: 'phone',      label: 'Phone',      placeholder: '+1 555 000 0000' },
-              { id: 'department', label: 'Department', placeholder: 'e.g. Front Desk' },
-            ].map(({ id, label, placeholder }) => (
-              <div key={id} className="space-y-1">
-                <Label htmlFor={id}>{label}</Label>
-                <Input id={id} placeholder={placeholder} value={(form as any)[id]}
-                  onChange={(e) => setForm((f) => ({ ...f, [id]: e.target.value }))} />
-              </div>
-            ))}
-            <div className="space-y-1">
-              <Label htmlFor="role">Role</Label>
-              <select id="role" className="w-full rounded-md border px-3 py-2 text-sm bg-background"
-                value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
-                {['Staff', 'Manager', 'Supervisor', 'Admin'].map((r) => <option key={r} value={r}>{r}</option>)}
-              </select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleSave} disabled={createStaff.isPending || updateStaff.isPending}>
-              {editing ? 'Save Changes' : 'Create'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>Set Schedule – {scheduleStaff?.name}</DialogTitle></DialogHeader>
-          <div className="space-y-2 py-2">
-            {DAYS.map((day) => (
-              <div key={day} className="flex items-center gap-3">
-                <Label className="w-10 capitalize shrink-0">{day}</Label>
-                <Input placeholder="HH:MM-HH:MM (blank = off)" value={schedule[day] ?? ''}
-                  onChange={(e) => setSchedule((p) => ({ ...p, [day]: e.target.value }))} />
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setScheduleOpen(false)}>Cancel</Button>
-            <Button onClick={handleScheduleUpdate} disabled={updateSchedule.isPending}>
-              {updateSchedule.isPending ? 'Saving…' : 'Save Schedule'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <Card>
+        <CardContent className="p-6">
+          <TableSkeleton rows={8} />
+        </CardContent>
+      </Card>
     </div>
   );
 }

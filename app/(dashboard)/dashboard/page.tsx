@@ -1,80 +1,98 @@
 'use client';
 
-import { Users, UserCheck, Clock, Hotel } from 'lucide-react';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
-import { StatsCard } from '@/components/dashboard/StatsCard';
+import { DashboardStatsGrid } from '@/components/dashboard/DashboardStatsGrid';
+import { QuickActions } from '@/components/dashboard/QuickActions';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { UpcomingEvents } from '@/components/dashboard/UpcomingEvents';
-import { VenueOccupancy } from '@/components/dashboard/VenueOccupancy';
-import { QuickActions } from '@/components/dashboard/QuickActions';
-import { LineChartComponent } from '@/components/charts/LineChartComponent';
-import { PieChartComponent } from '@/components/charts/PieChartComponent';
-import { useDashboardStats, useChartData } from '@/hooks/useReports';
-import { useActivityFeed, useUpcomingEvents } from '@/hooks/use-dashboard';
-import { useVenues } from '@/hooks/useVenues';
+import { CheckInOverview } from '@/components/dashboard/CheckInOverview';
+import { RecentGuests } from '@/components/dashboard/RecentGuests';
+import { HospitalityOverview } from '@/components/dashboard/HospitalityOverview';
+import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel';
+import { useDashboardStats, useDashboardActivity } from '@/hooks/useReports';
+import { useUpcomingEvents } from '@/hooks/useEvents';
+import { useCheckIns, useCheckInStats } from '@/hooks/useCheckins';
+import { useGuests } from '@/hooks/use-guests';
+import { useHospitalityBookings } from '@/hooks/useHospitality';
+import { useNotifications, useMarkAllNotificationsRead } from '@/hooks/use-notifications';
 
 export default function DashboardPage() {
-  const { data: stats, isLoading } = useDashboardStats();
-  const { data: activity }         = useActivityFeed();
-  const { data: upcomingEvents }   = useUpcomingEvents();
-  const { data: venues }           = useVenues();
-  const { data: checkInTrends }    = useChartData('checkins');
-  const { data: guestCategories }  = useChartData('guest-categories');
+  const stats = useDashboardStats();
+  const activity = useDashboardActivity();
+  const upcomingEvents = useUpcomingEvents();
+  const checkIns = useCheckIns();
+  const checkInStats = useCheckInStats();
+  const guests = useGuests({ limit: 5 });
+  const hospitality = useHospitalityBookings();
+  const notifications = useNotifications({ limit: 5 });
+  const markAllRead = useMarkAllNotificationsRead();
 
   return (
     <div className="space-y-6">
       <WelcomeHeader />
 
-      {/* Stats Grid */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatsCard
-          title="Today's Check-ins"
-          value={isLoading ? '…' : (stats?.todayCheckIns ?? 0)}
-          icon={UserCheck}
-        />
-        <StatsCard
-          title="Total Guests"
-          value={isLoading ? '…' : (stats?.totalGuests ?? 0)}
-          icon={Users}
-        />
-        <StatsCard
-          title="Pending Guests"
-          value={isLoading ? '…' : (stats?.pendingGuests ?? 0)}
-          icon={Clock}
-        />
-        <StatsCard
-          title="Hospitality Bookings"
-          value={isLoading ? '…' : (stats?.hospitalityBookings ?? 0)}
-          icon={Hotel}
-        />
-      </div>
+      <DashboardStatsGrid
+        stats={stats.data}
+        isLoading={stats.isLoading}
+        isError={stats.isError}
+        error={stats.error}
+        onRetry={() => stats.refetch()}
+      />
 
-      {/* Quick Actions */}
       <QuickActions />
 
-      {/* Charts Row */}
-      <div className="grid gap-6 md:grid-cols-2">
-        <LineChartComponent
-          title="Check-in Trends"
-          description="Daily check-ins over the past week"
-          data={checkInTrends ?? []}
-          dataKey="value"
-          xAxisKey="label"
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ActivityFeed
+          activities={activity.data ?? []}
+          isLoading={activity.isLoading}
+          isError={activity.isError}
+          error={activity.error}
+          onRetry={() => activity.refetch()}
         />
-        <PieChartComponent
-          title="Guest Categories"
-          description="Distribution of guest types"
-          data={guestCategories ?? []}
+        <UpcomingEvents
+          events={upcomingEvents.data ?? []}
+          isLoading={upcomingEvents.isLoading}
+          isError={upcomingEvents.isError}
+          error={upcomingEvents.error}
+          onRetry={() => upcomingEvents.refetch()}
         />
       </div>
 
-      {/* Content Grid */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <ActivityFeed activities={(activity as any) ?? []} />
-        <div className="space-y-6">
-          <UpcomingEvents events={(upcomingEvents as any) ?? []} />
-          <VenueOccupancy venues={((venues ?? []) as any).slice(0, 4)} />
-        </div>
+        <CheckInOverview
+          checkIns={checkIns.data ?? []}
+          stats={checkInStats.data}
+          isLoading={checkIns.isLoading}
+          isError={checkIns.isError}
+          error={checkIns.error}
+          onRetry={() => checkIns.refetch()}
+        />
+        <RecentGuests
+          guests={guests.data?.data ?? []}
+          isLoading={guests.isLoading}
+          isError={guests.isError}
+          error={guests.error}
+          onRetry={() => guests.refetch()}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <HospitalityOverview
+          bookings={hospitality.data ?? []}
+          isLoading={hospitality.isLoading}
+          isError={hospitality.isError}
+          error={hospitality.error}
+          onRetry={() => hospitality.refetch()}
+        />
+        <NotificationsPanel
+          notifications={notifications.data ?? []}
+          isLoading={notifications.isLoading}
+          isError={notifications.isError}
+          error={notifications.error}
+          onRetry={() => notifications.refetch()}
+          onMarkAllRead={() => markAllRead.mutate()}
+          isMarkingAllRead={markAllRead.isPending}
+        />
       </div>
     </div>
   );

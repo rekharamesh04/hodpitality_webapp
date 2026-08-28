@@ -1,24 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { debounce } from '@/lib/utils';
+import { useDebounce } from '@/hooks/useDebounce';
+import { cn } from '@/lib/utils';
 
 interface SearchInputProps {
   placeholder?: string;
   onSearch: (value: string) => void;
   debounceMs?: number;
+  defaultValue?: string;
+  className?: string;
 }
 
-export function SearchInput({ placeholder = 'Search...', onSearch, debounceMs = 300 }: SearchInputProps) {
-  const [value, setValue] = useState('');
+export function SearchInput({ placeholder = 'Search...', onSearch, debounceMs = 300, defaultValue = '', className }: SearchInputProps) {
+  const [value, setValue] = useState(defaultValue);
+  const debouncedValue = useDebounce(value, debounceMs);
+  const isFirstRun = useRef(true);
 
   useEffect(() => {
-    const debouncedSearch = debounce(onSearch, debounceMs);
-    debouncedSearch(value);
-  }, [value, onSearch, debounceMs]);
+    // Skip the mount-time fire so a defaultValue seeded from the URL doesn't re-trigger the same search.
+    if (isFirstRun.current) {
+      isFirstRun.current = false;
+      return;
+    }
+    onSearch(debouncedValue);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedValue]);
 
   const handleClear = () => {
     setValue('');
@@ -26,14 +36,15 @@ export function SearchInput({ placeholder = 'Search...', onSearch, debounceMs = 
   };
 
   return (
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    <div className={cn('relative', className)}>
+      <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
       <Input
-        type="text"
+        type="search"
         placeholder={placeholder}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         className="pl-9 pr-9"
+        aria-label={placeholder}
       />
       {value && (
         <Button
@@ -41,6 +52,7 @@ export function SearchInput({ placeholder = 'Search...', onSearch, debounceMs = 
           size="icon"
           className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
           onClick={handleClear}
+          aria-label="Clear search"
         >
           <X className="h-4 w-4" />
         </Button>

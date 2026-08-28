@@ -4,6 +4,7 @@ import { checkInService } from './checkin.service';
 import { hospitalityService } from './hospitality.service';
 import { eventService } from './event.service';
 import { venueService } from './venue.service';
+import { registrationService } from './registration.service';
 import apiClient from '@/lib/axios';
 
 export interface WorkflowResponse<T = any> {
@@ -92,13 +93,13 @@ class WorkflowService {
       // Step 2: Create event registration
       let registration: Registration;
       try {
-        const res = await apiClient.post<Registration>('/registrations', {
+        registration = await registrationService.createRegistration({
+          guestId: guest.id, eventId: data.eventId,
           guestName: data.guestName, guestEmail: data.email, phone: data.phone,
           event: data.eventTitle, registrationDate: new Date().toISOString(),
           status: 'pending', paymentStatus: data.paymentAmount ? 'pending' : 'paid',
           amount: data.paymentAmount, category: data.category,
         });
-        registration = res.data;
       } catch {
         return { success: false, error: 'Failed to create event registration' };
       }
@@ -206,18 +207,19 @@ class WorkflowService {
   }
   
   /**
-   * Confirm multiple registrations and process payments
+   * Confirm multiple registrations and mark their payments as paid
    */
   async bulkConfirmRegistrations(registrationIds: string[]): Promise<WorkflowResponse<{
-    confirmed: Registration[];
+    confirmed: string[];
     failed: { registrationId: string; error: string }[];
   }>> {
-    const confirmed: Registration[] = [];
+    const confirmed: string[] = [];
     const failed: { registrationId: string; error: string }[] = [];
     for (const regId of registrationIds) {
       try {
-        const res = await apiClient.patch<Registration>(`/registrations/${regId}`, { status: 'confirmed', paymentStatus: 'paid' });
-        confirmed.push(res.data);
+        await registrationService.confirmRegistration(regId);
+        await registrationService.updatePaymentStatus(regId, 'paid');
+        confirmed.push(regId);
       } catch (e) {
         failed.push({ registrationId: regId, error: e instanceof Error ? e.message : 'Unknown error' });
       }

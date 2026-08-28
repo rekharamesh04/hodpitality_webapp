@@ -1,20 +1,22 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { checkInService } from "@/services/checkin.service";
+import type { CheckInFilters } from "@/services/checkin.service";
 import { QUERY_KEYS } from "@/constants";
-import type { TableFilters, CheckIn, CheckInStats } from "@/types";
-type FilterOptions = TableFilters;
+import type { CheckInStats } from "@/types";
+import { getFriendlyErrorMessage } from "@/lib/utils";
 
 export const checkInKeys = {
   all:   QUERY_KEYS.CHECKINS,
-  list:  (filters: FilterOptions) => [...QUERY_KEYS.CHECKINS, "list", filters] as const,
+  list:  (filters: CheckInFilters) => [...QUERY_KEYS.CHECKINS, "list", filters] as const,
   stats: QUERY_KEYS.CHECKIN_STATS,
 };
 
-export function useCheckIns(filters: FilterOptions = {}) {
+export function useCheckIns(filters: CheckInFilters = {}) {
   return useQuery({
     queryKey: checkInKeys.list(filters),
     queryFn:  () => checkInService.getCheckIns(filters),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -26,6 +28,12 @@ export function useCheckInStats() {
   });
 }
 
+/** A guest already checked in returns 409 from the backend — surfaced as a distinct message rather than a generic failure. */
+function checkInErrorMessage(err: any, fallback: string): string {
+  if (err?.response?.status === 409) return err?.backendMessage ?? "This guest has already checked in.";
+  return err?.backendMessage ?? getFriendlyErrorMessage(err, fallback);
+}
+
 export function useCheckIn() {
   const qc = useQueryClient();
   return useMutation({
@@ -33,9 +41,11 @@ export function useCheckIn() {
       checkInService.quickCheckIn(payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
       toast.success("Guest checked in successfully!");
     },
-    onError: () => toast.error("Check-in failed"),
+    onError: (err: any) => toast.error(checkInErrorMessage(err, "Check-in failed")),
   });
 }
 
@@ -46,21 +56,32 @@ export function useQrCheckIn() {
       checkInService.checkInByQr(qrCode, venue),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
       toast.success("QR check-in successful!");
     },
-    onError: () => toast.error("QR check-in failed"),
+    onError: (err: any) => toast.error(checkInErrorMessage(err, "QR check-in failed")),
   });
 }
 
 export function useFacialCheckIn() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (imageData: string) => checkInService.checkInByFacial(imageData),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: checkInKeys.all });
-      toast.success("Facial recognition check-in successful!");
+    mutationFn: (payload: { image: string; venue?: string; eventId?: string }) =>
+      checkInService.checkInByFacial(payload),
+    onSuccess: (result) => {
+      if (result.success) {
+        qc.invalidateQueries({ queryKey: checkInKeys.all });
+        qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
+        qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
+        toast.success(`Checked in ${result.guestName ?? 'guest'}${result.matchConfidence ? ` (${result.matchConfidence.toFixed(1)}% match)` : ''}`);
+      } else {
+        // A non-2xx-shaped failure the backend still returns as 200 { success: false, ... } —
+        // never expose raw Rekognition error text, only its own user-facing message.
+        toast.error(result.error ?? result.message ?? "Face not recognized");
+      }
     },
-    onError: () => toast.error("Facial check-in failed"),
+    onError: (err: any) => toast.error(checkInErrorMessage(err, "Facial check-in failed")),
   });
 }
 
@@ -72,6 +93,6 @@ export function usePrintBadge() {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
       toast.success("Badge printed!");
     },
-    onError: () => toast.error("Failed to print badge"),
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to print badge")),
   });
 }

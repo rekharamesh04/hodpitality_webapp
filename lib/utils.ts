@@ -80,6 +80,14 @@ export function getStatusColor(status: string): string {
     confirmed: 'text-green-600 bg-green-50 border-green-200',
     checked_in: 'text-blue-600 bg-blue-50 border-blue-200',
     checked_out: 'text-gray-600 bg-gray-50 border-gray-200',
+    arrived: 'text-teal-600 bg-teal-50 border-teal-200',
+    on_site: 'text-green-600 bg-green-50 border-green-200',
+    // Payment statuses reuse the same semantic buckets above — no new colors.
+    paid: 'text-green-600 bg-green-50 border-green-200',
+    processing: 'text-yellow-600 bg-yellow-50 border-yellow-200',
+    failed: 'text-red-600 bg-red-50 border-red-200',
+    refunded: 'text-blue-600 bg-blue-50 border-blue-200',
+    partially_refunded: 'text-teal-600 bg-teal-50 border-teal-200',
   };
   return statusMap[(status ?? '').toLowerCase()] || statusMap.inactive;
 }
@@ -94,6 +102,14 @@ export function getStatusColorDark(status: string): string {
     confirmed: 'text-green-400 bg-green-950/30 border-green-800',
     checked_in: 'text-blue-400 bg-blue-950/30 border-blue-800',
     checked_out: 'text-gray-400 bg-gray-900/30 border-gray-700',
+    arrived: 'text-teal-400 bg-teal-950/30 border-teal-800',
+    on_site: 'text-green-400 bg-green-950/30 border-green-800',
+    // Payment statuses reuse the same semantic buckets above — no new colors.
+    paid: 'text-green-400 bg-green-950/30 border-green-800',
+    processing: 'text-yellow-400 bg-yellow-950/30 border-yellow-800',
+    failed: 'text-red-400 bg-red-950/30 border-red-800',
+    refunded: 'text-blue-400 bg-blue-950/30 border-blue-800',
+    partially_refunded: 'text-teal-400 bg-teal-950/30 border-teal-800',
   };
   return statusMap[(status ?? '').toLowerCase()] || statusMap.inactive;
 }
@@ -160,6 +176,68 @@ export function isValidPhone(phone: string): boolean {
 
 export function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+/**
+ * Best-effort extraction of a Cognito-invitation warning from a POST /resellers or
+ * POST /companies response. The record itself was created either way (2xx) — this only
+ * checks a few plausible optional field names for a distinct "the invite didn't go out"
+ * signal, without assuming a fixed schema. Returns null when the backend doesn't report one,
+ * which is the common case.
+ */
+export function extractInvitationWarning(data: unknown): string | null {
+  if (!data || typeof data !== 'object') return null;
+  const r = data as Record<string, unknown>;
+  const candidate = r.invitationError ?? r.invitation_error ?? r.inviteError ?? r.cognitoError ?? r.cognito_error ?? r.warning;
+  return typeof candidate === 'string' && candidate.trim() ? candidate : null;
+}
+
+/** Maps a failed request into safe, user-facing copy — never surfaces raw backend error text or stack traces. */
+export function getFriendlyErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.'): string {
+  const err = error as { response?: { status?: number }; request?: unknown } | undefined;
+  const status = err?.response?.status;
+  if (status === 401) return 'Your session has expired. Please sign in again.';
+  if (status === 403) return "You don't have permission to view this data.";
+  if (status === 404) return 'The requested item could not be found.';
+  if (status === 409) return 'This conflicts with existing data. Please refresh and try again.';
+  if (status === 400) return 'The request was invalid. Please check the form and try again.';
+  if (typeof status === 'number' && status >= 500) return 'The server encountered an error. Please try again shortly.';
+  if (!err?.response && err?.request) return 'Network error — please check your connection and try again.';
+  return fallback;
+}
+
+/** Formats a "HH:MM" 24-hour time string as a 12-hour label, e.g. "14:30" -> "2:30 PM". Returns "—" for anything unparseable. */
+export function formatTimeLabel(time?: string): string {
+  if (!time) return '—';
+  const match = /^(\d{1,2}):(\d{2})/.exec(time);
+  if (!match) return time;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (Number.isNaN(h) || Number.isNaN(m)) return time;
+  const ampm = h < 12 ? 'AM' : 'PM';
+  const displayHour = h % 12 === 0 ? 12 : h % 12;
+  return `${displayHour}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+/** Adds `minutes` to a "HH:MM" time string, wrapping within a 24-hour day. */
+export function addMinutesToTime(time: string, minutes: number): string {
+  const [h, m] = time.split(':').map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return time;
+  const total = (h * 60 + m + minutes + 1440) % 1440;
+  const nh = Math.floor(total / 60);
+  const nm = total % 60;
+  return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+}
+
+/** Formats a check-in/registration timestamp as "Today, 2:30 PM" for today, else a plain date+time. Returns "—" if absent/unparseable. */
+export function formatCheckInTimestamp(date: string | Date | undefined | null): string {
+  if (!date) return '—';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '—';
+  const now = new Date();
+  const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  return isToday ? `Today, ${time}` : `${formatDate(d)}, ${time}`;
 }
 
 export function getAvatarUrl(name: string, email?: string): string {

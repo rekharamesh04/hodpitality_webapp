@@ -59,6 +59,16 @@ export const API_ENDPOINTS = {
     VERIFY_OTP: '/auth/verify-otp',
     RESET_PASSWORD: '/auth/reset-password',
     RESPOND_CHALLENGE: '/auth/respond-challenge',
+    /**
+     * NOT YET CONFIRMED against the backend — this app's API Gateway requires an
+     * `Authorization` header on every non-public route (including truly nonexistent
+     * ones), so an unauthenticated probe can't distinguish "route exists" from
+     * "route missing"; a real Cognito-backed refresh call needs a valid refresh
+     * token we don't have in this environment. `/auth/refresh` is the conventional
+     * path matching this API's existing `/auth/*` naming — verify (or correct) it
+     * with the backend team before relying on it in production. See lib/axios.ts.
+     */
+    REFRESH: '/auth/refresh',
   },
   SETTINGS: {
     PROFILE: '/settings/profile',
@@ -68,6 +78,8 @@ export const API_ENDPOINTS = {
   },
   RESELLERS: '/resellers',
   COMPANIES: '/companies',
+  /** Not yet deployed to the backend — see hodpitality_backend_patch/payments_patch.py. */
+  PAYMENTS: '/payments',
   GUESTS: '/guests',
   CUSTOMERS: '/customers',
   CHECK_INS: '/check-ins',
@@ -127,6 +139,9 @@ export const QUERY_KEYS = {
   RESELLER_DETAIL: (id: string) => ['resellers', id],
   COMPANIES: ['companies'],
   COMPANY_DETAIL: (id: string) => ['companies', id],
+  PAYMENTS: ['payments'],
+  PAYMENT_DETAIL: (id: string) => ['payments', id],
+  PAYMENT_STATS: ['payments', 'stats'],
 } as const;
 
 // Local Storage Keys
@@ -162,3 +177,6 @@ export const ANIMATION = {
 } as const;
 
 export * from './navigation';
+export * from './customer';
+export * from './appointment';
+export * from './guest';

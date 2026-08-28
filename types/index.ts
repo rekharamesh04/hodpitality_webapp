@@ -85,6 +85,8 @@ export interface CheckIn {
   badgePrinted: boolean;
   verifiedBy?: string;
   notes?: string;
+  /** Present on records created via facial recognition (confirmed in the backend's own check-in creation payload); not guaranteed on every check-in method. */
+  status?: string;
 }
 
 export interface CheckInStats {
@@ -96,8 +98,57 @@ export interface CheckInStats {
   cancelled: number;
 }
 
+// ============ Payment types ============
+// Backed by the /payments API added in the Payments & Billing patch — manual payment
+// recording only (no gateway integrated). See hodpitality_backend_patch/payments_patch.py.
+
+export type PaymentStatus =
+  | 'pending' | 'processing' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'partially_refunded';
+
+export type PaymentMethodType = 'cash' | 'card' | 'upi' | 'bank_transfer' | 'online' | 'other';
+
+export interface Payment {
+  id: string;
+  PK?: string;
+  entity_type?: string;
+  registrationId: string;
+  customerId?: string;
+  guestId?: string;
+  /** Denormalized display fields the backend does not currently enrich onto the record —
+   * populated client-side from the related Registration when available. */
+  customerName?: string;
+  amount: number;
+  currency: string;
+  status: PaymentStatus;
+  paymentMethod: PaymentMethodType;
+  /** Always "manual" today — no payment gateway is integrated. */
+  provider?: string;
+  transactionId?: string;
+  description?: string;
+  paidAt?: string;
+  recordedBy?: string;
+  refundAmount?: number;
+  refundStatus?: string;
+  refundReason?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PaymentStats {
+  totalPayments: number;
+  successfulPayments: number;
+  pendingPayments: number;
+  failedPayments: number;
+  refundedPayments: number;
+  totalAmount: number;
+  refundedAmount: number;
+  netAmount: number;
+}
+
 export interface Registration {
   id: string;
+  guestId?: string;
+  eventId?: string;
   guestName: string;
   guestEmail: string;
   phone: string;
@@ -107,6 +158,9 @@ export interface Registration {
   paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded';
   amount?: number;
   category: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Hospitality {
@@ -121,8 +175,10 @@ export interface Hospitality {
   serviceDate: string;
   scheduledAt?: string;
   venue?: string;
+  vendor?: string;
   notes?: string;
   cost?: number;
+  createdAt?: string;
 }
 
 export interface Venue {
@@ -203,11 +259,14 @@ export interface DashboardStats {
   activeStaff: number;
 }
 
+export type ActivityType = 'check_in' | 'registration' | 'hospitality' | 'event' | 'system';
+
+/** Normalised shape the UI renders — produced by reportService.getActivityFeed() from whatever the API actually returns. */
 export interface ActivityFeedItem {
   id: string;
-  type: 'check_in' | 'registration' | 'hospitality' | 'event' | 'system';
+  type: ActivityType | (string & {});
   title: string;
-  description: string;
+  description?: string;
   timestamp: string;
   user?: string;
   icon?: string;
@@ -370,25 +429,34 @@ export interface Reseller {
   id: string;
   /** DynamoDB raw PK e.g. "RESELLER#<uuid>" – present on list/detail responses */
   PK?: string;
+  entity_type?: string;
   name: string;
-  email: string;
+  /** Optional at the backend — POST /resellers only requires `name` */
+  email?: string;
   phone?: string;
-  status: Status;
-  createdAt: string;
-  updatedAt: string;
+  /** Not part of the confirmed POST /resellers response fields — render defensively */
+  status?: Status;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Company {
   id: string;
   /** DynamoDB raw PK e.g. "COMPANY#<uuid>" – present on list/detail responses */
   PK?: string;
+  entity_type?: string;
   name: string;
+  /** Optional at the backend — POST /companies only requires `name` */
   email?: string;
   phone?: string;
-  status: Status;
-  resellerId?: string;
-  createdAt: string;
-  updatedAt: string;
+  /** Not part of the confirmed POST /companies response fields — render defensively */
+  status?: Status;
+  /** Owning reseller — backend field name, snake_case on the wire like `tenant_id` */
+  reseller_id?: string;
+  /** Backend-generated (`tenant-{company_id}`) — never sent as an editable field */
+  tenant_id?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ============ Appointment types ============
@@ -399,16 +467,37 @@ export interface Appointment {
   entity_type?: string;
   /** ISO date string – required by API on create */
   date?: string;
+  /** Required by API on create — the backend also accepts guestId as an alias */
+  customerId?: string;
   guestId?: string;
   guestName?: string;
+  customerName?: string;
+  /** Enrichment the day-calendar endpoint adds when it can resolve the customer record */
+  customerTier?: string;
+  allergyNotes?: string;
+  /** Required by API on create */
   staffId?: string;
   staffName?: string;
   title?: string;
+  /** Required by API on create (HH:mm) */
   startTime?: string;
   endTime?: string;
-  status?: 'scheduled' | 'completed' | 'cancelled' | 'no_show';
+  /** Service name/id — defaults server-side if omitted. The backend also accepts serviceId/serviceName as aliases. */
+  service?: string;
+  serviceId?: string;
+  serviceName?: string;
+  /** Minutes — defaults to 30 server-side if omitted */
+  duration?: number;
+  room?: string;
+  status?: 'scheduled' | 'confirmed' | 'pending' | 'arrived' | 'in-progress' | 'completed' | 'cancelled' | 'no-show' | 'no_show';
   notes?: string;
   venueId?: string;
+  createdAt?: string;
+  /** Set by the backend automatically when a matching check-in arrives — never write these from the frontend */
+  arrivedAt?: string;
+  checkinId?: string;
+  /** Set by the backend automatically when status becomes "completed" — never write this from the frontend */
+  checkoutAt?: string;
 }
 
 // ============ Calendar types ============
@@ -426,11 +515,26 @@ export interface CalendarEvent {
   type: string;
   status?: string;
   resourceId?: string;
+  /** Present on type: "appointment" entries */
+  startTime?: string;
+  duration?: number;
+  staffId?: string;
+  customerId?: string;
+  /** Present on type: "event" entries */
+  venue?: string;
+  category?: string;
+  attendees?: number;
+  capacity?: number;
 }
+
+/** Alias matching the backend's terminology for a single GET /calendar/events row. */
+export type CalendarEntry = CalendarEvent;
 
 export interface CalendarEventsResponse {
   month: string;
   entries: CalendarEvent[];
+  totalAppointments?: number;
+  totalEvents?: number;
 }
 
 export interface CalendarDayView {
@@ -441,9 +545,15 @@ export interface CalendarDayView {
       name: string;
       shortName?: string;
       rooms?: string;
+      department?: string;
+      role?: string;
     };
     appointments: Appointment[];
   }>;
+  totalAppointments?: number;
+  /** Flat list of the same appointments shown in staffColumns — some backends include both shapes */
+  appointments?: Appointment[];
+  onSite?: number;
 }
 
 // ============ Upload types ============
@@ -469,10 +579,22 @@ export interface ChartDataPoint {
   extra?: Record<string, unknown>;
 }
 
+/**
+ * Raw shape returned by GET /dashboard/activity — field names aren't fully
+ * confirmed against the backend (it may send `message` or `title`/`description`,
+ * `actor` or `user`, etc.), so nothing is guaranteed present.
+ * reportService.getActivityFeed() normalizes this into ActivityFeedItem.
+ */
 export interface DashboardActivityItem {
-  id: string;
-  type: string;
-  message: string;
-  timestamp: string;
+  id?: string;
+  type?: string;
+  title?: string;
+  message?: string;
+  description?: string;
+  timestamp?: string;
+  createdAt?: string;
+  date?: string;
+  user?: string;
   actor?: string;
+  icon?: string;
 }

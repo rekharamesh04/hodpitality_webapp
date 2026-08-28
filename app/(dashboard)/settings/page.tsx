@@ -5,6 +5,7 @@ import { Settings, Building2, Bell, Shield } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -228,24 +229,21 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Current Password</Label>
-                <Input
-                  type="password"
+                <PasswordInput
                   value={pwForm.currentPassword}
                   onChange={(e) => setPwForm((p) => ({ ...p, currentPassword: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
                 <Label>New Password</Label>
-                <Input
-                  type="password"
+                <PasswordInput
                   value={pwForm.newPassword}
                   onChange={(e) => setPwForm((p) => ({ ...p, newPassword: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
                 <Label>Confirm New Password</Label>
-                <Input
-                  type="password"
+                <PasswordInput
                   value={pwForm.confirm}
                   onChange={(e) => setPwForm((p) => ({ ...p, confirm: e.target.value }))}
                 />

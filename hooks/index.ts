@@ -1,5 +1,4 @@
 // Lightweight hooks (no TanStack Query dependency)
-export { useActivityFeed } from './use-dashboard';
 export { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteAllNotifications } from './use-notifications';
 
 // TanStack Query hooks

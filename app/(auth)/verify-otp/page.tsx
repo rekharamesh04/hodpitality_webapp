@@ -14,6 +14,7 @@ export default function VerifyOTPPage() {
   const router = useRouter();
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +35,25 @@ export default function VerifyOTPPage() {
       toast.error('Invalid OTP. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    const email = sessionStorage.getItem('reset_email');
+    if (!email) {
+      toast.error('Your session expired — please restart the password reset.');
+      router.push('/forgot-password');
+      return;
+    }
+    setIsResending(true);
+    try {
+      const { authService } = await import('@/services/auth.service');
+      await authService.forgotPassword(email);
+      toast.success('A new code has been sent to your email');
+    } catch {
+      toast.error('Failed to resend the code. Please try again.');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -80,8 +100,13 @@ export default function VerifyOTPPage() {
 
               <div className="text-center text-sm text-muted-foreground">
                 Didn't receive the code?{' '}
-                <button type="button" className="text-primary hover:underline">
-                  Resend OTP
+                <button
+                  type="button"
+                  className="text-primary hover:underline disabled:opacity-50 disabled:no-underline"
+                  onClick={handleResend}
+                  disabled={isResending || isLoading}
+                >
+                  {isResending ? 'Sending…' : 'Resend OTP'}
                 </button>
               </div>
             </form>

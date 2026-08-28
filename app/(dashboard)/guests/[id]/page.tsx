@@ -1,311 +1,400 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
-import { ArrowLeft, Phone, Mail, MessageSquare, CalendarPlus, Pencil } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import type { SpaAppointment, Guest } from '@/types';
-import NewAppointmentDialog from '@/components/dialogs/NewAppointmentDialog';
-import { guestService } from '@/services/guest.service';
-import { appointmentService } from '@/services/appointment.service';
+  ArrowLeft, Pencil, Trash2, Camera, Link2, Mail, Phone, Building2,
+  BadgeCheck, StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ErrorState } from '@/components/common/ErrorState';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { GuestFormDialog } from '@/components/dialogs/GuestFormDialog';
+import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  useGuest, useUpdateGuest, useDeleteGuest, useEnrollFace, useLinkGuestAccount,
+} from '@/hooks/use-guests';
+import { useCheckIn } from '@/hooks/useCheckins';
+import { useAppointments } from '@/hooks/useAppointments';
+import { getLocalAvatar } from '@/lib/local-avatars';
+import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
+import { GUEST_CATEGORY_BADGE_CLASSES } from '@/constants';
+import type { UpdateGuestPayload } from '@/services/guest.service';
 
-const TIER_COLORS: Record<string, string> = {
-  Founding:  'bg-amber-100 text-amber-800 border-amber-300',
-  Signature: 'bg-purple-100 text-purple-800 border-purple-300',
-  Standard:  'bg-gray-100 text-gray-700 border-gray-300',
-};
+function getGuestId(id: string, pk?: string): string {
+  return id || (pk ? pk.replace('GUEST#', '') : '');
+}
 
-const OUTCOME_COLORS: Record<string, string> = {
-  Completed: 'text-green-700 bg-green-50 border-green-200',
-  Cancelled: 'text-red-600 bg-red-50 border-red-200',
-  'No-show': 'text-orange-700 bg-orange-50 border-orange-200',
-};
-
-const TODAY = '2026-08-06';
-
-export default function CustomerProfilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const router = useRouter();
+export default function GuestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
 
-  const [customer, setCustomer] = useState<(Guest & Record<string, any>) | null>(null);
-  const [bookOpen, setBookOpen] = useState(false);
-  const [appointments, setAppointments] = useState<SpaAppointment[]>([]);
-  const visitHistory: Array<{ date: string; service: string; staff: string; duration: number; outcome: string; notes?: string }> = [];
+  const { data: guest, isLoading, isError, error, refetch } = useGuest(id);
+  const updateMutation = useUpdateGuest();
+  const deleteMutation = useDeleteGuest();
+  const enrollFace = useEnrollFace();
+  const linkAccount = useLinkGuestAccount();
+  const checkIn = useCheckIn();
 
-  useEffect(() => {
-    guestService.getGuest(id).then(setCustomer).catch(console.error);
-    appointmentService.getAppointments({ limit: 100 }).then(res => setAppointments((Array.isArray(res) ? res : []) as unknown as SpaAppointment[])).catch(console.error);
-  }, [id]);
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [faceOpen, setFaceOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkUserId, setLinkUserId] = useState('');
 
-  const upcomingAppts = useMemo(
-    () =>
-      appointments.filter(
-        (a) => a.customerId === id && ['scheduled', 'checked_in'].includes(a.status)
-      ),
-    [appointments, id]
+  // No dedicated "appointments by guest" endpoint exists — filter the full list client-side, same
+  // pattern used elsewhere in the app (see the legacy customer profile view this replaced).
+  const { data: appointmentsData } = useAppointments({}, { enabled: !!guest });
+  const relatedAppointments = (appointmentsData ?? []).filter(
+    (a) => a.guestId === id || a.customerId === id
   );
 
+  function handleUpdate(payload: UpdateGuestPayload) {
+    updateMutation.mutate({ id, data: payload }, { onSuccess: () => setEditOpen(false) });
+  }
 
-  if (!customer) {
+  function handleDelete() {
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success('Guest deleted');
+        router.push('/guests');
+      },
+    });
+  }
+
+  function handleFaceSubmit(image: string) {
+    enrollFace.mutate({ guestId: id, image }, { onSuccess: () => setFaceOpen(false) });
+  }
+
+  function handleLinkSubmit() {
+    linkAccount.mutate(
+      { guestId: id, userId: linkUserId.trim() || undefined },
+      { onSuccess: () => { setLinkOpen(false); setLinkUserId(''); } }
+    );
+  }
+
+  function handleCheckIn() {
+    checkIn.mutate({ guestId: id }, { onSuccess: () => refetch() });
+  }
+
+  if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-4">
-        <p className="text-muted-foreground">Customer not found.</p>
-        <Button variant="outline" onClick={() => router.back()}>
-          ← Back
-        </Button>
+      <div className="mx-auto max-w-5xl space-y-6">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-56 w-full rounded-2xl" />
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Skeleton className="h-64 w-full rounded-2xl lg:col-span-2" />
+          <Skeleton className="h-64 w-full rounded-2xl" />
+        </div>
       </div>
     );
   }
 
-  function handleCancelAppt(apptId: string) {
-    setAppointments((prev) =>
-      prev.map((a) =>
-        a.id === apptId ? { ...a, status: 'cancelled' as const, cancelledTime: new Date().toTimeString().slice(0, 5) } : a
-      )
+  if (isError || !guest) {
+    return (
+      <div className="mx-auto max-w-2xl space-y-6">
+        <Button variant="ghost" size="sm" onClick={() => router.push('/guests')} className="-ml-2">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          All guests
+        </Button>
+        <ErrorState
+          title="Unable to load this guest"
+          message={getFriendlyErrorMessage(error, 'This guest could not be found.')}
+          onRetry={() => refetch()}
+        />
+      </div>
     );
   }
 
-  function handleAddAppointment(appt: Omit<SpaAppointment, 'id'>) {
-    setAppointments((prev) => [...prev, { ...appt, id: `a${Date.now()}` }]);
-  }
+  const resolvedId = getGuestId(guest.id, guest.PK);
+  const localPhoto = getLocalAvatar(resolvedId);
+  const photoSrc = guest.avatar ?? localPhoto;
+  const hasFacePhoto = !!photoSrc;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Back nav */}
-      <Button variant="ghost" size="sm" onClick={() => router.back()} className="-ml-2">
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        All customers
-      </Button>
+    <TooltipProvider delayDuration={200}>
+      <div className="mx-auto max-w-5xl space-y-6">
+        <Button variant="ghost" size="sm" onClick={() => router.push('/guests')} className="-ml-2">
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          All guests
+        </Button>
 
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* ─── Sidebar ─────────────────────────────────────────────────── */}
-        <aside className="w-full lg:w-64 flex-shrink-0 space-y-4">
-          {/* Avatar / photo */}
-          <div className="flex flex-col items-center gap-3 p-4 border rounded-lg bg-card">
-            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-3xl font-bold text-primary">
-              {customer.initials}
+        {/* Hero */}
+        <Card className="overflow-hidden">
+          <div className="h-20 bg-gradient-to-r from-primary/25 via-primary/10 to-transparent sm:h-24" />
+          <CardContent className="relative px-4 pb-6 pt-0 sm:px-6">
+            <div className="-mt-10 flex flex-col gap-5 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:text-left">
+                <Avatar className="h-20 w-20 border-4 border-card shadow-[var(--shadow-medium)] sm:h-24 sm:w-24">
+                  <AvatarImage src={photoSrc} alt={guest.name} />
+                  <AvatarFallback className="bg-primary/10 text-2xl font-bold text-primary">
+                    {guest.name ? getInitials(guest.name) : '?'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="sm:pb-1">
+                  <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                    <h1 className="text-2xl font-bold tracking-tight">{guest.name || 'Unnamed guest'}</h1>
+                    {guest.category && (
+                      <span
+                        className={cn(
+                          'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                          GUEST_CATEGORY_BADGE_CLASSES[guest.category] ?? 'bg-gray-100 text-gray-700 border-gray-300'
+                        )}
+                      >
+                        {guest.category}
+                      </span>
+                    )}
+                    <StatusBadge status={guest.status} />
+                  </div>
+                  <p className="mt-1 text-sm text-muted-foreground">{guest.email || 'No email on file'}</p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-center gap-2 sm:pb-1">
+                {!guest.checkedIn && (
+                  <Button size="sm" variant="secondary" onClick={handleCheckIn} loading={checkIn.isPending}>
+                    {!checkIn.isPending && <UserCheck className="mr-2 h-4 w-4" />}
+                    Check In
+                  </Button>
+                )}
+                <Button size="sm" onClick={() => setEditOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="outline" aria-label={hasFacePhoto ? 'Retake face photo' : 'Enroll face'} onClick={() => setFaceOpen(true)}>
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{hasFacePhoto ? 'Retake face photo' : 'Enroll face'}</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="outline" aria-label="Link account" onClick={() => setLinkOpen(true)}>
+                      <Link2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Link account</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label="Delete guest" onClick={() => setDeleteOpen(true)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete guest</TooltipContent>
+                </Tooltip>
+              </div>
             </div>
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" className="text-xs px-2 h-7">Replace</Button>
-              <Button size="sm" variant="outline" className="text-xs px-2 h-7">
-                <Pencil className="h-3 w-3 mr-1" />Edit
-              </Button>
+
+            {/* Stat strip */}
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatChip
+                icon={guest.checkedIn ? UserRoundCheck : UserCheck}
+                label="Check-in"
+                value={guest.checkedIn ? formatCheckInTimestamp(guest.checkInTime) : 'Not checked in'}
+              />
+              <StatChip icon={CalendarDays} label="Registered" value={guest.registrationDate ? formatDate(guest.registrationDate) : '—'} />
+              <StatChip icon={CalendarClock} label="Upcoming Appointments" value={String(relatedAppointments.length)} />
+              <StatChip icon={Clock} label="Guest Since" value={guest.createdAt ? formatDate(guest.createdAt) : '—'} />
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Action buttons */}
-          <div className="flex flex-row lg:flex-col gap-2">
-            <Button size="sm" onClick={() => setBookOpen(true)}>
-              <CalendarPlus className="mr-2 h-4 w-4" />
-              Book appointment
-            </Button>
-            <Button size="sm" variant="outline">
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Message customer
-            </Button>
-          </div>
-
-          {/* Contact info */}
-          <Card>
-            <CardContent className="p-4 space-y-3 text-sm">
-              <InfoRow label="Email"           value={customer.email} />
-              <InfoRow label="Phone"           value={customer.phone} />
-              <InfoRow label="Preferred contact" value={customer.preferredContact} />
-              <InfoRow label="Preferences"     value={customer.preferences} />
-              <InfoRow label="Home location"   value={customer.homeLocation} />
-              <InfoRow label="Balance"         value={`$${customer.balance.toFixed(2)}`} />
-              <InfoRow label="Customer ID"     value={customer.customerId} />
+        {/* Details */}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Guest Information</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-5 sm:grid-cols-2">
+              <InfoRow icon={Mail} label="Email" value={guest.email} />
+              <InfoRow icon={Phone} label="Phone" value={guest.phone} />
+              <InfoRow icon={Building2} label="Company" value={guest.company} />
+              <InfoRow icon={BadgeCheck} label="Designation" value={guest.designation} />
+              {guest.notes && (
+                <div className="sm:col-span-2">
+                  <InfoRow icon={StickyNote} label="Notes" value={guest.notes} />
+                </div>
+              )}
             </CardContent>
           </Card>
-        </aside>
 
-        {/* ─── Main content ─────────────────────────────────────────────── */}
-        <div className="flex-1 space-y-6">
-          {/* Header */}
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-bold">{customer.name}</h1>
-              <span
-                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                  TIER_COLORS[customer.tier] ?? ''
-                }`}
-              >
-                {customer.tier}
-              </span>
-              {customer.hasAllergy && (
-                <Badge variant="destructive" className="text-xs">
-                  Allergy on file
-                </Badge>
-              )}
-            </div>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {customer.memberSince
-                ? `Sixty-fourth visit coming up. Books the same slot most weeks.`
-                : 'Welcome to Harbor Street.'}
-            </p>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Face &amp; Account</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="flex items-center gap-3 rounded-lg border p-3">
+                  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full', hasFacePhoto ? 'bg-success/10' : 'bg-muted')}>
+                    <UserRoundCheck className={cn('h-4 w-4', hasFacePhoto ? 'text-success' : 'text-muted-foreground')} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{hasFacePhoto ? 'Face enrolled' : 'Not enrolled'}</p>
+                    <p className="text-xs text-muted-foreground">Facial recognition check-in</p>
+                  </div>
+                  <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-xs" onClick={() => setFaceOpen(true)}>
+                    {hasFacePhoto ? 'Retake' : 'Enroll'}
+                  </Button>
+                </div>
+                <Button size="sm" variant="outline" className="w-full" onClick={() => setLinkOpen(true)}>
+                  <Link2 className="mr-2 h-4 w-4" />
+                  Link Account
+                </Button>
+              </CardContent>
+            </Card>
 
-            {/* Stats */}
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              <StatBox value={String(customer.visits)} label="Visits" />
-              <StatBox value={customer.memberSince} label="Member since" />
-              <StatBox value={String(customer.upcomingCount)} label="Upcoming" />
-              <StatBox value={String(customer.missedVisits)} label="Missed visits" />
-            </div>
-          </div>
-
-          {/* Upcoming appointments */}
-          <section>
-            <h2 className="text-lg font-semibold mb-3">Upcoming</h2>
-            {upcomingAppts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No upcoming appointments.</p>
-            ) : (
-              <div className="space-y-3">
-                {upcomingAppts.map((appt) => (
-                  <UpcomingApptCard
-                    key={appt.id}
-                    appt={appt}
-                    onCancel={() => handleCancelAppt(appt.id)}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* Notes */}
-          <section>
-            <h2 className="text-lg font-semibold mb-2">Notes</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              {customer.notes || 'No notes.'}
-            </p>
-          </section>
-
-          {/* Visit history */}
-          <section>
-            <h2 className="text-lg font-semibold mb-3">Visit history</h2>
-            {visitHistory.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No visit history yet.</p>
-            ) : (
-              <div className="border rounded-lg overflow-hidden overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Service</TableHead>
-                      <TableHead className="hidden sm:table-cell">Staff</TableHead>
-                      <TableHead className="hidden md:table-cell">Location</TableHead>
-                      <TableHead>Outcome</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {visitHistory.map((v, i) => (
-                      <TableRow key={i}>
-                        <TableCell className="text-sm">{v.date}</TableCell>
-                        <TableCell className="text-sm">{v.service}</TableCell>
-                        <TableCell className="text-sm hidden sm:table-cell">{v.staff}</TableCell>
-                        <TableCell className="text-sm hidden md:table-cell">{(v as any).location}</TableCell>
-                        <TableCell>
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${
-                              OUTCOME_COLORS[v.outcome] ?? ''
-                            }`}
-                          >
-                            {v.outcome}
-                          </span>
-                        </TableCell>
-                      </TableRow>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Related Appointments</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {relatedAppointments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No appointments linked to this guest.</p>
+                ) : (
+                  <>
+                    {relatedAppointments.slice(0, 4).map((a) => (
+                      <div key={a.id} className="rounded-lg border p-2.5 text-sm">
+                        <p className="font-medium truncate">{a.service ?? a.title ?? 'Appointment'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {a.date ? formatDate(a.date) : '—'}{a.startTime ? ` · ${a.startTime}` : ''}
+                        </p>
+                      </div>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </section>
+                    <Button size="sm" variant="ghost" className="w-full" onClick={() => router.push('/calendar')}>
+                      View in Calendar
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        {/* Edit dialog */}
+        <GuestFormDialog
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          guest={guest}
+          isSubmitting={updateMutation.isPending}
+          submitError={updateMutation.error ? getFriendlyErrorMessage(updateMutation.error, 'Unable to save guest.') : null}
+          onSubmit={handleUpdate}
+        />
+
+        {/* Delete confirmation */}
+        <ConfirmDialog
+          open={deleteOpen}
+          onOpenChange={setDeleteOpen}
+          title="Delete Guest?"
+          description={`Are you sure you want to delete ${guest.name || 'this guest'}? This action cannot be undone.`}
+          confirmLabel="Delete"
+          confirmingLabel="Deleting…"
+          destructive
+          isConfirming={deleteMutation.isPending}
+          onConfirm={handleDelete}
+        />
+
+        {/* Face enrollment */}
+        <CameraCaptureDialog
+          open={faceOpen}
+          onOpenChange={setFaceOpen}
+          title="Enroll Face"
+          description="Capture a clear front-facing photo to enroll this guest."
+          submitLabel="Enroll"
+          isSubmitting={enrollFace.isPending}
+          onSubmit={handleFaceSubmit}
+        />
+
+        {/* Link account */}
+        <Dialog open={linkOpen} onOpenChange={(v) => !linkAccount.isPending && setLinkOpen(v)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Link Account</DialogTitle>
+              <DialogDescription>
+                Link this guest to an existing user account. Leave blank to link by matching email.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1.5 py-2">
+              <Label htmlFor="link-user-id">User ID (optional)</Label>
+              <Input
+                id="link-user-id"
+                value={linkUserId}
+                onChange={(e) => setLinkUserId(e.target.value)}
+                placeholder="e.g. cognito user sub"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setLinkOpen(false)} disabled={linkAccount.isPending}>
+                Cancel
+              </Button>
+              <Button onClick={handleLinkSubmit} loading={linkAccount.isPending}>
+                {linkAccount.isPending ? 'Linking…' : 'Link Account'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* New appointment dialog */}
-      <NewAppointmentDialog
-        open={bookOpen}
-        onClose={() => setBookOpen(false)}
-        onBook={handleAddAppointment}
-        defaultDate={TODAY}
-        preselectedCustomerId={customer.id}
-      />
-    </div>
+    </TooltipProvider>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-0.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="font-medium text-sm">{value}</span>
-    </div>
-  );
-}
-
-function StatBox({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="text-center">
-      <p className="text-xl font-bold">{value}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
-    </div>
-  );
-}
-
-function UpcomingApptCard({
-  appt,
-  onCancel,
+function StatChip({
+  icon: Icon,
+  label,
+  value,
 }: {
-  appt: SpaAppointment;
-  onCancel: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: string;
 }) {
-  const [h, m] = appt.startTime.split(':').map(Number);
-  const endMin = h * 60 + m + appt.duration;
-  const endH = Math.floor(endMin / 60);
-  const endM = endMin % 60;
-  const fmt = (hh: number, mm: number) => {
-    const ampm = hh < 12 ? 'am' : 'pm';
-    const d = hh > 12 ? hh - 12 : hh === 0 ? 12 : hh;
-    return `${d}:${String(mm).padStart(2, '0')} ${ampm}`;
-  };
-
-  const dateLabel =
-    appt.date === TODAY ? 'Today' : new Date(appt.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-
   return (
-    <div className="flex items-center justify-between border rounded-lg p-3 gap-3">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span>{dateLabel}</span>
-          <span>·</span>
-          <span>
-            {fmt(h, m)} – {fmt(endH, endM)}
-          </span>
-        </div>
-        <p className="text-sm font-medium mt-0.5">{appt.service}</p>
-        <p className="text-xs text-muted-foreground">
-          {appt.staffName} · {appt.duration} min · {appt.room}
-        </p>
+    <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+        <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
       </div>
-      <div className="flex items-center gap-2">
-        <Badge variant="outline" className="text-xs">Scheduled</Badge>
-        <Button size="sm" variant="ghost" className="text-xs h-7 px-2">Reschedule</Button>
-        <Button size="sm" variant="ghost" className="text-xs h-7 px-2 text-destructive" onClick={onCancel}>Cancel</Button>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold leading-tight">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+      </div>
+    </div>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon?: React.ComponentType<{ className?: string }>;
+  label: string;
+  value?: string;
+}) {
+  if (!value) return null;
+  const Icon = icon;
+  return (
+    <div className="flex items-start gap-3">
+      {Icon && (
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
+          <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        </div>
+      )}
+      <div className="min-w-0">
+        <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+        <p className="text-sm font-medium break-words">{value}</p>
       </div>
     </div>
   );

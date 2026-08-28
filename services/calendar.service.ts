@@ -1,7 +1,7 @@
 import api from '@/lib/axios';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { CalendarEventsResponse, CalendarDayView, Appointment } from '@/types';
+import type { CalendarEventsResponse, CalendarDayView } from '@/types';
 
 export interface SpaService {
   id: string;
@@ -10,6 +10,7 @@ export interface SpaService {
   room?: string;
 }
 
+/** Owns GET /calendar, GET /calendar/events and GET /services. Appointment CRUD lives in appointment.service.ts — see hooks/useAppointments.ts. */
 export const calendarService = {
   async getCalendarEvents(month?: string): Promise<CalendarEventsResponse> {
     const p = month ? `?month=${month}` : '';
@@ -26,21 +27,5 @@ export const calendarService = {
   async getServices(): Promise<SpaService[]> {
     const { data } = await api.get(API_ENDPOINTS.SERVICES);
     return unwrapList<SpaService>(data);
-  },
-
-  async getAppointments(date?: string): Promise<Appointment[]> {
-    const p = date ? `?date=${date}` : '';
-    const { data } = await api.get(`${API_ENDPOINTS.APPOINTMENTS}${p}`);
-    return unwrapList<Appointment>(data);
-  },
-
-  async createAppointment(input: Partial<Appointment>): Promise<Appointment> {
-    const { data } = await api.post<Appointment>(API_ENDPOINTS.APPOINTMENTS, input);
-    return data;
-  },
-
-  async updateAppointmentStatus(id: string, status: string): Promise<Appointment> {
-    const { data } = await api.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS}/${id}/status`, { status });
-    return data;
   },
 };

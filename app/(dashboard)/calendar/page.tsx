@@ -1,167 +1,245 @@
 'use client';
 
 import { useState } from 'react';
-import { Calendar, CalendarDays, Clock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { ChevronLeft, ChevronRight, CalendarDays, Calendar as CalendarIcon, Plus, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ErrorState } from '@/components/common/ErrorState';
+import { DayScheduleGrid } from '@/components/appointments/DayScheduleGrid';
+import { MonthCalendarGrid } from '@/components/appointments/MonthCalendarGrid';
+import { AppointmentListTable } from '@/components/appointments/AppointmentListTable';
+import { AppointmentDetailDialog } from '@/components/appointments/AppointmentDetailDialog';
+import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 import { useCalendar, useCalendarEvents } from '@/hooks/useCalendar';
+import { useAppointments } from '@/hooks/useAppointments';
+import { cn, getFriendlyErrorMessage } from '@/lib/utils';
+import type { Appointment } from '@/types';
 
-type Tab = 'events' | 'schedule';
+type ViewMode = 'day' | 'month';
 
-const EVENT_TYPE_BADGE: Record<string, string> = {
-  event:       'bg-blue-100 text-blue-800',
-  appointment: 'bg-green-100 text-green-800',
-  staff_shift: 'bg-purple-100 text-purple-800',
-};
+function todayIso(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
 
-const STATUS_BADGE: Record<string, string> = {
-  active:    'bg-green-100 text-green-800',
-  upcoming:  'bg-blue-100 text-blue-800',
-  completed: 'bg-gray-100 text-gray-700',
-  cancelled: 'bg-red-100 text-red-700',
-};
+/** Shifts a "YYYY-MM-DD" string by whole days using UTC arithmetic, so this never drifts across a local timezone/DST midnight boundary. */
+function shiftDate(dateStr: string, days: number): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + days);
+  return dt.toISOString().slice(0, 10);
+}
 
-function fmtDT(iso: string) {
-  try {
-    return new Date(iso).toLocaleString('en-US', {
-      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
-  } catch { return iso; }
+function formatDayHeading(dateStr: string): string {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return dateStr;
+  return new Date(y, m - 1, d).toLocaleDateString('en-US', {
+    weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+  });
+}
+
+function formatMonthHeading(monthStr: string): string {
+  const [y, m] = monthStr.split('-').map(Number);
+  if (!y || !m) return monthStr;
+  return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
 export default function CalendarPage() {
-  const [tab, setTab] = useState<Tab>('events');
+  const [view, setView] = useState<ViewMode>('day');
+  const [selectedDate, setSelectedDate] = useState(todayIso());
+  const [selectedMonth, setSelectedMonth] = useState(todayIso().slice(0, 7));
+  const [createOpen, setCreateOpen] = useState(false);
+  const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
 
-  const { data: eventsData, isLoading: eventsLoading } = useCalendarEvents();
-  const { data: dayData,    isLoading: dayLoading }     = useCalendar();
+  const dayQuery = useCalendar(selectedDate, { enabled: view === 'day' });
+  const monthQuery = useCalendarEvents(selectedMonth, { enabled: view === 'month' });
+  const listQuery = useAppointments({ date: selectedDate }, { enabled: view === 'day' });
 
-  const month    = eventsData?.month ?? '';
-  const entries  = eventsData?.entries ?? [];
-  const dayDate  = dayData?.date ?? '';
-  const staffCols = dayData?.staffColumns ?? [];
+  function goToday() {
+    const t = todayIso();
+    setSelectedDate(t);
+    setSelectedMonth(t.slice(0, 7));
+  }
+
+  function goPrevDay() {
+    setSelectedDate((d) => shiftDate(d, -1));
+  }
+
+  function goNextDay() {
+    setSelectedDate((d) => shiftDate(d, 1));
+  }
+
+  function handleDateInputChange(value: string) {
+    if (!value) return;
+    setSelectedDate(value);
+    setSelectedMonth(value.slice(0, 7));
+  }
+
+  function handleMonthInputChange(value: string) {
+    if (!value) return;
+    setSelectedMonth(value);
+  }
+
+  function handleSelectDateFromMonth(date: string) {
+    setSelectedDate(date);
+    setView('day');
+  }
+
+  const staffColumns = dayQuery.data?.staffColumns ?? [];
+  const totalToday = dayQuery.data?.totalAppointments;
+  const onSiteToday = dayQuery.data?.onSite;
 
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Calendar</h1>
-        <p className="text-sm text-muted-foreground">
-          {tab === 'events'
-            ? (month ? `Month: ${month}` : 'Monthly events')
-            : (dayDate ? `Day view: ${dayDate}` : 'Staff schedule')}
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-1 border-b">
-        {([
-          { key: 'events',   label: 'Month Events',  Icon: Calendar },
-          { key: 'schedule', label: 'Day Schedule',  Icon: CalendarDays },
-        ] as { key: Tab; label: string; Icon: any }[]).map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={cn(
-              'flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-              tab === key
-                ? 'border-primary text-primary'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold sm:text-3xl">Appointments</h1>
+          <p className="text-sm text-muted-foreground">
+            {view === 'day' ? formatDayHeading(selectedDate) : formatMonthHeading(selectedMonth)}
+            {view === 'day' && typeof totalToday === 'number' && (
+              <span> · {totalToday} appointment{totalToday === 1 ? '' : 's'}{typeof onSiteToday === 'number' ? ` · ${onSiteToday} on site` : ''}</span>
             )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </button>
-        ))}
+          </p>
+        </div>
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+          New Appointment
+        </Button>
       </div>
 
-      {/* ── Month Events ── */}
-      {tab === 'events' && (
-        <div className="space-y-3">
-          {eventsLoading && <p className="text-muted-foreground py-10 text-center">Loading events…</p>}
-          {!eventsLoading && entries.length === 0 && (
-            <p className="text-muted-foreground py-10 text-center">No events this month.</p>
-          )}
-          {entries.map((entry) => (
-            <Card key={entry.id} className="card-hover">
-              <CardContent className="flex items-center gap-4 py-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate">{entry.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {entry.date ? fmtDT(entry.date) : ''}
-                    {entry.endDate ? ` → ${fmtDT(entry.endDate)}` : ''}
-                  </p>
-                </div>
-                <div className="flex gap-2 shrink-0 flex-wrap justify-end">
-                  {entry.type && (
-                    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', EVENT_TYPE_BADGE[entry.type] ?? 'bg-gray-100 text-gray-700')}>
-                      {entry.type.replace(/_/g, ' ')}
-                    </span>
-                  )}
-                  {entry.status && (
-                    <span className={cn('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium', STATUS_BADGE[entry.status] ?? 'bg-gray-100 text-gray-700')}>
-                      {entry.status}
-                    </span>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+      {/* Controls */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-1 rounded-lg border p-1">
+          {([
+            { key: 'day', label: 'Day', Icon: CalendarDays },
+            { key: 'month', label: 'Month', Icon: CalendarIcon },
+          ] as { key: ViewMode; label: string; Icon: typeof CalendarDays }[]).map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setView(key)}
+              aria-pressed={view === key}
+              className={cn(
+                'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                view === key ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+              )}
+            >
+              <Icon className="h-4 w-4" aria-hidden="true" />
+              {label}
+            </button>
           ))}
         </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={goToday}>Today</Button>
+          {view === 'day' && (
+            <>
+              <Button variant="outline" size="icon-sm" onClick={goPrevDay} aria-label="Previous day">
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => handleDateInputChange(e.target.value)}
+                className="h-8 w-[150px]"
+                aria-label="Select date"
+              />
+              <Button variant="outline" size="icon-sm" onClick={goNextDay} aria-label="Next day">
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+          {view === 'month' && (
+            <Input
+              type="month"
+              value={selectedMonth}
+              onChange={(e) => handleMonthInputChange(e.target.value)}
+              className="h-8 w-[150px]"
+              aria-label="Select month"
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Day view */}
+      {view === 'day' && (
+        <>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Staff Schedule</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {dayQuery.isLoading ? (
+                <Skeleton className="h-[420px] w-full rounded-lg" />
+              ) : dayQuery.isError ? (
+                <ErrorState
+                  title="Unable to load the day schedule"
+                  message={getFriendlyErrorMessage(dayQuery.error)}
+                  onRetry={() => dayQuery.refetch()}
+                />
+              ) : (
+                <DayScheduleGrid staffColumns={staffColumns} onSelectAppointment={setDetailAppt} />
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Appointments</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <AppointmentListTable
+                appointments={listQuery.data ?? []}
+                isLoading={listQuery.isLoading}
+                isError={listQuery.isError}
+                error={listQuery.error}
+                onRetry={() => listQuery.refetch()}
+                onSelect={setDetailAppt}
+              />
+            </CardContent>
+          </Card>
+        </>
       )}
 
-      {/* ── Day Schedule ── */}
-      {tab === 'schedule' && (
-        <div className="space-y-4">
-          {dayLoading && <p className="text-muted-foreground py-10 text-center">Loading schedule…</p>}
-          {!dayLoading && staffCols.length === 0 && (
-            <p className="text-muted-foreground py-10 text-center">No staff schedule for today.</p>
-          )}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {staffCols.map((col) => (
-              <Card key={col.staff.id}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
-                      {col.staff.shortName ?? col.staff.name?.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate">{col.staff.name}</p>
-                      {col.staff.rooms && (
-                        <p className="text-xs font-normal text-muted-foreground">{col.staff.rooms}</p>
-                      )}
-                    </div>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {(!col.appointments || col.appointments.length === 0) && (
-                    <p className="text-xs text-muted-foreground">No appointments today</p>
-                  )}
-                  {col.appointments?.map((appt, i) => (
-                    <div key={appt.id ?? i} className="flex items-center gap-2 rounded-md border px-3 py-2">
-                      <Clock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium truncate">{appt.title ?? appt.guestName ?? '—'}</p>
-                        {appt.startTime && (
-                          <p className="text-xs text-muted-foreground">
-                            {appt.startTime}{appt.endTime ? ` – ${appt.endTime}` : ''}
-                          </p>
-                        )}
-                      </div>
-                      {appt.status && (
-                        <Badge variant="outline" className="text-xs shrink-0">{appt.status}</Badge>
-                      )}
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
+      {/* Month view */}
+      {view === 'month' && (
+        <Card>
+          <CardContent className="p-4">
+            {monthQuery.isLoading ? (
+              <Skeleton className="h-[500px] w-full rounded-lg" />
+            ) : monthQuery.isError ? (
+              <ErrorState
+                title="Unable to load the month calendar"
+                message={getFriendlyErrorMessage(monthQuery.error)}
+                onRetry={() => monthQuery.refetch()}
+              />
+            ) : (monthQuery.data?.entries.length ?? 0) === 0 ? (
+              <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
+                <Users className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+                <p className="text-sm font-medium">No appointments or events</p>
+                <p className="text-xs text-muted-foreground">Nothing is scheduled for {formatMonthHeading(selectedMonth)}.</p>
+              </div>
+            ) : (
+              <MonthCalendarGrid
+                month={selectedMonth}
+                entries={monthQuery.data?.entries ?? []}
+                selectedDate={selectedDate}
+                onSelectDate={handleSelectDateFromMonth}
+              />
+            )}
+          </CardContent>
+        </Card>
       )}
+
+      <CreateAppointmentDialog open={createOpen} onOpenChange={setCreateOpen} defaultDate={selectedDate} />
+      <AppointmentDetailDialog
+        appointment={detailAppt}
+        open={!!detailAppt}
+        onOpenChange={(v) => !v && setDetailAppt(null)}
+      />
     </div>
   );
 }

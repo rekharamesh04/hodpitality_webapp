@@ -135,7 +135,22 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
     }
     if (seg[1] === 'quick' && method === 'post') return { status: 201, data: addItem(mockCheckIns, body, 'checkin') };
     if (seg[1] === 'qr' && method === 'post') return { status: 201, data: addItem(mockCheckIns, body, 'checkin') };
-    if (seg[1] === 'facial-recognition' && method === 'post') return { status: 201, data: addItem(mockCheckIns, body, 'checkin') };
+    if (seg[1] === 'facial-recognition' && method === 'post') {
+      const guest = mockGuests[0];
+      if (!guest) return { status: 404, data: { success: false, error: 'Face not recognized. Please register at the front desk first.' } };
+      const checkin = addItem(mockCheckIns, {
+        guestId: guest.id, guestName: guest.name, method: 'facial_recognition',
+        checkInMethod: 'facial_recognition', venue: body.venue, status: 'arrived',
+        timestamp: new Date().toISOString(),
+      }, 'checkin');
+      return {
+        status: 200,
+        data: {
+          success: true, message: 'Face recognized successfully',
+          guestId: guest.id, guestName: guest.name, matchConfidence: 97.5, checkin,
+        },
+      };
+    }
     if (seg[2] === 'badge' && method === 'post') return { status: 200, data: { printed: true } };
   }
 
@@ -235,7 +250,28 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
   }
 
   // ---- Registrations ----
-  if (seg[0] === 'registrations' && method === 'get') return { status: 200, data: unwrapped(mockRegistrations, fullUrl) };
+  if (seg[0] === 'registrations') {
+    if (seg.length === 1) {
+      if (method === 'get') return { status: 200, data: unwrapped(mockRegistrations, fullUrl) };
+      if (method === 'post') return { status: 201, data: addItem(mockRegistrations, body, 'reg') };
+    }
+    if (seg.length === 2 && method === 'put') {
+      const item = updateItemById(mockRegistrations, seg[1], body);
+      return item ? { status: 200, data: item } : notFound;
+    }
+    if (seg.length === 2 && method === 'delete') {
+      removeItemById(mockRegistrations, seg[1]);
+      return { status: 200, data: { success: true } };
+    }
+    if (seg[2] === 'confirm' && method === 'post') {
+      updateItemById(mockRegistrations, seg[1], { status: 'confirmed' });
+      return { status: 200, data: { success: true } };
+    }
+    if (seg[2] === 'payment' && method === 'post') {
+      updateItemById(mockRegistrations, seg[1], { paymentStatus: body.status });
+      return { status: 200, data: { success: true } };
+    }
+  }
 
   // ---- Notifications ----
   if (seg[0] === 'notifications') {
@@ -258,7 +294,7 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
   if (seg[0] === 'resellers') {
     if (seg.length === 1) {
       if (method === 'get') return { status: 200, data: unwrapped(mockResellers, fullUrl) };
-      if (method === 'post') return { status: 201, data: addItem(mockResellers, body, 'resell') };
+      if (method === 'post') return { status: 201, data: addItem(mockResellers, { status: 'active', ...body }, 'resell') };
     }
     if (seg.length === 2 && method === 'get') {
       const item = findById(mockResellers, seg[1]);
@@ -276,7 +312,12 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
   if (seg[0] === 'companies') {
     if (seg.length === 1) {
       if (method === 'get') return { status: 200, data: unwrapped(mockCompanies, fullUrl) };
-      if (method === 'post') return { status: 201, data: addItem(mockCompanies, body, 'co') };
+      if (method === 'post') {
+        // Mirrors the real backend: tenant_id is always server-generated, never client-supplied.
+        const created = addItem(mockCompanies, { status: 'active', ...body }, 'co');
+        (created as any).tenant_id = `tenant-${created.id}`;
+        return { status: 201, data: created };
+      }
     }
     if (seg.length === 2 && method === 'get') {
       const item = findById(mockCompanies, seg[1]);

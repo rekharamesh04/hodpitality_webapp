@@ -1,6 +1,6 @@
 import api from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { DashboardStats, DailyReport, ChartDataPoint, DashboardActivityItem } from '@/types';
+import type { DashboardStats, DailyReport, ChartDataPoint, DashboardActivityItem, ActivityFeedItem } from '@/types';
 
 /** Normalise any API response into a plain array regardless of wrapping shape. */
 function toArray<T>(raw: unknown): T[] {
@@ -14,6 +14,21 @@ function toArray<T>(raw: unknown): T[] {
   return [];
 }
 
+/** The backend's exact field names for activity items aren't confirmed, so accept either naming convention and fall back gracefully. */
+function normalizeActivity(raw: DashboardActivityItem, index: number): ActivityFeedItem {
+  const title = raw.title ?? raw.message ?? 'Activity update';
+  const description = raw.description ?? (raw.title && raw.message ? raw.message : undefined);
+  return {
+    id: raw.id ?? `activity-${index}`,
+    type: raw.type ?? 'system',
+    title,
+    description,
+    timestamp: raw.timestamp ?? raw.createdAt ?? raw.date ?? '',
+    user: raw.user ?? raw.actor,
+    icon: raw.icon,
+  };
+}
+
 export const reportService = {
   async getDashboardStats(): Promise<DashboardStats> {
     const { data } = await api.get<DashboardStats>(API_ENDPOINTS.REPORTS.DASHBOARD_STATS);
@@ -25,9 +40,9 @@ export const reportService = {
     return toArray<DailyReport>(data);
   },
 
-  async getActivityFeed(): Promise<DashboardActivityItem[]> {
+  async getActivityFeed(): Promise<ActivityFeedItem[]> {
     const { data } = await api.get(API_ENDPOINTS.DASHBOARD.ACTIVITY);
-    return toArray<DashboardActivityItem>(data);
+    return toArray<DashboardActivityItem>(data).map(normalizeActivity);
   },
 
   async getChartData(type: string): Promise<ChartDataPoint[]> {
