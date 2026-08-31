@@ -2,6 +2,7 @@ import api from '@/lib/axios';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { PaginatedResponse, TableFilters } from '@/types';
+import { debugLog, maskEmail } from '@/utils/debugLog';
 
 /** Backend customer record. Field naming is inconsistent in places (createdAt vs created_at) — treat everything but id/name/email/phone as optional and read both spellings where relevant. */
 export interface Customer {
@@ -71,6 +72,19 @@ export const customerService = {
 
   async getCustomer(id: string): Promise<Customer> {
     const { data } = await api.get<Customer>(`${API_ENDPOINTS.CUSTOMERS}/${id}`);
+    debugLog('[ADMIN][CUSTOMER][FETCH]', {
+      customerId: data?.id ?? null,
+      userId: data?.userId ?? null,
+      guestId: data?.guestId ?? null,
+      email: maskEmail(data?.email),
+      tenantId: data?.tenantId ?? null,
+    });
+    // Confirms whether Customer.userId actually exists/is populated in real data.
+    debugLog('[ADMIN][CUSTOMER][LINK]', {
+      customerId: data?.id ?? null,
+      userId: data?.userId ?? null,
+      linked: !!data?.userId,
+    });
     return data;
   },
 
@@ -109,6 +123,11 @@ export const customerService = {
       `${API_ENDPOINTS.CUSTOMERS}/${customerId}/link-account`,
       body
     );
+    debugLog('[ADMIN][CUSTOMER][LINK]', {
+      customerId: customerId ?? null,
+      userId: userId ?? null,
+      linked: !!data?.success,
+    });
     return data;
   },
 };

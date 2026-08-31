@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -7,6 +8,7 @@ import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStat
 import { cn, formatDate, formatTimeLabel, addMinutesToTime, getRelativeTime } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
 import { TIER_BADGE_CLASSES } from '@/constants/customer';
+import { debugLog } from '@/utils/debugLog';
 import type { Appointment } from '@/types';
 
 interface AppointmentDetailDialogProps {
@@ -16,6 +18,17 @@ interface AppointmentDetailDialogProps {
 }
 
 export function AppointmentDetailDialog({ appointment, open, onOpenChange }: AppointmentDetailDialogProps) {
+  useEffect(() => {
+    if (!open || !appointment) return;
+    debugLog('[ADMIN][APPOINTMENT][DETAIL]', {
+      appointmentId: appointment.id ?? null,
+      customerId: appointment.customerId ?? null,
+      tenantId: (appointment as unknown as Record<string, unknown>).tenantId ?? null,
+      status: appointment.status ?? null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, appointment?.id]);
+
   if (!appointment) return null;
 
   const a = appointment;
