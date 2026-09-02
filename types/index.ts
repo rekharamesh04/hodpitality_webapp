@@ -105,23 +105,22 @@ export interface CheckInStats {
 export type PaymentStatus =
   | 'pending' | 'processing' | 'paid' | 'failed' | 'cancelled' | 'refunded' | 'partially_refunded';
 
-export type PaymentMethodType = 'cash' | 'card' | 'upi' | 'bank_transfer' | 'online' | 'other';
+export type PaymentMethodType = 'cash' | 'card' | 'credit_card' | 'upi' | 'bank_transfer' | 'online' | 'other';
 
 export interface Payment {
   id: string;
   PK?: string;
   entity_type?: string;
-  registrationId: string;
+  registrationId?: string;
   customerId?: string;
   guestId?: string;
-  /** Denormalized display fields the backend does not currently enrich onto the record —
-   * populated client-side from the related Registration when available. */
+  /** Denormalized display fields populated client-side when available. */
   customerName?: string;
   amount: number;
   currency: string;
   status: PaymentStatus;
   paymentMethod: PaymentMethodType;
-  /** Always "manual" today — no payment gateway is integrated. */
+  method?: string;
   provider?: string;
   transactionId?: string;
   description?: string;
@@ -131,6 +130,7 @@ export interface Payment {
   refundStatus?: string;
   refundReason?: string;
   createdAt?: string;
+  created_at?: string;
   updatedAt?: string;
 }
 
@@ -568,9 +568,29 @@ export interface PresignedUrlResponse {
 
 export interface DailyReport {
   date: string;
-  checkIns: number;
-  registrations: number;
+  count?: number;
+  checkIns?: number;
+  registrations?: number;
   revenue?: number;
+  appointments?: number;
+}
+
+export interface DailyBookingReport {
+  date: string;
+  count: number;
+  [key: string]: unknown;
+}
+
+export interface RevenueTrendPoint {
+  date: string;
+  revenue: number;
+  [key: string]: unknown;
+}
+
+export interface GuestArrivalPoint {
+  hour: string;
+  arrivals: number;
+  [key: string]: unknown;
 }
 
 export interface ChartDataPoint {

@@ -2,7 +2,7 @@ import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 import {
   mockGuests, mockCustomers, mockVenues, mockEvents, mockStaff, mockCheckIns,
   mockHospitality, mockRegistrations, mockNotifications, mockResellers, mockCompanies,
-  mockAppointments, mockSettings,
+  mockAppointments, mockSettings, mockPayments,
   mockDashboardStats, mockActivityFeed, mockChartData, mockDailyReports,
   findById, addItem, updateItemById, removeItemById,
 } from './mock-data';
@@ -90,7 +90,6 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
       return { status: 200, data: { success: true } };
     }
     if (seg[2] === 'face' && method === 'post') return { status: 200, data: { success: true } };
-    if (seg[2] === 'link-account' && method === 'post') return { status: 200, data: { success: true } };
   }
 
   // ---- Customers ----
@@ -113,7 +112,6 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
       return { status: 200, data: { success: true } };
     }
     if (seg[2] === 'face' && method === 'post') return { status: 200, data: { success: true } };
-    if (seg[2] === 'link-account' && method === 'post') return { status: 200, data: { success: true } };
   }
 
   // ---- Check-ins ----
@@ -268,8 +266,62 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
       return { status: 200, data: { success: true } };
     }
     if (seg[2] === 'payment' && method === 'post') {
-      updateItemById(mockRegistrations, seg[1], { paymentStatus: body.status });
-      return { status: 200, data: { success: true } };
+      const pStatus = body.paymentStatus ?? body.status ?? 'paid';
+      updateItemById(mockRegistrations, seg[1], { paymentStatus: pStatus });
+      return { status: 200, data: { success: true, paymentStatus: pStatus } };
+    }
+  }
+
+  // ---- Payments ----
+  if (seg[0] === 'payments') {
+    if (seg.length === 1 && method === 'get') {
+      return {
+        status: 200,
+        data: {
+          data: mockPayments,
+          total: mockPayments.length,
+          page: 1,
+          limit: 20,
+        },
+      };
+    }
+    if (seg.length === 1 && method === 'post') {
+      const created = {
+        id: `pay_${Date.now()}`,
+        registrationId: body.registrationId,
+        amount: Number(body.amount ?? 0),
+        currency: body.currency ?? 'INR',
+        method: body.method ?? body.paymentMethod ?? 'credit_card',
+        paymentMethod: body.paymentMethod ?? body.method ?? 'card',
+        transactionId: body.transactionId,
+        description: body.description,
+        status: body.status ?? 'paid',
+        created_at: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+      (mockPayments as any[]).unshift(created);
+      return { status: 201, data: created };
+    }
+    if (seg[2] === 'refund' && method === 'post') {
+      return { status: 200, data: { id: seg[1], status: 'refunded', refundAmount: Number(body.amount ?? 0) } };
+    }
+    if (seg[2] === 'status' && method === 'put') {
+      return { status: 200, data: { id: seg[1], status: body.status } };
+    }
+    if (seg[1] === 'stats' && method === 'get') {
+      return {
+        status: 200,
+        data: {
+          totalPayments: 12,
+          successfulPayments: 10,
+          pendingPayments: 1,
+          failedPayments: 1,
+          refundedPayments: 1,
+          totalAmount: 15400,
+          refundedAmount: 500,
+          netAmount: 14900,
+        },
+      };
     }
   }
 
@@ -374,11 +426,11 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
     if (seg[1] === 'dashboard-stats' && method === 'get') return { status: 200, data: mockDashboardStats() };
     if (seg[1] === 'daily' && method === 'get') {
       const days = Number(new URLSearchParams(fullUrl.split('?')[1] ?? '').get('days') ?? 7);
-      return { status: 200, data: mockDailyReports(days) };
+      return { status: 200, data: { data: mockDailyReports(days) } };
     }
-    if (seg[1] === 'guest-arrivals' && method === 'get') return { status: 200, data: mockChartData('guest-arrivals') };
-    if (seg[1] === 'monthly-events' && method === 'get') return { status: 200, data: mockChartData('monthly-events') };
-    if (seg[1] === 'revenue-trend' && method === 'get') return { status: 200, data: mockChartData('revenue-trend') };
+    if (seg[1] === 'guest-arrivals' && method === 'get') return { status: 200, data: { data: mockChartData('guest-arrivals') } };
+    if (seg[1] === 'monthly-events' && method === 'get') return { status: 200, data: { data: mockChartData('monthly-events') } };
+    if (seg[1] === 'revenue-trend' && method === 'get') return { status: 200, data: { data: mockChartData('revenue-trend') } };
     if (seg[1] === 'export' && method === 'post') return { status: 200, data: { downloadUrl: '#' } };
   }
 

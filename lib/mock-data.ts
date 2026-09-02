@@ -246,6 +246,43 @@ export function mockActivityFeed() {
 }
 
 export function mockChartData(type: string) {
+  if (type === 'guest-arrivals') {
+    return [
+      { hour: '08:00', arrivals: 2 },
+      { hour: '09:00', arrivals: 4 },
+      { hour: '10:00', arrivals: 11 },
+      { hour: '11:00', arrivals: 8 },
+      { hour: '12:00', arrivals: 14 },
+      { hour: '13:00', arrivals: 7 },
+      { hour: '14:00', arrivals: 9 },
+      { hour: '15:00', arrivals: 15 },
+      { hour: '16:00', arrivals: 12 },
+      { hour: '17:00', arrivals: 10 },
+      { hour: '18:00', arrivals: 6 },
+    ];
+  }
+  if (type === 'revenue-trend') {
+    return Array.from({ length: 14 }, (_, i) => ({
+      date: daysAgo(14 - i - 1).slice(0, 10),
+      revenue: Math.floor(Math.random() * 2500) + 800,
+    }));
+  }
+  if (type === 'monthly-events') {
+    return [
+      { month: 'Oct', count: 5 },
+      { month: 'Nov', count: 8 },
+      { month: 'Dec', count: 12 },
+      { month: 'Jan', count: 6 },
+      { month: 'Feb', count: 9 },
+      { month: 'Mar', count: 14 },
+      { month: 'Apr', count: 11 },
+      { month: 'May', count: 7 },
+      { month: 'Jun', count: 10 },
+      { month: 'Jul', count: 13 },
+      { month: 'Aug', count: 15 },
+      { month: 'Sep', count: 8 },
+    ];
+  }
   if (type === 'checkins') {
     return Array.from({ length: 7 }, (_, i) => ({ label: `Day ${i + 1}`, value: Math.floor(Math.random() * 40) + 10 }));
   }
@@ -261,6 +298,7 @@ export function mockChartData(type: string) {
 export function mockDailyReports(days: number) {
   return Array.from({ length: days }, (_, i) => ({
     date: daysAgo(days - i - 1).slice(0, 10),
+    count: Math.floor(Math.random() * 25) + 5,
     checkIns: Math.floor(Math.random() * 30) + 5,
     registrations: Math.floor(Math.random() * 20) + 2,
     revenue: Math.floor(Math.random() * 5000) + 500,
@@ -309,3 +347,44 @@ export function removeItemById<T extends { id: string }>(list: T[], id: string):
   const idx = list.findIndex((item) => item.id === id);
   if (idx !== -1) list.splice(idx, 1);
 }
+
+export const mockPayments = [
+  {
+    id: 'pay_001',
+    registrationId: 'reg_101',
+    amount: 150,
+    currency: 'USD',
+    paymentMethod: 'online' as const,
+    method: 'credit_card',
+    status: 'paid' as const,
+    transactionId: 'ch_3M4abcd123',
+    description: 'Tech Summit VIP Pass',
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+    created_at: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+  {
+    id: 'pay_002',
+    registrationId: 'reg_102',
+    amount: 250.5,
+    currency: 'INR',
+    paymentMethod: 'card' as const,
+    method: 'credit_card',
+    status: 'paid' as const,
+    transactionId: 'txn_987xyz',
+    description: 'Healthcare Clinic Pass',
+    createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
+    created_at: new Date(Date.now() - 3600000 * 48).toISOString(),
+  },
+  {
+    id: 'pay_003',
+    registrationId: 'reg_103',
+    amount: 75,
+    currency: 'INR',
+    paymentMethod: 'upi' as const,
+    method: 'upi',
+    status: 'pending' as const,
+    description: 'Salon express check-in',
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+    created_at: new Date(Date.now() - 3600000 * 12).toISOString(),
+  },
+];

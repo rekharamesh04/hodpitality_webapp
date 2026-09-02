@@ -78,7 +78,6 @@ export const API_ENDPOINTS = {
   },
   RESELLERS: '/resellers',
   COMPANIES: '/companies',
-  /** Not yet deployed to the backend — see hodpitality_backend_patch/payments_patch.py. */
   PAYMENTS: '/payments',
   GUESTS: '/guests',
   CUSTOMERS: '/customers',

@@ -64,8 +64,32 @@ export function useConfirmRegistration() {
 export function useUpdateRegistrationPayment() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: Registration['paymentStatus'] }) =>
-      registrationService.updatePaymentStatus(id, status),
+    /**
+     * Calls POST /registrations/{id}/payment with { paymentStatus, amount?, currency?, paymentMethod?, transactionId? }.
+     * The backend ledger syncs a linked Payment record on every call.
+     */
+    mutationFn: ({
+      id,
+      status,
+      amount,
+      currency,
+      paymentMethod,
+      transactionId,
+    }: {
+      id: string;
+      status: Registration['paymentStatus'];
+      amount?: number;
+      currency?: string;
+      paymentMethod?: string;
+      transactionId?: string;
+    }) =>
+      registrationService.updatePaymentStatus(id, {
+        paymentStatus: status,
+        amount,
+        currency,
+        paymentMethod,
+        transactionId,
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.REGISTRATIONS });
       // The backend patch syncs a Payment record on every call to this endpoint too.

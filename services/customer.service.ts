@@ -79,12 +79,6 @@ export const customerService = {
       email: maskEmail(data?.email),
       tenantId: data?.tenantId ?? null,
     });
-    // Confirms whether Customer.userId actually exists/is populated in real data.
-    debugLog('[ADMIN][CUSTOMER][LINK]', {
-      customerId: data?.id ?? null,
-      userId: data?.userId ?? null,
-      linked: !!data?.userId,
-    });
     return data;
   },
 
@@ -114,20 +108,6 @@ export const customerService = {
 
   async enrollFace(customerId: string, payload: { image?: string; s3_key?: string }): Promise<{ success: boolean; message?: string; faceId?: string }> {
     const { data } = await api.post(`${API_ENDPOINTS.CUSTOMERS}/${customerId}/face`, payload);
-    return data;
-  },
-
-  async linkAccount(customerId: string, userId?: string): Promise<{ success: boolean }> {
-    const body = userId ? { userId } : {};
-    const { data } = await api.post<{ success: boolean }>(
-      `${API_ENDPOINTS.CUSTOMERS}/${customerId}/link-account`,
-      body
-    );
-    debugLog('[ADMIN][CUSTOMER][LINK]', {
-      customerId: customerId ?? null,
-      userId: userId ?? null,
-      linked: !!data?.success,
-    });
     return data;
   },
 };

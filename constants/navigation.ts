@@ -15,6 +15,7 @@ import {
   Briefcase,
   ClipboardList,
   Hotel,
+  CreditCard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -50,6 +51,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Operations",
     items: [
       { label: "Registrations", href: "/registrations", icon: ClipboardList },
+      { label: "Payments",      href: "/payments",      icon: CreditCard },
       { label: "Calendar",      href: "/calendar",       icon: CalendarDays },
       { label: "Check-ins",     href: "/check-ins",      icon: CheckCircle2 },
       { label: "Hospitality",   href: "/hospitality",    icon: Hotel },

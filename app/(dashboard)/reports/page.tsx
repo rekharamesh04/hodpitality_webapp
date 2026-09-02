@@ -15,7 +15,8 @@ import { StatsCardSkeleton } from '@/components/common/SkeletonLoader';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { BarChartComponent } from '@/components/charts/BarChartComponent';
-import { useDashboardStats } from '@/hooks/useReports';
+import { AreaChartComponent } from '@/components/charts/AreaChartComponent';
+import { useDashboardStats, useRevenueTrendChart } from '@/hooks/useReports';
 import { exportToCSV, getFriendlyErrorMessage } from '@/lib/utils';
 import type { DashboardStats } from '@/types';
 
@@ -134,17 +135,9 @@ export default function ReportsPage() {
                 />
               )}
             </div>
-            <Card className="flex flex-col justify-center">
-              <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-                  <History className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                </div>
-                <p className="text-sm font-medium">Historical reporting data is not available from the current API.</p>
-                <p className="text-xs text-muted-foreground">
-                  The figures above reflect the current snapshot only — trend charts will appear here once the backend exposes time-series reporting data.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="lg:col-span-1">
+              <RevenueTrendWidget />
+            </div>
           </section>
 
           {/* Detailed report */}
@@ -203,4 +196,29 @@ const METRIC_ICONS: Record<keyof DashboardStats, React.ComponentType<{ className
 function MetricIcon({ metricKey }: { metricKey: keyof DashboardStats }) {
   const Icon = METRIC_ICONS[metricKey];
   return <Icon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />;
+}
+
+function RevenueTrendWidget() {
+  const { data, isLoading, isError, error, refetch } = useRevenueTrendChart();
+  const normalizedData = useMemo(() => {
+    return (data ?? []).map((d: any) => ({
+      date: d.date ?? d.label ?? '',
+      revenue: Number(d.revenue ?? d.value ?? d.amount ?? 0),
+    }));
+  }, [data]);
+
+  if (isLoading) return <Skeleton className="h-[300px] w-full" />;
+  if (isError) {
+    return <ErrorState title="Revenue data error" message={getFriendlyErrorMessage(error)} onRetry={() => refetch()} />;
+  }
+  return (
+    <AreaChartComponent
+      title="Revenue Trend"
+      description="Last 30 days paid revenue (GET /reports/revenue-trend)"
+      data={normalizedData}
+      dataKey="revenue"
+      xAxisKey="date"
+      height={300}
+    />
+  );
 }

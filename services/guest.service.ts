@@ -97,10 +97,4 @@ export const guestService = {
     const { data } = await api.post(`${API_ENDPOINTS.GUESTS}/${guestId}/face`, payload);
     return data;
   },
-
-  async linkAccount(guestId: string, userId?: string): Promise<{ success: boolean }> {
-    const body = userId ? { userId } : {};
-    const { data } = await api.post<{ success: boolean }>(`${API_ENDPOINTS.GUESTS}/${guestId}/link-account`, body);
-    return data;
-  },
 };

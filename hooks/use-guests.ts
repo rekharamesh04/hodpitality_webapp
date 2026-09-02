@@ -96,21 +96,6 @@ export function useEnrollFace() {
   });
 }
 
-export function useLinkGuestAccount() {
-  return useMutation({
-    mutationFn: ({ guestId, userId }: { guestId: string; userId?: string }) =>
-      guestService.linkAccount(guestId, userId),
-    onSuccess: () => toast.success('Account linked successfully'),
-    onError: (err: any) => {
-      const status = err?.response?.status;
-      if (status === 409) return toast.error('This guest is already linked to an account.');
-      if (status === 403) return toast.error("You don't have permission to link accounts.");
-      if (status === 404) return toast.error('Guest or account not found.');
-      if (status === 400) return toast.error(err?.backendMessage ?? 'Invalid account link request.');
-      toast.error(err?.backendMessage ?? 'Failed to link account');
-    },
-  });
-}
 
 export function useBulkDeleteGuests() {
   const qc = useQueryClient();

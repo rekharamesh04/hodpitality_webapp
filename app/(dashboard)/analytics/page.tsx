@@ -14,8 +14,13 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ActivityFeed } from '@/components/dashboard/ActivityFeed';
 import { BarChartComponent } from '@/components/charts/BarChartComponent';
+import { LineChartComponent } from '@/components/charts/LineChartComponent';
+import { AreaChartComponent } from '@/components/charts/AreaChartComponent';
 import { PieChartComponent } from '@/components/charts/PieChartComponent';
-import { useDashboardStats, useDashboardActivity } from '@/hooks/useReports';
+import {
+  useDashboardStats, useDashboardActivity,
+  useDailyReports, useGuestArrivalsChart, useRevenueTrendChart, useMonthlyEventsChart,
+} from '@/hooks/useReports';
 import { useCheckIns, useCheckInStats } from '@/hooks/useCheckins';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useEvents } from '@/hooks/useEvents';
@@ -89,12 +94,21 @@ function AnalyticsPageInner() {
   // limit:1 — only the paginated envelope's real `total` count is needed here, not the records.
   const customers = useCustomers({ limit: 1 });
 
-  const isRefreshing = [stats, activity, checkInStats, checkIns, appointments, events, venues, staff, customers]
-    .some((q) => q.isFetching);
+  // Live time-series endpoints (now active on backend)
+  const dailyReports = useDailyReports(30);
+  const guestArrivals = useGuestArrivalsChart();
+  const revenueTrend = useRevenueTrendChart();
+  const monthlyEvents = useMonthlyEventsChart();
+
+  const isRefreshing = [
+    stats, activity, checkInStats, checkIns, appointments, events, venues, staff, customers,
+    dailyReports, guestArrivals, revenueTrend, monthlyEvents,
+  ].some((q) => q.isFetching);
 
   function refreshAll() {
     stats.refetch(); activity.refetch(); checkInStats.refetch(); checkIns.refetch();
     appointments.refetch(); events.refetch(); venues.refetch(); staff.refetch(); customers.refetch();
+    dailyReports.refetch(); guestArrivals.refetch(); revenueTrend.refetch(); monthlyEvents.refetch();
   }
 
   const appointmentStatusData = useMemo(
@@ -121,6 +135,34 @@ function AnalyticsPageInner() {
     [staff.data]
   );
 
+  const dailyBookingsData = useMemo(() => {
+    return (dailyReports.data ?? []).map((d: any) => ({
+      date: d.date ?? d.label ?? '',
+      count: Number(d.count ?? d.appointments ?? d.value ?? 0),
+    }));
+  }, [dailyReports.data]);
+
+  const revenueTrendData = useMemo(() => {
+    return (revenueTrend.data ?? []).map((d: any) => ({
+      date: d.date ?? d.label ?? '',
+      revenue: Number(d.revenue ?? d.value ?? d.amount ?? 0),
+    }));
+  }, [revenueTrend.data]);
+
+  const guestArrivalsData = useMemo(() => {
+    return (guestArrivals.data ?? []).map((d: any) => ({
+      hour: d.hour ?? d.time ?? d.label ?? '',
+      arrivals: Number(d.arrivals ?? d.count ?? d.value ?? 0),
+    }));
+  }, [guestArrivals.data]);
+
+  const monthlyEventsData = useMemo(() => {
+    return (monthlyEvents.data ?? []).map((d: any) => ({
+      month: d.month ?? d.date ?? d.label ?? '',
+      count: Number(d.count ?? d.events ?? d.value ?? 0),
+    }));
+  }, [monthlyEvents.data]);
+
   const venueUtilization: VenueUtilization[] = useMemo(() => {
     return (venues.data ?? [])
       .map((v): VenueUtilization => {
@@ -138,17 +180,13 @@ function AnalyticsPageInner() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl">Analytics</h1>
-          <p className="text-muted-foreground">Understand operational performance and activity across your organisation.</p>
+          <p className="text-muted-foreground">Multi-tenant operational performance and activity for your organization.</p>
         </div>
         <Button size="sm" variant="outline" onClick={refreshAll} disabled={isRefreshing}>
           <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
           Refresh
         </Button>
       </div>
-      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-        Showing current data as of your last refresh — historical date-range analytics requires backend support.
-      </p>
 
       {/* KPIs */}
       <section aria-labelledby="analytics-kpi-heading" className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -171,19 +209,88 @@ function AnalyticsPageInner() {
         )}
       </section>
 
-      {/* Operational trends — no historical/time-series endpoint exists */}
-      <Card>
-        <CardContent className="flex flex-col items-center gap-2 p-8 text-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
-            <History className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-          </div>
-          <p className="text-sm font-medium">Historical trend data is not available from the current API.</p>
-          <p className="max-w-md text-xs text-muted-foreground">
-            The sections below reflect the current operational snapshot. A time-series reporting endpoint
-            (e.g. daily appointment/check-in counts) would be required to chart trends over time.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Time-Series Trends — live endpoints */}
+      <section aria-labelledby="analytics-trends-heading" className="space-y-6">
+        <h2 id="analytics-trends-heading" className="text-lg font-semibold">Trends &amp; Revenue</h2>
+
+        {/* Row 1: Daily bookings (bar) + Revenue trend (area) */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ChartCard
+            title="Daily Bookings (Last 30 Days)"
+            description="Booking count per day — GET /reports/daily"
+            isLoading={dailyReports.isLoading}
+            isError={dailyReports.isError}
+            error={dailyReports.error}
+            onRetry={() => dailyReports.refetch()}
+            empty={dailyBookingsData.length === 0}
+          >
+            <BarChartComponent
+              title=""
+              data={dailyBookingsData}
+              dataKey="count"
+              xAxisKey="date"
+              height={260}
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Revenue Trend (Last 30 Days)"
+            description="Daily paid revenue — GET /reports/revenue-trend"
+            isLoading={revenueTrend.isLoading}
+            isError={revenueTrend.isError}
+            error={revenueTrend.error}
+            onRetry={() => revenueTrend.refetch()}
+            empty={revenueTrendData.length === 0}
+          >
+            <AreaChartComponent
+              title=""
+              data={revenueTrendData}
+              dataKey="revenue"
+              xAxisKey="date"
+              height={260}
+            />
+          </ChartCard>
+        </div>
+
+        {/* Row 2: Guest arrivals by hour (line) + Monthly events (bar) */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ChartCard
+            title="Guest Arrivals Time-of-Day"
+            description="Peak walk-in traffic by hour — GET /reports/guest-arrivals"
+            isLoading={guestArrivals.isLoading}
+            isError={guestArrivals.isError}
+            error={guestArrivals.error}
+            onRetry={() => guestArrivals.refetch()}
+            empty={guestArrivalsData.length === 0}
+          >
+            <LineChartComponent
+              title=""
+              data={guestArrivalsData}
+              dataKey="arrivals"
+              xAxisKey="hour"
+              height={260}
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Monthly Events (Last 12 Months)"
+            description="Event count per month — GET /reports/monthly-events"
+            isLoading={monthlyEvents.isLoading}
+            isError={monthlyEvents.isError}
+            error={monthlyEvents.error}
+            onRetry={() => monthlyEvents.refetch()}
+            empty={monthlyEventsData.length === 0}
+          >
+            <BarChartComponent
+              title=""
+              data={monthlyEventsData}
+              dataKey="count"
+              xAxisKey="month"
+              height={260}
+            />
+          </ChartCard>
+        </div>
+      </section>
 
       {/* Appointments & Check-ins */}
       <section aria-labelledby="analytics-appts-heading" className="space-y-6">

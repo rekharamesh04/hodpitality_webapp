@@ -2,14 +2,6 @@ import api from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { Payment, PaymentStats, PaymentStatus, PaymentMethodType } from '@/types';
 
-/**
- * NOT YET DEPLOYED — the /payments endpoints this service calls don't exist on the live
- * backend yet. They're specified and awaiting deployment: see
- * hodpitality_backend_patch/payments_patch.py for the exact handlers/routing to merge into
- * the real Lambda. Until that's deployed, every call here will 404 — handled the same way
- * as any other failed request (ErrorState + retry), not specially.
- */
-
 export interface PaymentFilters {
   status?: PaymentStatus;
   paymentMethod?: PaymentMethodType;
@@ -31,10 +23,14 @@ export interface PaymentListResponse {
 }
 
 export interface CreatePaymentPayload {
-  registrationId: string;
   amount: number;
-  currency?: string;
+  method?: string;
   paymentMethod?: PaymentMethodType;
+  status?: PaymentStatus;
+  currency?: string;
+  registrationId?: string;
+  customerId?: string;
+  guestId?: string;
   transactionId?: string;
   description?: string;
 }
@@ -77,7 +73,14 @@ export const paymentService = {
   },
 
   async createPayment(input: CreatePaymentPayload): Promise<Payment> {
-    const { data } = await api.post<Payment>(API_ENDPOINTS.PAYMENTS, input);
+    const payload = {
+      ...input,
+      amount: Number(input.amount),
+      method: input.method ?? (input.paymentMethod === 'card' ? 'credit_card' : input.paymentMethod) ?? 'credit_card',
+      paymentMethod: input.paymentMethod ?? (input.method === 'credit_card' ? 'card' : (input.method as PaymentMethodType)) ?? 'card',
+      status: input.status ?? 'paid',
+    };
+    const { data } = await api.post<Payment>(API_ENDPOINTS.PAYMENTS, payload);
     return data;
   },
 

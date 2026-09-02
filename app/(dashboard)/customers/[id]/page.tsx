@@ -4,26 +4,23 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Pencil, Trash2, Camera, Link2, Mail, Phone, Building2,
+  ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, Building2,
   Wallet, CalendarClock, MessageSquare, AlertTriangle, Clock, BadgeCheck,
   UserRoundCheck, Repeat, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ErrorState } from '@/components/common/ErrorState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  useCustomer, useUpdateCustomer, useDeleteCustomer, useEnrollCustomerFace, useLinkCustomerAccount,
+  useCustomer, useUpdateCustomer, useDeleteCustomer, useEnrollCustomerFace,
 } from '@/hooks/useCustomers';
 import { getLocalAvatar } from '@/lib/local-avatars';
 import { cn, formatCurrency, formatDate, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
@@ -42,13 +39,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
   const enrollFace = useEnrollCustomerFace();
-  const linkAccount = useLinkCustomerAccount();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [faceOpen, setFaceOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
-  const [linkUserId, setLinkUserId] = useState('');
 
   function handleUpdate(payload: UpdateCustomerPayload) {
     updateMutation.mutate({ id, data: payload }, { onSuccess: () => setEditOpen(false) });
@@ -65,13 +59,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   function handleFaceSubmit(image: string) {
     enrollFace.mutate({ customerId: id, image }, { onSuccess: () => setFaceOpen(false) });
-  }
-
-  function handleLinkSubmit() {
-    linkAccount.mutate(
-      { customerId: id, userId: linkUserId.trim() || undefined },
-      { onSuccess: () => { setLinkOpen(false); setLinkUserId(''); } }
-    );
   }
 
   if (isLoading) {
@@ -169,14 +156,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button size="icon" variant="outline" aria-label="Link account" onClick={() => setLinkOpen(true)}>
-                      <Link2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Link account</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
                     <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label="Delete customer" onClick={() => setDeleteOpen(true)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -230,10 +209,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     {hasFacePhoto ? 'Retake' : 'Enroll'}
                   </Button>
                 </div>
-                <Button size="sm" variant="outline" className="w-full" onClick={() => setLinkOpen(true)}>
-                  <Link2 className="mr-2 h-4 w-4" />
-                  Link Account
-                </Button>
               </CardContent>
             </Card>
 
@@ -287,34 +262,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           onSubmit={handleFaceSubmit}
         />
 
-        {/* Link account */}
-        <Dialog open={linkOpen} onOpenChange={(v) => !linkAccount.isPending && setLinkOpen(v)}>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Link Account</DialogTitle>
-              <DialogDescription>
-                Link this customer to an existing user account. Leave blank to link by matching email.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-1.5 py-2">
-              <Label htmlFor="link-user-id">User ID (optional)</Label>
-              <Input
-                id="link-user-id"
-                value={linkUserId}
-                onChange={(e) => setLinkUserId(e.target.value)}
-                placeholder="e.g. cognito user sub"
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setLinkOpen(false)} disabled={linkAccount.isPending}>
-                Cancel
-              </Button>
-              <Button onClick={handleLinkSubmit} loading={linkAccount.isPending}>
-                {linkAccount.isPending ? 'Linking…' : 'Link Account'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     </TooltipProvider>
   );

@@ -1,6 +1,9 @@
 import api from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { DashboardStats, DailyReport, ChartDataPoint, DashboardActivityItem, ActivityFeedItem } from '@/types';
+import type {
+  DashboardStats, DailyReport, ChartDataPoint, DashboardActivityItem, ActivityFeedItem,
+  RevenueTrendPoint, GuestArrivalPoint,
+} from '@/types';
 
 /** Normalise any API response into a plain array regardless of wrapping shape. */
 function toArray<T>(raw: unknown): T[] {
@@ -50,9 +53,9 @@ export const reportService = {
     return toArray<ChartDataPoint>(data);
   },
 
-  async getGuestArrivalsChart(): Promise<ChartDataPoint[]> {
+  async getGuestArrivalsChart(): Promise<GuestArrivalPoint[]> {
     const { data } = await api.get(API_ENDPOINTS.REPORTS.GUEST_ARRIVALS);
-    return toArray<ChartDataPoint>(data);
+    return toArray<GuestArrivalPoint>(data);
   },
 
   async getMonthlyEventsChart(): Promise<ChartDataPoint[]> {
@@ -60,9 +63,9 @@ export const reportService = {
     return toArray<ChartDataPoint>(data);
   },
 
-  async getRevenueTrendChart(): Promise<ChartDataPoint[]> {
+  async getRevenueTrendChart(): Promise<RevenueTrendPoint[]> {
     const { data } = await api.get(API_ENDPOINTS.REPORTS.REVENUE_TREND);
-    return toArray<ChartDataPoint>(data);
+    return toArray<RevenueTrendPoint>(data);
   },
 
   async exportReport(payload: { type: string; format?: 'pdf' | 'excel'; dateFrom?: string; dateTo?: string }): Promise<{ downloadUrl: string }> {

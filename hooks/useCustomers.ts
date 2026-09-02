@@ -86,18 +86,3 @@ export function useEnrollCustomerFace() {
   });
 }
 
-export function useLinkCustomerAccount() {
-  return useMutation({
-    mutationFn: ({ customerId, userId }: { customerId: string; userId?: string }) =>
-      customerService.linkAccount(customerId, userId),
-    onSuccess: () => toast.success("Account linked successfully"),
-    onError: (err: any) => {
-      const status = err?.response?.status;
-      if (status === 409) return toast.error("This customer is already linked to an account.");
-      if (status === 403) return toast.error("You don't have permission to link accounts.");
-      if (status === 404) return toast.error("Customer or account not found.");
-      if (status === 400) return toast.error(err?.backendMessage ?? "Invalid account link request.");
-      toast.error(err?.backendMessage ?? "Failed to link account");
-    },
-  });
-}

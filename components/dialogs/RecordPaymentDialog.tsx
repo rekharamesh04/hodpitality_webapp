@@ -11,14 +11,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { useCreatePayment } from '@/hooks/usePayments';
+import { useUpdateRegistrationPayment } from '@/hooks/useRegistrations';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import type { PaymentMethodType } from '@/types';
 import type { Registration } from '@/types';
 
-const PAYMENT_METHODS: PaymentMethodType[] = ['cash', 'card', 'upi', 'bank_transfer', 'online', 'other'];
+const PAYMENT_METHODS: PaymentMethodType[] = ['cash', 'card', 'credit_card', 'upi', 'bank_transfer', 'online', 'other'];
 const METHOD_LABELS: Record<PaymentMethodType, string> = {
-  cash: 'Cash', card: 'Card', upi: 'UPI', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other',
+  cash: 'Cash', card: 'Card', credit_card: 'Credit Card', upi: 'UPI', bank_transfer: 'Bank Transfer', online: 'Online', other: 'Other',
 };
 
 interface RecordPaymentDialogProps {
@@ -27,10 +27,10 @@ interface RecordPaymentDialogProps {
   registration: Registration | null;
 }
 
-/** Payment recording lives here, at the point of the registration it belongs to —
- * not as a separate Payments module. Uses the same POST /payments the backend patch
- * adds (see hodpitality_backend_patch/payments_patch.py); until that's deployed this
- * will fail like any other unavailable endpoint (ErrorState/toast), not silently. */
+/**
+ * Notifies the backend ledger that payment has been received for an event registration.
+ * Calls POST /registrations/{id}/payment with payload: { paymentStatus: "paid", amount: <number> }.
+ */
 export function RecordPaymentDialog({ open, onOpenChange, registration }: RecordPaymentDialogProps) {
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('INR');
@@ -38,7 +38,7 @@ export function RecordPaymentDialog({ open, onOpenChange, registration }: Record
   const [transactionId, setTransactionId] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
 
-  const createPayment = useCreatePayment();
+  const updateRegistrationPayment = useUpdateRegistrationPayment();
 
   useEffect(() => {
     if (open && registration) {
@@ -54,29 +54,32 @@ export function RecordPaymentDialog({ open, onOpenChange, registration }: Record
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (createPayment.isPending) return;
+    if (updateRegistrationPayment.isPending) return;
     const value = Number(amount);
     if (!Number.isFinite(value) || value <= 0) {
       setFieldError('Enter a valid amount greater than 0');
       return;
     }
     setFieldError(null);
-    createPayment.mutate(
+    updateRegistrationPayment.mutate(
       {
-        registrationId: registration!.id,
+        id: registration!.id,
+        status: 'paid',
         amount: value,
-        currency,
-        paymentMethod: method,
-        transactionId: transactionId || undefined,
+        currency: currency || 'INR',
+        paymentMethod: method === 'card' ? 'credit_card' : method,
+        transactionId: transactionId.trim() || undefined,
       },
       { onSuccess: () => onOpenChange(false) }
     );
   }
 
-  const submitError = createPayment.error ? getFriendlyErrorMessage(createPayment.error, 'Unable to record payment.') : null;
+  const submitError = updateRegistrationPayment.error
+    ? getFriendlyErrorMessage(updateRegistrationPayment.error, 'Unable to record payment.')
+    : null;
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !createPayment.isPending && onOpenChange(v)}>
+    <Dialog open={open} onOpenChange={(v) => !updateRegistrationPayment.isPending && onOpenChange(v)}>
       <DialogContent className="sm:max-w-[420px]">
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
@@ -134,11 +137,11 @@ export function RecordPaymentDialog({ open, onOpenChange, registration }: Record
             </div>
           </div>
           <DialogFooter className="pt-2">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={createPayment.isPending}>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={updateRegistrationPayment.isPending}>
               Cancel
             </Button>
-            <Button type="submit" loading={createPayment.isPending}>
-              {createPayment.isPending ? 'Recording…' : 'Record Payment'}
+            <Button type="submit" loading={updateRegistrationPayment.isPending}>
+              {updateRegistrationPayment.isPending ? 'Recording…' : 'Record Payment'}
             </Button>
           </DialogFooter>
         </form>
