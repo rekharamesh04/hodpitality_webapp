@@ -267,8 +267,23 @@ export function resolveMock(config: InternalAxiosRequestConfig): Match {
     }
     if (seg[2] === 'payment' && method === 'post') {
       const pStatus = body.paymentStatus ?? body.status ?? 'paid';
+      const reg = findById(mockRegistrations, seg[1]);
       updateItemById(mockRegistrations, seg[1], { paymentStatus: pStatus });
-      return { status: 200, data: { success: true, paymentStatus: pStatus } };
+      const createdPay = {
+        id: `pay_${Date.now()}`,
+        registrationId: seg[1],
+        amount: Number(body.amount ?? reg?.amount ?? 0),
+        currency: body.currency ?? 'INR',
+        paymentMethod: body.paymentMethod ?? 'card',
+        method: body.paymentMethod ?? 'credit_card',
+        status: pStatus,
+        transactionId: body.transactionId ?? `txn_${Date.now()}`,
+        createdAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        paidAt: new Date().toISOString(),
+      };
+      (mockPayments as any[]).unshift(createdPay);
+      return { status: 200, data: { success: true, paymentStatus: pStatus, payment: createdPay } };
     }
   }
 

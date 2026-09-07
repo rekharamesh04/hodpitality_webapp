@@ -106,6 +106,8 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
       qc.invalidateQueries({ queryKey: QUERY_KEYS.REGISTRATIONS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.HOSPITALITY });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENTS });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_STATS });
       toast({
         title: 'Registration Complete!',
         description: `${formData.guestName} has been successfully registered with ${hospitalityRequests.length} hospitality services.`,

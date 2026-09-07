@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   CreditCard, TrendingUp, Clock, RefreshCw, DollarSign,
   MoreHorizontal, Search, SlidersHorizontal, X, Plus,
@@ -406,7 +406,53 @@ export default function PaymentsPage() {
     limit: 50,
   });
 
-  const payments = data?.data ?? [];
+  const payments: Payment[] = useMemo(() => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray((data as any).data)) return (data as any).data;
+    if (Array.isArray((data as any).items)) return (data as any).items;
+    return [];
+  }, [data]);
+
+  // Compute live summary stats from loaded payments list if backend stats are missing or incomplete
+  const summaryStats = useMemo(() => {
+    let successCount = 0;
+    let pendingCount = 0;
+    let refundedCount = 0;
+    let failedCount = 0;
+    let totalAmt = 0;
+    let refundedAmt = 0;
+
+    for (const p of payments) {
+      const amt = Number(p.amount ?? 0) || 0;
+      const ref = Number(p.refundAmount ?? 0) || 0;
+      if (p.status === 'paid') {
+        successCount++;
+        totalAmt += amt;
+      } else if (p.status === 'pending' || p.status === 'processing') {
+        pendingCount++;
+      } else if (p.status === 'failed' || p.status === 'cancelled') {
+        failedCount++;
+      } else if (p.status === 'refunded' || p.status === 'partially_refunded') {
+        refundedCount++;
+        refundedAmt += (ref > 0 ? ref : amt);
+      }
+    }
+
+    const hasBackendStats = statsData && typeof statsData.totalPayments === 'number' && statsData.totalPayments > 0;
+
+    return {
+      totalPayments: hasBackendStats ? statsData.totalPayments : (statsData?.totalPayments ?? payments.length),
+      successfulPayments: hasBackendStats ? statsData.successfulPayments : (statsData?.successfulPayments ?? successCount),
+      pendingPayments: hasBackendStats ? statsData.pendingPayments : (statsData?.pendingPayments ?? pendingCount),
+      failedPayments: hasBackendStats ? statsData.failedPayments : (statsData?.failedPayments ?? failedCount),
+      refundedPayments: hasBackendStats ? statsData.refundedPayments : (statsData?.refundedPayments ?? refundedCount),
+      totalAmount: hasBackendStats ? statsData.totalAmount : (statsData?.totalAmount ?? totalAmt),
+      refundedAmount: hasBackendStats ? statsData.refundedAmount : (statsData?.refundedAmount ?? refundedAmt),
+      netAmount: hasBackendStats ? statsData.netAmount : (statsData?.netAmount ?? (totalAmt - refundedAmt)),
+    };
+  }, [statsData, payments]);
+
   const hasActiveFilters = !!statusFilter || !!methodFilter || !!search;
   function clearFilters() { setStatusFilter(''); setMethodFilter(''); setSearch(''); }
 
@@ -426,40 +472,40 @@ export default function PaymentsPage() {
 
       {/* ─── Stats Row ─── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statsLoading ? (
+        {statsLoading && !payments.length ? (
           Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
-        ) : statsData ? (
+        ) : (
           <>
             <StatsCard
               icon={<DollarSign className="h-5 w-5 text-emerald-600" />}
               label="Net Revenue"
-              value={formatCurrency(statsData.netAmount ?? 0)}
-              sub={`${statsData.totalPayments} transactions`}
+              value={formatCurrency(summaryStats.netAmount ?? 0)}
+              sub={`${summaryStats.totalPayments ?? 0} transactions`}
               color="emerald"
             />
             <StatsCard
               icon={<TrendingUp className="h-5 w-5 text-blue-600" />}
               label="Successful"
-              value={String(statsData.successfulPayments)}
-              sub={formatCurrency(statsData.totalAmount ?? 0) + ' collected'}
+              value={String(summaryStats.successfulPayments ?? 0)}
+              sub={formatCurrency(summaryStats.totalAmount ?? 0) + ' collected'}
               color="blue"
             />
             <StatsCard
               icon={<Clock className="h-5 w-5 text-amber-600" />}
               label="Pending"
-              value={String(statsData.pendingPayments)}
+              value={String(summaryStats.pendingPayments ?? 0)}
               sub="awaiting confirmation"
               color="amber"
             />
             <StatsCard
               icon={<RefreshCw className="h-5 w-5 text-purple-600" />}
               label="Refunded"
-              value={String(statsData.refundedPayments)}
-              sub={formatCurrency(statsData.refundedAmount ?? 0) + ' returned'}
+              value={String(summaryStats.refundedPayments ?? 0)}
+              sub={formatCurrency(summaryStats.refundedAmount ?? 0) + ' returned'}
               color="purple"
             />
           </>
-        ) : null}
+        )}
       </div>
 
       {/* ─── Filters ─── */}
@@ -529,7 +575,7 @@ export default function PaymentsPage() {
                 <EmptyState
                   icon={CreditCard}
                   title="No payments yet"
-                  description="Payments will appear here once recorded from the Registrations tab."
+                  description="Payments will appear here once recorded from the Registrations tab or created above."
                 />
               )}
             </div>
@@ -549,71 +595,78 @@ export default function PaymentsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {payments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="hidden lg:table-cell text-xs font-mono text-muted-foreground">
-                        {payment.id.slice(-12)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="font-semibold">{formatCurrency(payment.amount)}</div>
-                        <div className="text-xs text-muted-foreground">{payment.currency}</div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        <Badge variant="outline" className="capitalize text-xs">
-                          {METHOD_LABELS[payment.paymentMethod] ?? payment.paymentMethod}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <PaymentStatusBadge status={payment.status} />
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="text-sm font-mono text-muted-foreground truncate max-w-[120px] block">
-                          {payment.registrationId ? payment.registrationId.slice(-10) : '—'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-sm text-muted-foreground whitespace-nowrap">
-                        {payment.paidAt ? formatDate(payment.paidAt) : '—'}
-                      </TableCell>
-                      <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                        {payment.recordedBy ?? '—'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-sm"
-                              aria-label={`Actions for payment ${payment.id.slice(-8)}`}
-                              id={`payment-actions-${payment.id}`}
-                            >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              className="cursor-pointer"
-                              onClick={() => setStatusTarget(payment)}
-                            >
-                              <SlidersHorizontal className="mr-2 h-4 w-4" />
-                              Update Status
-                            </DropdownMenuItem>
-                            {payment.status === 'paid' || payment.status === 'partially_refunded' ? (
-                              <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="cursor-pointer text-destructive focus:text-destructive"
-                                  onClick={() => setRefundTarget(payment)}
-                                >
-                                  <RefreshCw className="mr-2 h-4 w-4" />
-                                  Refund
-                                </DropdownMenuItem>
-                              </>
-                            ) : null}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {payments.map((payment) => {
+                    const cleanId = (payment.id || payment.PK || '').replace('PAYMENT#', '');
+                    const methodKey = payment.paymentMethod ?? (payment.method === 'credit_card' ? 'card' : payment.method) ?? 'card';
+                    const methodLabel = METHOD_LABELS[methodKey as PaymentMethodType] ?? payment.method ?? payment.paymentMethod ?? 'Card';
+                    const paidDate = payment.paidAt ?? payment.createdAt ?? payment.created_at;
+
+                    return (
+                      <TableRow key={cleanId || payment.id}>
+                        <TableCell className="hidden lg:table-cell text-xs font-mono text-muted-foreground">
+                          {cleanId ? cleanId.slice(-12) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-semibold">{formatCurrency(payment.amount ?? 0)}</div>
+                          <div className="text-xs text-muted-foreground">{payment.currency || 'INR'}</div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge variant="outline" className="capitalize text-xs">
+                            {methodLabel}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <PaymentStatusBadge status={payment.status ?? 'paid'} />
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          <span className="text-sm font-mono text-muted-foreground truncate max-w-[120px] block">
+                            {payment.registrationId ? payment.registrationId.slice(-10) : '—'}
+                          </span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground whitespace-nowrap">
+                          {paidDate ? formatDate(paidDate) : '—'}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                          {payment.recordedBy ?? '—'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon-sm"
+                                aria-label={`Actions for payment ${cleanId.slice(-8)}`}
+                                id={`payment-actions-${cleanId}`}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                className="cursor-pointer"
+                                onClick={() => setStatusTarget(payment)}
+                              >
+                                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                Update Status
+                              </DropdownMenuItem>
+                              {payment.status === 'paid' || payment.status === 'partially_refunded' ? (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    className="cursor-pointer text-destructive focus:text-destructive"
+                                    onClick={() => setRefundTarget(payment)}
+                                  >
+                                    <RefreshCw className="mr-2 h-4 w-4" />
+                                    Refund
+                                  </DropdownMenuItem>
+                                </>
+                              ) : null}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
