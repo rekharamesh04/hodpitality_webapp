@@ -1,15 +1,25 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { CreditCard } from 'lucide-react';
 import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
-import { cn, formatDate, formatTimeLabel, addMinutesToTime, getRelativeTime } from '@/lib/utils';
+import { RecordAppointmentPaymentDialog } from '@/components/dialogs/RecordAppointmentPaymentDialog';
+import { cn, formatDate, formatTimeLabel, addMinutesToTime, getRelativeTime, formatCurrency } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
 import { TIER_BADGE_CLASSES } from '@/constants/customer';
 import { debugLog } from '@/utils/debugLog';
 import type { Appointment } from '@/types';
+
+const PAYMENT_STATUS_STYLES: Record<string, string> = {
+  paid: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  pending: 'bg-amber-100 text-amber-700 border-amber-200',
+  failed: 'bg-red-100 text-red-700 border-red-200',
+  refunded: 'bg-purple-100 text-purple-700 border-purple-200',
+};
 
 interface AppointmentDetailDialogProps {
   appointment: Appointment | null;
@@ -18,6 +28,8 @@ interface AppointmentDetailDialogProps {
 }
 
 export function AppointmentDetailDialog({ appointment, open, onOpenChange }: AppointmentDetailDialogProps) {
+  const [payDialogOpen, setPayDialogOpen] = useState(false);
+
   useEffect(() => {
     if (!open || !appointment) return;
     debugLog('[ADMIN][APPOINTMENT][DETAIL]', {
@@ -33,6 +45,7 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
 
   const a = appointment;
   const status = a.status ?? 'scheduled';
+  const paymentStatus = a.paymentStatus ?? 'pending';
   const endTime = a.endTime ?? (a.startTime && a.duration ? addMinutesToTime(a.startTime, a.duration) : undefined);
   const customerLabel = a.customerName ?? a.guestName ?? 'Guest';
   const serviceLabel = a.serviceName ?? a.service;
@@ -52,6 +65,9 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
             <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold', APPOINTMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-300')}>
               {APPOINTMENT_STATUS_LABELS[status] ?? status}
             </span>
+            <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold capitalize', PAYMENT_STATUS_STYLES[paymentStatus] ?? 'bg-gray-100 text-gray-700 border-gray-300')}>
+              {paymentStatus}
+            </span>
           </div>
         </DialogHeader>
 
@@ -65,6 +81,7 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
           />
           <DetailRow label="Duration" value={a.duration ? `${a.duration} min` : undefined} />
           <DetailRow label="Room" value={a.room} />
+          <DetailRow label="Fee" value={a.amount != null ? formatCurrency(a.amount) : undefined} />
           <DetailRow label="Notes" value={a.notes} />
           {a.allergyNotes && <DetailRow label="Allergy Notes" value={a.allergyNotes} destructive />}
           <DetailRow label="Created" value={a.createdAt ? getRelativeTime(a.createdAt) : undefined} />
@@ -73,11 +90,17 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
         </div>
 
         {id && (
-          <div className="flex justify-end pt-2">
+          <div className="flex items-center justify-between gap-2 pt-2">
+            {paymentStatus !== 'paid' ? (
+              <Button variant="outline" size="sm" onClick={() => setPayDialogOpen(true)}>
+                <CreditCard className="mr-2 h-4 w-4" /> Record Payment
+              </Button>
+            ) : <span />}
             <AppointmentStatusMenu appointmentId={id} currentStatus={a.status} />
           </div>
         )}
       </DialogContent>
+      <RecordAppointmentPaymentDialog open={payDialogOpen} onOpenChange={setPayDialogOpen} appointment={a} />
     </Dialog>
   );
 }

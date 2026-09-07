@@ -42,13 +42,13 @@ export function useCreateGuest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateGuestPayload) => guestService.createGuest(input),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       qc.invalidateQueries({ queryKey: guestKeys.all });
       const invitationWarning = extractInvitationWarning(data);
       if (invitationWarning) {
         toast.warning('Guest created — invitation issue', { description: invitationWarning });
       } else {
-        toast.success('Guest created');
+        toast.success('Guest created', { description: `Invite sent to ${variables.email}` });
       }
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to create guest')),

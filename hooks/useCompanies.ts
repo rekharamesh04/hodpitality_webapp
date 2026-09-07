@@ -21,13 +21,13 @@ export function useCreateCompany() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateCompanyPayload) => companyService.createCompany(input),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       qc.invalidateQueries({ queryKey: companyKeys.all });
       const invitationWarning = extractInvitationWarning(data);
       if (invitationWarning) {
         toast.warning("Company created — admin invitation issue", { description: invitationWarning });
       } else {
-        toast.success("Company created");
+        toast.success("Company created", variables.email ? { description: `Invite sent to ${variables.email}` } : undefined);
       }
     },
     onError: (err: any) => {

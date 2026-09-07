@@ -27,6 +27,15 @@ export interface CreateAppointmentPayload {
   room?: string;
   status?: AppointmentStatusValue;
   notes?: string;
+  /** Consultation fee — backend defaults paymentStatus to "pending" on create. */
+  amount?: number;
+}
+
+export interface UpdateAppointmentPaymentPayload {
+  paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded';
+  amount?: number;
+  method?: string;
+  transactionId?: string;
 }
 
 export const appointmentService = {
@@ -93,6 +102,21 @@ export const appointmentService = {
   /** The backend owns every status side-effect (arrivedAt/checkinId on arrival, checkoutAt on completion, schedule-lock release on cancel/no-show) — this only ever sends the target status. */
   async updateAppointmentStatus(id: string, status: AppointmentStatusValue): Promise<Appointment> {
     const { data } = await api.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS}/${id}/status`, { status });
+    return data;
+  },
+
+  /**
+   * POST /appointments/{id}/payment
+   * Records a consultation fee payment; the backend syncs a linked Payment record (type: "consultation").
+   */
+  async updatePaymentStatus(
+    id: string,
+    payload: UpdateAppointmentPaymentPayload,
+  ): Promise<{ success: boolean; paymentStatus?: string }> {
+    const { data } = await api.post<{ success: boolean; paymentStatus?: string }>(
+      `${API_ENDPOINTS.APPOINTMENTS}/${id}/payment`,
+      payload,
+    );
     return data;
   },
 };

@@ -12,6 +12,13 @@ import { cn, formatTimeLabel, addMinutesToTime, getFriendlyErrorMessage } from '
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
 import type { Appointment } from '@/types';
 
+const PAYMENT_STATUS_STYLES: Record<string, string> = {
+  paid: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  pending: 'bg-amber-100 text-amber-700 border-amber-200',
+  failed: 'bg-red-100 text-red-700 border-red-200',
+  refunded: 'bg-purple-100 text-purple-700 border-purple-200',
+};
+
 interface AppointmentListTableProps {
   appointments: Appointment[];
   isLoading?: boolean;
@@ -67,12 +74,14 @@ export function AppointmentListTable({
           <TableHead className="hidden md:table-cell">Duration</TableHead>
           <TableHead className="hidden lg:table-cell">Room</TableHead>
           <TableHead>Status</TableHead>
+          <TableHead>Payment</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {appointments.map((a) => {
           const status = a.status ?? 'scheduled';
+          const paymentStatus = a.paymentStatus ?? 'pending';
           const endTime = a.endTime ?? (a.startTime && a.duration ? addMinutesToTime(a.startTime, a.duration) : undefined);
           const id = a.id ?? a.PK ?? '';
           return (
@@ -97,6 +106,16 @@ export function AppointmentListTable({
                   )}
                 >
                   {APPOINTMENT_STATUS_LABELS[status] ?? status}
+                </span>
+              </TableCell>
+              <TableCell>
+                <span
+                  className={cn(
+                    'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold capitalize',
+                    PAYMENT_STATUS_STYLES[paymentStatus] ?? 'bg-gray-100 text-gray-700 border-gray-300'
+                  )}
+                >
+                  {paymentStatus}
                 </span>
               </TableCell>
               <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>

@@ -32,14 +32,14 @@ export function useCreateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateStaffPayload) => staffService.createStaff(input),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       qc.invalidateQueries({ queryKey: staffKeys.all });
       qc.invalidateQueries({ queryKey: reportKeys.dashboard });
       const invitationWarning = extractInvitationWarning(data);
       if (invitationWarning) {
         toast.warning("Staff member added — invitation issue", { description: invitationWarning });
       } else {
-        toast.success("Staff member added");
+        toast.success("Staff member added", { description: `Invite sent to ${variables.email}` });
       }
     },
     onError: (err: any) => {

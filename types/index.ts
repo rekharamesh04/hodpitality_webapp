@@ -123,6 +123,14 @@ export interface Payment {
   /** Which event the payment is for — returned directly by GET /payments. */
   event?: string;
   eventId?: string;
+  /** Consultation (appointment) equivalent of the event fields above — returned directly by GET /payments. */
+  appointmentId?: string;
+  staffId?: string;
+  service?: string;
+  date?: string;
+  startTime?: string;
+  /** Discriminates event-ticket payments from consultation payments — never merge with `status`. */
+  type?: 'event' | 'consultation';
   amount: number;
   currency: string;
   status: PaymentStatus;
@@ -497,6 +505,10 @@ export interface Appointment {
   duration?: number;
   room?: string;
   status?: 'scheduled' | 'confirmed' | 'pending' | 'arrived' | 'in-progress' | 'completed' | 'cancelled' | 'no-show' | 'no_show';
+  /** Consultation fee status — separate from `status`, set by POST /appointments/{id}/payment. Never merge into one badge. */
+  paymentStatus?: 'paid' | 'pending' | 'failed' | 'refunded';
+  /** Consultation fee amount. */
+  amount?: number;
   notes?: string;
   venueId?: string;
   createdAt?: string;

@@ -32,13 +32,13 @@ export function useCreateCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateCustomerPayload) => customerService.createCustomer(input),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       qc.invalidateQueries({ queryKey: customerKeys.all });
       const invitationWarning = extractInvitationWarning(data);
       if (invitationWarning) {
         toast.warning("Customer created — invitation issue", { description: invitationWarning });
       } else {
-        toast.success("Customer created");
+        toast.success("Customer created", { description: `Invite sent to ${variables.email}` });
       }
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create customer")),

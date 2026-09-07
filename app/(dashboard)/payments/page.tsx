@@ -425,9 +425,9 @@ export default function PaymentsPage() {
     else if (Array.isArray(data)) items = data;
     else if (Array.isArray((data as any).data)) items = (data as any).data;
     else if (Array.isArray((data as any).items)) items = (data as any).items;
-    // A payment with no guest, no registration, and no event is not attributable to anyone —
-    // don't render it as an "unknown payer" row.
-    items = items.filter((p) => !!(p.guestId || p.guestName || p.registrationId));
+    // A payment with no guest, no registration, and no appointment/event is not attributable to
+    // anyone — don't render it as an "unknown payer" row.
+    items = items.filter((p) => !!(p.guestId || p.guestName || p.registrationId || p.appointmentId));
     if (eventIdFilter) items = items.filter((p) => p.eventId === eventIdFilter);
     return items;
   }, [data, eventIdFilter]);
@@ -613,7 +613,8 @@ export default function PaymentsPage() {
                   <TableRow>
                     <TableHead className="hidden lg:table-cell">Payment ID</TableHead>
                     <TableHead>Guest</TableHead>
-                    <TableHead className="hidden sm:table-cell">Event</TableHead>
+                    <TableHead className="hidden sm:table-cell">Type</TableHead>
+                    <TableHead className="hidden sm:table-cell">Event / Service</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead className="hidden sm:table-cell">Method</TableHead>
                     <TableHead>Status</TableHead>
@@ -627,6 +628,7 @@ export default function PaymentsPage() {
                     const methodKey = payment.paymentMethod ?? (payment.method === 'credit_card' ? 'card' : payment.method) ?? 'card';
                     const methodLabel = METHOD_LABELS[methodKey as PaymentMethodType] ?? payment.method ?? payment.paymentMethod ?? 'Card';
                     const paidDate = payment.paidAt ?? payment.createdAt ?? payment.created_at;
+                    const paymentType = payment.type ?? (payment.appointmentId ? 'consultation' : 'event');
 
                     return (
                       <TableRow key={cleanId || payment.id}>
@@ -637,8 +639,13 @@ export default function PaymentsPage() {
                           <div className="font-medium truncate max-w-[160px]">{payment.guestName || '—'}</div>
                           <div className="text-xs text-muted-foreground truncate max-w-[160px]">{payment.guestEmail || '—'}</div>
                         </TableCell>
-                        <TableCell className="hidden sm:table-cell truncate max-w-[140px]">
-                          {payment.event || '—'}
+                        <TableCell className="hidden sm:table-cell">
+                          <Badge variant="outline" className="capitalize text-xs">{paymentType}</Badge>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell truncate max-w-[160px]">
+                          {paymentType === 'consultation'
+                            ? [payment.service, payment.date ? formatDate(payment.date) : null].filter(Boolean).join(' — ') || '—'
+                            : (payment.event || '—')}
                         </TableCell>
                         <TableCell>
                           <div className="font-semibold">{formatCurrency(payment.amount ?? 0)}</div>

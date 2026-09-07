@@ -21,13 +21,13 @@ export function useCreateReseller() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateResellerPayload) => resellerService.createReseller(input),
-    onSuccess: (data) => {
+    onSuccess: (data, variables) => {
       qc.invalidateQueries({ queryKey: resellerKeys.all });
       const invitationWarning = extractInvitationWarning(data);
       if (invitationWarning) {
         toast.warning("Reseller created — invitation issue", { description: invitationWarning });
       } else {
-        toast.success("Reseller created");
+        toast.success("Reseller created", variables.email ? { description: `Invite sent to ${variables.email}` } : undefined);
       }
     },
     onError: (err: any) => {
