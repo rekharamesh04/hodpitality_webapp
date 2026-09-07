@@ -81,6 +81,12 @@ function normalizePayment(raw: any): Payment {
     paymentMethod,
     paidAt,
     registrationId: raw.registrationId ?? raw.registration_id ?? raw.regId,
+    guestId: raw.guestId ?? raw.guest_id,
+    guestName: raw.guestName ?? raw.guest_name,
+    guestEmail: raw.guestEmail ?? raw.guest_email,
+    guestPhone: raw.guestPhone ?? raw.guest_phone,
+    eventId: raw.eventId ?? raw.event_id,
+    event: raw.event ?? raw.eventName ?? raw.event_name,
     transactionId: raw.transactionId ?? raw.transaction_id ?? raw.txnId,
     description: raw.description ?? raw.notes ?? raw.reason,
     recordedBy: raw.recordedBy ?? raw.recorded_by ?? raw.created_by,
@@ -177,6 +183,11 @@ export const paymentService = {
   },
 
   async createPayment(input: CreatePaymentPayload): Promise<Payment> {
+    // The backend rejects anonymous payments with 400 "registrationId or guestId is required
+    // so we know who paid" — fail fast client-side with the same rule.
+    if (!input.registrationId && !input.guestId) {
+      throw new Error('registrationId or guestId is required so we know who paid');
+    }
     const payload = {
       ...input,
       amount: Number(input.amount),

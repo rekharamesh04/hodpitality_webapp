@@ -4,7 +4,7 @@ import { guestService } from '@/services/guest.service';
 import type { GuestFilters, CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
 import { QUERY_KEYS } from '@/constants';
 import { getLocalAvatar, setLocalAvatar } from '@/lib/local-avatars';
-import { getFriendlyErrorMessage } from '@/lib/utils';
+import { getFriendlyErrorMessage, extractInvitationWarning } from '@/lib/utils';
 import type { PaginatedResponse, Guest } from '@/types';
 
 export const guestKeys = {
@@ -42,9 +42,14 @@ export function useCreateGuest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateGuestPayload) => guestService.createGuest(input),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: guestKeys.all });
-      toast.success('Guest created');
+      const invitationWarning = extractInvitationWarning(data);
+      if (invitationWarning) {
+        toast.warning('Guest created — invitation issue', { description: invitationWarning });
+      } else {
+        toast.success('Guest created');
+      }
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to create guest')),
   });

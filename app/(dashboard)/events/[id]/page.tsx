@@ -21,7 +21,10 @@ import {
   useEvent, useEventAttendees, useUpdateEvent, useDeleteEvent, useEvents,
 } from '@/hooks/useEvents';
 import { usePrintBadge } from '@/hooks/useCheckins';
-import { getInitials, formatDate, formatCheckInTimestamp, getFriendlyErrorMessage } from '@/lib/utils';
+import { useRegistrations } from '@/hooks/useRegistrations';
+import { usePayments } from '@/hooks/usePayments';
+import { Badge } from '@/components/ui/badge';
+import { getInitials, formatDate, formatCurrency, formatCheckInTimestamp, getFriendlyErrorMessage } from '@/lib/utils';
 import type { UpdateEventPayload } from '@/services/event.service';
 
 function methodLabel(ci: { checkInMethod?: string; method?: string }): string {
@@ -51,6 +54,8 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const updateMutation = useUpdateEvent();
   const deleteMutation = useDeleteEvent();
   const printBadge = usePrintBadge();
+  const { data: eventRegistrations, isLoading: registrationsLoading } = useRegistrations({ eventId: id });
+  const { data: allPayments } = usePayments({ limit: 100 });
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -106,6 +111,10 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   const hasAttendance = attendees !== undefined && event.capacity !== undefined;
   const pct = hasAttendance && event.capacity! > 0 ? Math.min(Math.round((attendees! / event.capacity!) * 100), 100) : 0;
   const eventAttendees = attendeesData ?? [];
+  const registrations = eventRegistrations ?? [];
+  const paymentsRaw = Array.isArray(allPayments) ? allPayments : ((allPayments as any)?.data ?? []);
+  const eventPayments = paymentsRaw.filter((p: { eventId?: string }) => p.eventId === resolvedId);
+  const eventRevenue = eventPayments.reduce((sum: number, p: { amount?: number }) => sum + (p.amount ?? 0), 0);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -218,6 +227,13 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <ClipboardList className="mr-2 h-4 w-4" />
                 View Check-ins
               </Button>
+              <Button
+                size="sm" variant="outline" className="w-full justify-start"
+                onClick={() => router.push(`/payments?eventId=${encodeURIComponent(resolvedId)}`)}
+              >
+                <ClipboardList className="mr-2 h-4 w-4" />
+                View Payments ({eventPayments.length})
+              </Button>
               {event.venue && (
                 <Button
                   size="sm" variant="outline" className="w-full justify-start"
@@ -231,6 +247,59 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           </Card>
         </div>
       </div>
+
+      {/* Registrations (from GET /registrations?eventId=...) */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="text-base">Registrations</CardTitle>
+          {registrations.length > 0 && (
+            <span className="text-sm text-muted-foreground">{formatCurrency(eventRevenue)} collected</span>
+          )}
+        </CardHeader>
+        <CardContent>
+          {registrationsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-1/3" />
+                    <Skeleton className="h-3 w-1/4" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : registrations.length === 0 ? (
+            <EmptyState icon={ClipboardList} title="No registrations yet" description="Guests who register for this event will appear here." />
+          ) : (
+            <div className="space-y-2">
+              {registrations.map((reg) => (
+                <button
+                  key={reg.id}
+                  className="flex w-full items-center gap-3 rounded-lg border p-2.5 text-left"
+                  onClick={() => router.push(`/registrations/${reg.id}`)}
+                >
+                  <Avatar className="h-9 w-9 shrink-0">
+                    <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                      {reg.guestName ? getInitials(reg.guestName) : '?'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{reg.guestName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{reg.guestEmail}</p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <StatusBadge status={reg.status} />
+                    <Badge variant={reg.paymentStatus === 'paid' ? 'default' : 'secondary'} className="capitalize">
+                      {reg.paymentStatus}
+                    </Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Attendees (from GET /events/{id}/attendees) */}
       <Card>

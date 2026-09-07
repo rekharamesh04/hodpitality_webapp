@@ -4,7 +4,7 @@ import { customerService } from "@/services/customer.service";
 import type { CustomerFilters, CreateCustomerPayload, UpdateCustomerPayload } from "@/services/customer.service";
 import { QUERY_KEYS } from "@/constants";
 import { setLocalAvatar } from "@/lib/local-avatars";
-import { getFriendlyErrorMessage } from "@/lib/utils";
+import { getFriendlyErrorMessage, extractInvitationWarning } from "@/lib/utils";
 
 export const customerKeys = {
   all:    QUERY_KEYS.CUSTOMERS,
@@ -32,9 +32,14 @@ export function useCreateCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateCustomerPayload) => customerService.createCustomer(input),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: customerKeys.all });
-      toast.success("Customer created");
+      const invitationWarning = extractInvitationWarning(data);
+      if (invitationWarning) {
+        toast.warning("Customer created — invitation issue", { description: invitationWarning });
+      } else {
+        toast.success("Customer created");
+      }
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create customer")),
   });

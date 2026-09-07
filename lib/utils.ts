@@ -188,7 +188,7 @@ export function generateId(): string {
 export function extractInvitationWarning(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
   const r = data as Record<string, unknown>;
-  const candidate = r.invitationError ?? r.invitation_error ?? r.inviteError ?? r.cognitoError ?? r.cognito_error ?? r.warning;
+  const candidate = r._cognito_error ?? r.invitationError ?? r.invitation_error ?? r.inviteError ?? r.cognitoError ?? r.cognito_error ?? r.warning;
   return typeof candidate === 'string' && candidate.trim() ? candidate : null;
 }
 

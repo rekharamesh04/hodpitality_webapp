@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   CreditCard, TrendingUp, Clock, RefreshCw, DollarSign,
   MoreHorizontal, Search, SlidersHorizontal, X, Plus,
@@ -241,6 +242,10 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (createPayment.isPending) return;
+    if (!registrationId.trim()) {
+      setFieldError('Registration ID is required so we know who paid');
+      return;
+    }
     const val = Number(amount);
     if (!Number.isFinite(val) || val <= 0) {
       setFieldError('Enter a valid amount greater than 0');
@@ -249,7 +254,7 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
     setFieldError(null);
     createPayment.mutate(
       {
-        registrationId: registrationId.trim() || undefined,
+        registrationId: registrationId.trim(),
         amount: val,
         currency: currency.trim().toUpperCase() || 'INR',
         method,
@@ -281,7 +286,9 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
           <DialogDescription>
-            Record a payment transaction directly to the financial ledger (POST /payments).
+            For marking an event registration as paid, use “Record Payment” on the Registrations
+            page instead — it also updates the registration. Use this only to add a payment
+            directly to the ledger for an existing registration.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} noValidate>
@@ -292,13 +299,15 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
               </Alert>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="create-payment-reg">Registration ID (optional)</Label>
+              <Label htmlFor="create-payment-reg">Registration ID *</Label>
               <Input
                 id="create-payment-reg"
                 value={registrationId}
                 onChange={(e) => setRegistrationId(e.target.value)}
-                placeholder="e.g. reg_123abc"
+                placeholder="e.g. r2222222-aaaa-bbbb-cccc-ddddeeeeffff"
+                required
               />
+              <p className="text-xs text-muted-foreground">Required so the backend knows who paid.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -388,6 +397,10 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PaymentsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const eventIdFilter = searchParams.get('eventId') || '';
+
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
@@ -407,12 +420,17 @@ export default function PaymentsPage() {
   });
 
   const payments: Payment[] = useMemo(() => {
-    if (!data) return [];
-    if (Array.isArray(data)) return data;
-    if (Array.isArray((data as any).data)) return (data as any).data;
-    if (Array.isArray((data as any).items)) return (data as any).items;
-    return [];
-  }, [data]);
+    let items: Payment[] = [];
+    if (!data) items = [];
+    else if (Array.isArray(data)) items = data;
+    else if (Array.isArray((data as any).data)) items = (data as any).data;
+    else if (Array.isArray((data as any).items)) items = (data as any).items;
+    // A payment with no guest, no registration, and no event is not attributable to anyone —
+    // don't render it as an "unknown payer" row.
+    items = items.filter((p) => !!(p.guestId || p.guestName || p.registrationId));
+    if (eventIdFilter) items = items.filter((p) => p.eventId === eventIdFilter);
+    return items;
+  }, [data, eventIdFilter]);
 
   // Compute live summary stats from loaded payments list if backend stats are missing or incomplete
   const summaryStats = useMemo(() => {
@@ -455,6 +473,7 @@ export default function PaymentsPage() {
 
   const hasActiveFilters = !!statusFilter || !!methodFilter || !!search;
   function clearFilters() { setStatusFilter(''); setMethodFilter(''); setSearch(''); }
+  function clearEventFilter() { router.push('/payments'); }
 
   return (
     <div className="space-y-6">
@@ -547,6 +566,14 @@ export default function PaymentsPage() {
             <X className="h-3.5 w-3.5" /> Clear
           </Button>
         )}
+        {eventIdFilter && (
+          <Badge variant="secondary" className="gap-1.5 py-1.5 pl-2.5 pr-1.5">
+            Filtered by event
+            <button type="button" onClick={clearEventFilter} aria-label="Clear event filter" className="rounded-full p-0.5 hover:bg-muted">
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
       </div>
 
       {/* ─── Table ─── */}
@@ -585,12 +612,12 @@ export default function PaymentsPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="hidden lg:table-cell">Payment ID</TableHead>
+                    <TableHead>Guest</TableHead>
+                    <TableHead className="hidden sm:table-cell">Event</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead className="hidden sm:table-cell">Method</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="hidden md:table-cell">Registration</TableHead>
                     <TableHead className="hidden md:table-cell">Paid At</TableHead>
-                    <TableHead className="hidden lg:table-cell">Recorded By</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -607,6 +634,13 @@ export default function PaymentsPage() {
                           {cleanId ? cleanId.slice(-12) : '—'}
                         </TableCell>
                         <TableCell>
+                          <div className="font-medium truncate max-w-[160px]">{payment.guestName || '—'}</div>
+                          <div className="text-xs text-muted-foreground truncate max-w-[160px]">{payment.guestEmail || '—'}</div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell truncate max-w-[140px]">
+                          {payment.event || '—'}
+                        </TableCell>
+                        <TableCell>
                           <div className="font-semibold">{formatCurrency(payment.amount ?? 0)}</div>
                           <div className="text-xs text-muted-foreground">{payment.currency || 'INR'}</div>
                         </TableCell>
@@ -618,16 +652,8 @@ export default function PaymentsPage() {
                         <TableCell>
                           <PaymentStatusBadge status={payment.status ?? 'paid'} />
                         </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          <span className="text-sm font-mono text-muted-foreground truncate max-w-[120px] block">
-                            {payment.registrationId ? payment.registrationId.slice(-10) : '—'}
-                          </span>
-                        </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground whitespace-nowrap">
                           {paidDate ? formatDate(paidDate) : '—'}
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
-                          {payment.recordedBy ?? '—'}
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>

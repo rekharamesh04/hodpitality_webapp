@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { staffService } from "@/services/staff.service";
 import type { StaffFilters, CreateStaffPayload, UpdateStaffPayload } from "@/services/staff.service";
 import { QUERY_KEYS } from "@/constants";
-import { getFriendlyErrorMessage } from "@/lib/utils";
+import { getFriendlyErrorMessage, extractInvitationWarning } from "@/lib/utils";
 import { reportKeys } from "@/hooks/useReports";
 
 export const staffKeys = {
@@ -32,10 +32,15 @@ export function useCreateStaff() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateStaffPayload) => staffService.createStaff(input),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: staffKeys.all });
       qc.invalidateQueries({ queryKey: reportKeys.dashboard });
-      toast.success("Staff member added");
+      const invitationWarning = extractInvitationWarning(data);
+      if (invitationWarning) {
+        toast.warning("Staff member added — invitation issue", { description: invitationWarning });
+      } else {
+        toast.success("Staff member added");
+      }
     },
     onError: (err: any) => {
       const status = err?.response?.status;

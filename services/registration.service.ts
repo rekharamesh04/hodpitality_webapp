@@ -8,7 +8,8 @@ export interface UpdateRegistrationPaymentPayload {
   status?: string;
   amount?: number;
   currency?: string;
-  paymentMethod?: string;
+  /** Wire field name is "method" per POST /registrations/{id}/payment, e.g. "card", "cash", "upi". */
+  method?: string;
   transactionId?: string;
 }
 
@@ -56,14 +57,12 @@ export const registrationService = {
     const payload: Record<string, unknown> = {};
     if (typeof payloadOrStatus === 'string') {
       payload.paymentStatus = payloadOrStatus;
-      payload.status = payloadOrStatus;
       if (amount !== undefined) payload.amount = amount;
     } else {
       payload.paymentStatus = payloadOrStatus.paymentStatus ?? payloadOrStatus.status ?? 'paid';
-      payload.status = payload.paymentStatus;
       if (payloadOrStatus.amount !== undefined) payload.amount = payloadOrStatus.amount;
       if (payloadOrStatus.currency) payload.currency = payloadOrStatus.currency;
-      if (payloadOrStatus.paymentMethod) payload.paymentMethod = payloadOrStatus.paymentMethod;
+      if (payloadOrStatus.method) payload.method = payloadOrStatus.method;
       if (payloadOrStatus.transactionId) payload.transactionId = payloadOrStatus.transactionId;
     }
     const { data } = await api.post<{ success: boolean; paymentStatus?: string }>(

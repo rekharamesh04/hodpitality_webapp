@@ -373,7 +373,18 @@ function CheckInsPageInner() {
                             </Avatar>
                             <div className="min-w-0">
                               <div className="flex items-center gap-1.5">
-                                <p className="text-sm font-semibold truncate">{ci.guestName || ci.guestId || 'Guest'}</p>
+                                {ci.guestName ? (
+                                  <p className="text-sm font-semibold truncate">{ci.guestName}</p>
+                                ) : (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <p className="text-sm font-semibold truncate text-muted-foreground">
+                                        {ci.guestId ? `Guest #${ci.guestId.slice(-6)}` : 'Guest'}
+                                      </p>
+                                    </TooltipTrigger>
+                                    {ci.guestId && <TooltipContent>{ci.guestId}</TooltipContent>}
+                                  </Tooltip>
+                                )}
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <Printer

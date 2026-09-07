@@ -67,7 +67,7 @@ export function RecordPaymentDialog({ open, onOpenChange, registration }: Record
         status: 'paid',
         amount: value,
         currency: currency || 'INR',
-        paymentMethod: method === 'card' ? 'credit_card' : method,
+        method,
         transactionId: transactionId.trim() || undefined,
       },
       { onSuccess: () => onOpenChange(false) }

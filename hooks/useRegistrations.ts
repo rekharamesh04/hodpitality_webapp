@@ -73,21 +73,21 @@ export function useUpdateRegistrationPayment() {
       status,
       amount,
       currency,
-      paymentMethod,
+      method,
       transactionId,
     }: {
       id: string;
       status: Registration['paymentStatus'];
       amount?: number;
       currency?: string;
-      paymentMethod?: string;
+      method?: string;
       transactionId?: string;
     }) =>
       registrationService.updatePaymentStatus(id, {
         paymentStatus: status,
         amount,
         currency,
-        paymentMethod,
+        method,
         transactionId,
       }),
     onSuccess: () => {

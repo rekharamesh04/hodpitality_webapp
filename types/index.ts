@@ -116,6 +116,13 @@ export interface Payment {
   guestId?: string;
   /** Denormalized display fields populated client-side when available. */
   customerName?: string;
+  /** Who paid — returned directly by GET /payments. */
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+  /** Which event the payment is for — returned directly by GET /payments. */
+  event?: string;
+  eventId?: string;
   amount: number;
   currency: string;
   status: PaymentStatus;
