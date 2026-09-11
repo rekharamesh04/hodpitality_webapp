@@ -62,7 +62,7 @@ function normalizeCheckInMethod(raw: string): string {
 
 export default function AnalyticsPage() {
   const { user } = useAuthStore();
-  const canView = user?.role === 'super_admin' || user?.role === 'reseller_admin';
+  const canView = user?.role === 'admin' || user?.role === 'reseller_admin';
 
   if (!canView) {
     return (
@@ -73,7 +73,7 @@ export default function AnalyticsPage() {
         </div>
         <ErrorState
           title="Access denied"
-          message="Analytics is restricted to super admins and reseller admins. Contact your platform administrator if you believe this is a mistake."
+          message="Analytics is restricted to admins and reseller admins. Contact your platform administrator if you believe this is a mistake."
         />
       </div>
     );

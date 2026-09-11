@@ -25,8 +25,9 @@ export const STATUS_TYPES = {
 
 // User Roles
 export const USER_ROLES = {
-  SUPER_ADMIN: 'super_admin',
   ADMIN: 'admin',
+  RESELLER_ADMIN: 'reseller_admin',
+  COMPANY_ADMIN: 'company_admin',
   MANAGER: 'manager',
   STAFF: 'staff',
   VIEWER: 'viewer',

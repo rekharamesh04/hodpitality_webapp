@@ -67,10 +67,10 @@ function validate(form: FormState): FieldErrors {
 export default function CompaniesPage() {
   const { user } = useAuthStore();
   const role = user?.role;
-  const isSuperAdmin = role === 'super_admin';
+  const isAdmin = role === 'admin';
   const isResellerAdmin = role === 'reseller_admin' || role === 'reseller';
   const isCompanyAdmin = role === 'company_admin';
-  const canView = isSuperAdmin || isResellerAdmin || isCompanyAdmin;
+  const canView = isAdmin || isResellerAdmin || isCompanyAdmin;
 
   if (!canView) {
     return (
@@ -81,21 +81,21 @@ export default function CompaniesPage() {
         </div>
         <ErrorState
           title="Access denied"
-          message="Company management is restricted to super admins, reseller admins, and company admins. Contact your platform administrator if you believe this is a mistake."
+          message="Company management is restricted to admins, reseller admins, and company admins. Contact your platform administrator if you believe this is a mistake."
         />
       </div>
     );
   }
 
-  return <CompaniesPageInner isSuperAdmin={isSuperAdmin} isResellerAdmin={isResellerAdmin} isCompanyAdmin={isCompanyAdmin} />;
+  return <CompaniesPageInner isAdmin={isAdmin} isResellerAdmin={isResellerAdmin} isCompanyAdmin={isCompanyAdmin} />;
 }
 
 function CompaniesPageInner({
-  isSuperAdmin, isResellerAdmin, isCompanyAdmin,
-}: { isSuperAdmin: boolean; isResellerAdmin: boolean; isCompanyAdmin: boolean }) {
-  const canCreate = isSuperAdmin || isResellerAdmin;
-  const canDelete = isSuperAdmin || isResellerAdmin;
-  const canInviteAdmin = isSuperAdmin || isResellerAdmin;
+  isAdmin, isResellerAdmin, isCompanyAdmin,
+}: { isAdmin: boolean; isResellerAdmin: boolean; isCompanyAdmin: boolean }) {
+  const canCreate = isAdmin || isResellerAdmin;
+  const canDelete = isAdmin || isResellerAdmin;
+  const canInviteAdmin = isAdmin || isResellerAdmin;
 
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -113,10 +113,10 @@ function CompaniesPageInner({
   const [inviteForm, setInviteForm] = useState({ name: '', email: '' });
 
   const { data: companies, isLoading, isError, error, refetch } = useCompanies();
-  // Only super_admin can call GET /resellers — used to (a) resolve reseller_id → name for the
+  // Only admin can call GET /resellers — used to (a) resolve reseller_id → name for the
   // table/detail view and (b) populate the "assign to reseller" dropdown on create. One request,
   // not one per company.
-  const { data: resellersData } = useResellers({ enabled: isSuperAdmin });
+  const { data: resellersData } = useResellers({ enabled: isAdmin });
   const resellerNameById = useMemo(() => {
     const map = new Map<string, string>();
     (resellersData ?? []).forEach((r) => map.set(r.id ?? r.PK?.replace('RESELLER#', '') ?? '', r.name));
@@ -174,7 +174,7 @@ function CompaniesPageInner({
     } else {
       const payload: CreateCompanyPayload = { name: form.name.trim() };
       if (form.email.trim()) payload.email = form.email.trim();
-      if (isSuperAdmin && form.resellerId) payload.reseller_id = form.resellerId;
+      if (isAdmin && form.resellerId) payload.reseller_id = form.resellerId;
       createMutation.mutate(payload, { onSuccess: () => setFormOpen(false) });
     }
   }
@@ -269,7 +269,7 @@ function CompaniesPageInner({
                   <TableRow>
                     <TableHead>Company</TableHead>
                     <TableHead className="hidden sm:table-cell">Email</TableHead>
-                    {isSuperAdmin && <TableHead className="hidden md:table-cell">Reseller</TableHead>}
+                    {isAdmin && <TableHead className="hidden md:table-cell">Reseller</TableHead>}
                     {hasStatusData && <TableHead>Status</TableHead>}
                     <TableHead className="hidden md:table-cell">Created</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -292,7 +292,7 @@ function CompaniesPageInner({
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell text-sm truncate max-w-[200px]">{c.email || '—'}</TableCell>
-                        {isSuperAdmin && (
+                        {isAdmin && (
                           <TableCell className="hidden md:table-cell text-sm truncate max-w-[160px]">{resellerName}</TableCell>
                         )}
                         {hasStatusData && (
@@ -394,7 +394,7 @@ function CompaniesPageInner({
                   <p id="company-email-hint" className="text-xs text-muted-foreground">Sends a company admin invite to this address.</p>
                 )}
               </div>
-              {!editing && isSuperAdmin && (
+              {!editing && isAdmin && (
                 <div className="space-y-1.5">
                   <Label htmlFor="company-reseller">Assign to Reseller</Label>
                   <Select value={form.resellerId || undefined} onValueChange={(v) => updateField('resellerId', v)}>
@@ -428,7 +428,7 @@ function CompaniesPageInner({
           {viewing && (
             <div className="mt-6 space-y-5">
               <DetailRow icon={Mail} label="Email" value={viewing.email} />
-              {isSuperAdmin && (
+              {isAdmin && (
                 <DetailRow
                   icon={Building2}
                   label="Reseller"

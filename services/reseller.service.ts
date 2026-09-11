@@ -16,7 +16,7 @@ export type UpdateResellerPayload = Partial<Omit<CreateResellerPayload, 'email'>
 
 export const resellerService = {
   /**
-   * GET /resellers — super_admin only; returns a flat, unpaginated list. No query
+   * GET /resellers — admin only; returns a flat, unpaginated list. No query
    * parameters are confirmed on this endpoint (no `search`), so filtering happens
    * client-side over the fetched set.
    */

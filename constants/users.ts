@@ -12,13 +12,13 @@ interface HardcodedUser {
 
 // Hard-coded credentials — replace with real auth when backend is ready
 export const HARDCODED_USERS: HardcodedUser[] = [
-  // ── Super Admin — sees everything ─────────────────────────────────────────
+  // ── Admin — sees everything ───────────────────────────────────────────────
   {
-    id: 'super-1',
-    name: 'Manikanta (Super Admin)',
+    id: 'admin-1',
+    name: 'Manikanta (Admin)',
     email: 'super@admin.com',
     password: 'super123',
-    role: 'super_admin',
+    role: 'admin',
   },
 
   // ── Reseller Admin — sees Companies tab only (no Resellers tab) ───────────

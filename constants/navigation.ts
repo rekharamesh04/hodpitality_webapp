@@ -36,9 +36,9 @@ export interface NavSection {
 
 // Role constants for readability
 const ALL_ROLES = undefined; // no restriction
-const SUPER_ONLY = ['super_admin'];
-const SUPER_AND_RESELLER = ['super_admin', 'reseller_admin'];
-const COMPANY_ROLES = ['super_admin', 'reseller_admin', 'reseller', 'company_admin'];
+const ADMIN_ONLY = ['admin'];
+const ADMIN_AND_RESELLER = ['admin', 'reseller_admin'];
+const COMPANY_ROLES = ['admin', 'reseller_admin', 'reseller', 'company_admin'];
 
 export const NAV_SECTIONS: NavSection[] = [
   {
@@ -76,15 +76,15 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Insights",
     items: [
       { label: "Reports",   href: "/reports",   icon: BarChart2 },
-      { label: "Analytics", href: "/analytics", icon: TrendingUp, roles: SUPER_AND_RESELLER },
+      { label: "Analytics", href: "/analytics", icon: TrendingUp, roles: ADMIN_AND_RESELLER },
     ],
   },
   {
     label: "Administration",
     items: [
-      // Resellers tab: Super Admin only
-      { label: "Resellers", href: "/resellers", icon: Building2, roles: SUPER_ONLY },
-      // Companies tab: Super Admin + Reseller Admin (manage) + Company Admin (their own company)
+      // Resellers tab: Admin only
+      { label: "Resellers", href: "/resellers", icon: Building2, roles: ADMIN_ONLY },
+      // Companies tab: Admin + Reseller Admin (manage) + Company Admin (their own company)
       { label: "Companies", href: "/companies", icon: Briefcase, roles: COMPANY_ROLES },
       { label: "Notifications", href: "/notifications", icon: Bell, badge: 5 },
       { label: "Settings",      href: "/settings",      icon: Settings },

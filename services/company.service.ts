@@ -17,7 +17,7 @@ export type UpdateCompanyPayload = Pick<Partial<CreateCompanyPayload>, 'name' | 
 export const companyService = {
   /**
    * GET /companies — the backend RBAC-filters the response by caller (all companies for
-   * super_admin, own reseller's companies for reseller_admin, own company for company_admin).
+   * admin, own reseller's companies for reseller_admin, own company for company_admin).
    * No query parameters are confirmed on this endpoint (no `search`), so filtering happens
    * client-side over the fetched set.
    */

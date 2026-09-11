@@ -65,9 +65,9 @@ function validate(form: FormState): FieldErrors {
 
 export default function ResellersPage() {
   const { user } = useAuthStore();
-  const isSuperAdmin = user?.role === 'super_admin';
+  const isAdmin = user?.role === 'admin';
 
-  if (!isSuperAdmin) {
+  if (!isAdmin) {
     return (
       <div className="space-y-6">
         <div>
@@ -76,7 +76,7 @@ export default function ResellersPage() {
         </div>
         <ErrorState
           title="Access denied"
-          message="Reseller management is restricted to super admins. Contact your platform administrator if you believe this is a mistake."
+          message="Reseller management is restricted to admins. Contact your platform administrator if you believe this is a mistake."
         />
       </div>
     );
