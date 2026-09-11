@@ -131,7 +131,7 @@ const ENDPOINT_GROUPS: EndpointGroup[] = [
       { id: 'checkins-qr',      method: 'POST', path: '/check-ins/qr',
         body: { qrCode: 'QRDEMO123' } },
       { id: 'checkins-facial',  method: 'POST', path: '/check-ins/facial-recognition',
-        body: { imageData: 'base64encodeddata' } },
+        body: { s3_key: 'uploads/face_checkin_sample.jpg' } },
       { id: 'checkins-badge',   method: 'POST', path: '/check-ins/1/badge' },
     ],
   },

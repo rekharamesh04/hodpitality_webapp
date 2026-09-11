@@ -1,6 +1,7 @@
 import api from '@/lib/axios';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
+import { uploadService } from './upload.service';
 import type { Guest, PaginatedResponse, TableFilters } from '@/types';
 
 export type GuestListResponse = PaginatedResponse<Guest>;
@@ -93,8 +94,14 @@ export const guestService = {
     return list.length ? { data: list } : {};
   },
 
-  async enrollFace(guestId: string, payload: { image?: string; s3_key?: string }): Promise<{ success: boolean; message?: string; faceId?: string }> {
-    const { data } = await api.post(`${API_ENDPOINTS.GUESTS}/${guestId}/face`, payload);
+  /**
+   * Enrolls the captured photo as this guest's face. The image is uploaded to S3 first
+   * and indexed by its `s3_key` — the same contract the mobile app's check-in matches
+   * against, so enrolment and recognition stay on one flow.
+   */
+  async enrollFace(guestId: string, imageDataUrl: string): Promise<{ success: boolean; message?: string; faceId?: string }> {
+    const s3Key = await uploadService.uploadImageDataUrl(imageDataUrl, 'face_enroll_guest');
+    const { data } = await api.post(`${API_ENDPOINTS.GUESTS}/${guestId}/face`, { s3_key: s3Key });
     return data;
   },
 };

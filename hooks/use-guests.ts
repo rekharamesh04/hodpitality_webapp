@@ -84,7 +84,7 @@ export function useEnrollFace() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ guestId, image }: { guestId: string; image: string }) =>
-      guestService.enrollFace(guestId, { image }),
+      guestService.enrollFace(guestId, image),
     onSuccess: (result, { guestId, image }) => {
       if (result?.success === false) {
         toast.error(result.message ?? 'Face enrollment failed');

@@ -1,6 +1,7 @@
 import api from '@/lib/axios';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
+import { uploadService } from './upload.service';
 import type { PaginatedResponse, TableFilters } from '@/types';
 import { debugLog, maskEmail } from '@/utils/debugLog';
 
@@ -106,8 +107,10 @@ export const customerService = {
     return list.length ? { data: list } : {};
   },
 
-  async enrollFace(customerId: string, payload: { image?: string; s3_key?: string }): Promise<{ success: boolean; message?: string; faceId?: string }> {
-    const { data } = await api.post(`${API_ENDPOINTS.CUSTOMERS}/${customerId}/face`, payload);
+  /** Enrols the captured photo as this customer's face — S3 upload first, then index by `s3_key`. */
+  async enrollFace(customerId: string, imageDataUrl: string): Promise<{ success: boolean; message?: string; faceId?: string }> {
+    const s3Key = await uploadService.uploadImageDataUrl(imageDataUrl, 'face_enroll_customer');
+    const { data } = await api.post(`${API_ENDPOINTS.CUSTOMERS}/${customerId}/face`, { s3_key: s3Key });
     return data;
   },
 };
