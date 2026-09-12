@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { guestService } from '@/services/guest.service';
+import type { CreateGuestPayload } from '@/services/guest.service';
 import type { Guest, TableFilters } from '@/types';
 
 export function useGuests(initialFilters?: TableFilters) {
@@ -27,7 +28,7 @@ export function useGuests(initialFilters?: TableFilters) {
     }
   }, []);
 
-  const createGuest = useCallback(async (guestData: Omit<Guest, 'id'>) => {
+  const createGuest = useCallback(async (guestData: CreateGuestPayload) => {
     setLoading(true);
     setError(null);
     try {

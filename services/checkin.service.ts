@@ -1,20 +1,33 @@
 import api from '@/lib/axios';
-import { unwrapList } from '@/lib/axios';
+import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import { uploadService } from './upload.service';
 import type { CheckIn, CheckInStats, TableFilters } from '@/types';
 
 export interface CheckInFilters extends TableFilters {}
 
+export interface FacialCheckInResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  guestId?: string;
+  guestName?: string;
+  matchConfidence?: number;
+  matchThreshold?: number;
+  checkin?: CheckIn;
+}
+
 function buildParams(filters: CheckInFilters): URLSearchParams {
   const p = new URLSearchParams();
   if (filters.status) p.set('status', filters.status);
   if (filters.search) p.set('search', filters.search);
+  p.set('limit', String(filters.limit ?? FULL_LIST_LIMIT));
+  if (filters.page) p.set('page', String(filters.page));
   return p;
 }
 
 export const checkInService = {
-  /** GET /check-ins returns a flat, unpaginated list (no page/limit/total in the response) — the page windows it client-side. */
+  /** The Check-ins page filters and pages this set in the browser, so it asks for the whole list rather than one server page. */
   async getCheckIns(filters: CheckInFilters = {}): Promise<CheckIn[]> {
     const p = buildParams(filters);
     const { data } = await api.get(`${API_ENDPOINTS.CHECK_INS}?${p}`);
@@ -51,20 +64,13 @@ export const checkInService = {
   },
 
   /**
-   * Facial check-in. The captured photo goes to S3 first and only its object key is
-   * posted, which is the contract the backend's Rekognition handler expects (and what
-   * the EntryFlow mobile app sends) — a base64 body would also risk API Gateway's
-   * payload limit on higher-resolution webcam captures.
+   * Facial check-in. The captured photo goes to S3 first and only its object key is posted — the
+   * contract the backend's Rekognition handler expects, and what the mobile app sends.
+   *
+   * Failures arrive as real HTTP codes, not a 200 body flag: 400 no face in the image,
+   * 404 no matching enrolment, 409 this guest already checked in for the event today.
    */
-  async checkInByFacial(payload: { image: string; venue?: string; eventId?: string }): Promise<{
-    success: boolean;
-    message?: string;
-    error?: string;
-    guestId?: string;
-    guestName?: string;
-    matchConfidence?: number;
-    checkin?: CheckIn;
-  }> {
+  async checkInByFacial(payload: { image: string; venue?: string; eventId?: string }): Promise<FacialCheckInResult> {
     const s3Key = await uploadService.uploadImageDataUrl(payload.image, 'face_checkin');
     const { data } = await api.post(`${API_ENDPOINTS.CHECK_INS}/facial-recognition`, {
       s3_key: s3Key,
@@ -74,6 +80,7 @@ export const checkInService = {
     return data;
   },
 
+  /** Only flags the record as printed — the browser does the actual printing. */
   async printBadge(checkInId: string): Promise<{ printed: boolean }> {
     const { data } = await api.post<{ printed: boolean }>(
       `${API_ENDPOINTS.CHECK_INS}/${checkInId}/badge`

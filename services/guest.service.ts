@@ -6,6 +6,13 @@ import type { Guest, PaginatedResponse, TableFilters } from '@/types';
 
 export type GuestListResponse = PaginatedResponse<Guest>;
 
+export interface FaceEnrollResult {
+  success: boolean;
+  message?: string;
+  faceId?: string;
+  face_photo_url?: string;
+}
+
 export interface GuestFilters extends TableFilters {
   category?: string;
 }
@@ -14,8 +21,8 @@ export interface CreateGuestPayload {
   name: string;
   email: string;
   phone: string;
-  company?: string;
-  designation?: string;
+  /** Required by the backend — a create without it is rejected with 400. */
+  address: string;
   category?: Guest['category'];
   notes?: string;
   /** Rarely set directly by the Guest form (the backend defaults these) — used by the registration workflow, which seeds a guest record ahead of check-in. */
@@ -84,24 +91,24 @@ export const guestService = {
     return data;
   },
 
-  /** The export endpoint may return either a downloadable URL or the raw record set — never fabricate a download if neither shape is present. */
+  /** Export returns the rows themselves — `downloadUrl` is always null, so never advertise a file link. */
   async exportGuests(): Promise<GuestExportResult> {
     const { data } = await api.get(`${API_ENDPOINTS.GUESTS}/export`);
-    if (data && typeof data === 'object' && !Array.isArray(data) && typeof (data as { downloadUrl?: unknown }).downloadUrl === 'string') {
-      return { downloadUrl: (data as { downloadUrl: string }).downloadUrl };
-    }
     const list = unwrapList<Guest>(data);
     return list.length ? { data: list } : {};
   },
 
   /**
-   * Enrolls the captured photo as this guest's face. The image is uploaded to S3 first
-   * and indexed by its `s3_key` — the same contract the mobile app's check-in matches
-   * against, so enrolment and recognition stay on one flow.
+   * Enrolls the captured photo as this guest's face. The image goes to S3 first and is indexed
+   * by its `s3_key`; re-enrolling replaces the previous face rather than adding a second one.
    */
-  async enrollFace(guestId: string, imageDataUrl: string): Promise<{ success: boolean; message?: string; faceId?: string }> {
+  async enrollFace(guestId: string, imageDataUrl: string): Promise<FaceEnrollResult> {
     const s3Key = await uploadService.uploadImageDataUrl(imageDataUrl, 'face_enroll_guest');
     const { data } = await api.post(`${API_ENDPOINTS.GUESTS}/${guestId}/face`, { s3_key: s3Key });
     return data;
+  },
+
+  async unenrollFace(guestId: string): Promise<void> {
+    await api.delete(`${API_ENDPOINTS.GUESTS}/${guestId}/face`);
   },
 };

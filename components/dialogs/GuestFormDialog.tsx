@@ -22,14 +22,13 @@ interface FormState {
   name: string;
   email: string;
   phone: string;
-  company: string;
-  designation: string;
+  address: string;
   category: string;
   notes: string;
 }
 
 const EMPTY_FORM: FormState = {
-  name: '', email: '', phone: '', company: '', designation: '', category: '', notes: '',
+  name: '', email: '', phone: '', address: '', category: '', notes: '',
 };
 
 function toFormState(guest: Guest): FormState {
@@ -37,8 +36,7 @@ function toFormState(guest: Guest): FormState {
     name: guest.name ?? '',
     email: guest.email ?? '',
     phone: guest.phone ?? '',
-    company: guest.company ?? '',
-    designation: guest.designation ?? '',
+    address: guest.address ?? '',
     category: guest.category ?? '',
     notes: guest.notes ?? '',
   };
@@ -50,7 +48,7 @@ function toFormState(guest: Guest): FormState {
  * call builds its DynamoDB UpdateExpression assuming every free-text field it knows about is
  * present in the body (confirmed by a live 500: "Invalid UpdateExpression ... attribute value
  * is not defined; attribute value: :notes" when `notes` was omitted from a PUT) — so edits
- * always send company/designation/notes, even as empty strings, to clear them safely.
+ * always send notes, even as an empty string, to clear it safely.
  * `category` stays conditional since it's a real enum select, not free text.
  */
 function toPayload(form: FormState, isEditing: boolean): CreateGuestPayload {
@@ -58,15 +56,14 @@ function toPayload(form: FormState, isEditing: boolean): CreateGuestPayload {
     name: form.name.trim(),
     email: form.email.trim(),
     phone: form.phone.trim(),
+    address: form.address.trim(),
   };
-  if (isEditing || form.company.trim())     payload.company = form.company.trim();
-  if (isEditing || form.designation.trim()) payload.designation = form.designation.trim();
-  if (form.category)                        payload.category = form.category as Guest['category'];
-  if (isEditing || form.notes.trim())       payload.notes = form.notes.trim();
+  if (form.category)                  payload.category = form.category as Guest['category'];
+  if (isEditing || form.notes.trim()) payload.notes = form.notes.trim();
   return payload;
 }
 
-type FieldErrors = Partial<Record<'name' | 'email' | 'phone', string>>;
+type FieldErrors = Partial<Record<'name' | 'email' | 'phone' | 'address', string>>;
 
 function validate(form: FormState): FieldErrors {
   const errors: FieldErrors = {};
@@ -75,6 +72,7 @@ function validate(form: FormState): FieldErrors {
   else if (!isValidEmail(form.email.trim())) errors.email = 'Enter a valid email address';
   if (!form.phone.trim()) errors.phone = 'Phone is required';
   else if (!isValidPhone(form.phone.trim())) errors.phone = 'Enter a valid phone number';
+  if (!form.address.trim()) errors.address = 'Address is required';
   return errors;
 }
 
@@ -180,14 +178,18 @@ export function GuestFormDialog({
               {fieldErrors.phone && <p id="guest-phone-error" className="text-xs text-destructive">{fieldErrors.phone}</p>}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="guest-company">Company</Label>
-              <Input id="guest-company" value={form.company} onChange={(e) => update('company', e.target.value)} placeholder="Acme Inc." />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="guest-designation">Designation</Label>
-              <Input id="guest-designation" value={form.designation} onChange={(e) => update('designation', e.target.value)} placeholder="Director" />
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="guest-address">Address *</Label>
+              <Textarea
+                id="guest-address"
+                value={form.address}
+                onChange={(e) => update('address', e.target.value)}
+                placeholder="12 MG Road, Bengaluru"
+                rows={2}
+                aria-invalid={!!fieldErrors.address}
+                aria-describedby={fieldErrors.address ? 'guest-address-error' : undefined}
+              />
+              {fieldErrors.address && <p id="guest-address-error" className="text-xs text-destructive">{fieldErrors.address}</p>}
             </div>
 
             <div className="space-y-1.5 sm:col-span-2">

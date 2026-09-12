@@ -28,9 +28,16 @@ export function useCheckInStats() {
   });
 }
 
-/** A guest already checked in returns 409 from the backend — surfaced as a distinct message rather than a generic failure. */
+/**
+ * A repeat check-in for the same guest/event/day is rejected with 409 and the existing record.
+ * That is a "already done" outcome, not a failure, so it must never create a second row.
+ */
+function isAlreadyCheckedIn(err: any): boolean {
+  return err?.response?.status === 409;
+}
+
 function checkInErrorMessage(err: any, fallback: string): string {
-  if (err?.response?.status === 409) return err?.backendMessage ?? "This guest has already checked in.";
+  if (isAlreadyCheckedIn(err)) return err?.backendMessage ?? "This guest has already checked in.";
   return err?.backendMessage ?? getFriendlyErrorMessage(err, fallback);
 }
 
@@ -45,7 +52,15 @@ export function useCheckIn() {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
       toast.success("Guest checked in successfully!");
     },
-    onError: (err: any) => toast.error(checkInErrorMessage(err, "Check-in failed")),
+    onError: (err: any) => {
+      if (isAlreadyCheckedIn(err)) {
+        // Refresh so the row the backend already holds is what the user sees.
+        qc.invalidateQueries({ queryKey: checkInKeys.all });
+        toast.info(checkInErrorMessage(err, "Already checked in"));
+        return;
+      }
+      toast.error(checkInErrorMessage(err, "Check-in failed"));
+    },
   });
 }
 
@@ -60,8 +75,26 @@ export function useQrCheckIn() {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
       toast.success("QR check-in successful!");
     },
-    onError: (err: any) => toast.error(checkInErrorMessage(err, "QR check-in failed")),
+    onError: (err: any) => {
+      if (isAlreadyCheckedIn(err)) {
+        qc.invalidateQueries({ queryKey: checkInKeys.all });
+        toast.info(checkInErrorMessage(err, "Already checked in"));
+        return;
+      }
+      toast.error(checkInErrorMessage(err, "QR check-in failed"));
+    },
   });
+}
+
+/** Maps the facial endpoint's failure codes onto what the front-desk operator should do next. */
+function facialErrorMessage(err: any): string {
+  switch (err?.response?.status) {
+    case 400: return "No face detected — reposition the guest in frame and retake the photo.";
+    case 404: return err?.backendMessage ?? "Face not recognised. Enrol this guest first, or check them in manually.";
+    case 409: return err?.backendMessage ?? "This guest has already checked in.";
+    case 413: return "That photo is too large. Retake it and try again.";
+    default:  return err?.backendMessage ?? getFriendlyErrorMessage(err, "Facial check-in failed");
+  }
 }
 
 export function useFacialCheckIn() {
@@ -70,18 +103,22 @@ export function useFacialCheckIn() {
     mutationFn: (payload: { image: string; venue?: string; eventId?: string }) =>
       checkInService.checkInByFacial(payload),
     onSuccess: (result) => {
-      if (result.success) {
-        qc.invalidateQueries({ queryKey: checkInKeys.all });
-        qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
-        qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
-        toast.success(`Checked in ${result.guestName ?? 'guest'}${result.matchConfidence ? ` (${result.matchConfidence.toFixed(1)}% match)` : ''}`);
-      } else {
-        // A non-2xx-shaped failure the backend still returns as 200 { success: false, ... } —
-        // never expose raw Rekognition error text, only its own user-facing message.
-        toast.error(result.error ?? result.message ?? "Face not recognized");
-      }
+      qc.invalidateQueries({ queryKey: checkInKeys.all });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
+      const confidence = typeof result.matchConfidence === "number"
+        ? ` (${result.matchConfidence.toFixed(1)}% match)`
+        : "";
+      toast.success(`Checked in ${result.guestName ?? "guest"}${confidence}`);
     },
-    onError: (err: any) => toast.error(checkInErrorMessage(err, "Facial check-in failed")),
+    onError: (err: any) => {
+      if (isAlreadyCheckedIn(err)) {
+        qc.invalidateQueries({ queryKey: checkInKeys.all });
+        toast.info(facialErrorMessage(err));
+        return;
+      }
+      toast.error(facialErrorMessage(err));
+    },
   });
 }
 
@@ -91,7 +128,7 @@ export function usePrintBadge() {
     mutationFn: (checkInId: string) => checkInService.printBadge(checkInId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
-      toast.success("Badge printed!");
+      toast.success("Badge marked as printed");
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to print badge")),
   });

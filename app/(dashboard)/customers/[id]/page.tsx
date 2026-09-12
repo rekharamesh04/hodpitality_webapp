@@ -4,8 +4,8 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, Building2,
-  Wallet, CalendarClock, MessageSquare, AlertTriangle, Clock, BadgeCheck,
+  ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
+  Wallet, CalendarClock, MessageSquare, AlertTriangle, Clock,
   UserRoundCheck, Repeat, Sparkles,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -20,9 +20,8 @@ import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 
 import {
-  useCustomer, useUpdateCustomer, useDeleteCustomer, useEnrollCustomerFace,
+  useCustomer, useUpdateCustomer, useDeleteCustomer, useEnrollCustomerFace, useUnenrollCustomerFace,
 } from '@/hooks/useCustomers';
-import { getLocalAvatar } from '@/lib/local-avatars';
 import { cn, formatCurrency, formatDate, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { TIER_BADGE_CLASSES } from '@/constants';
 import type { UpdateCustomerPayload } from '@/services/customer.service';
@@ -39,6 +38,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
   const enrollFace = useEnrollCustomerFace();
+  const unenrollFace = useUnenrollCustomerFace();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -91,9 +91,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   }
 
   const resolvedId = getCustomerId(customer.id, customer.PK);
-  const localPhoto = getLocalAvatar(`customer:${resolvedId}`);
-  const createdAt = customer.createdAt ?? customer.created_at;
-  const hasFacePhoto = !!localPhoto;
+  const localPhoto = customer.face_photo_url;
+  const createdAt = customer.created_at ?? customer.createdAt;
+  const hasFacePhoto = !!customer.face_enrolled || !!localPhoto;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -184,8 +184,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             <CardContent className="grid gap-5 sm:grid-cols-2">
               <InfoRow icon={Mail} label="Email" value={customer.email} />
               <InfoRow icon={Phone} label="Phone" value={customer.phone} />
-              <InfoRow icon={Building2} label="Company" value={customer.company} />
-              <InfoRow icon={BadgeCheck} label="Designation" value={customer.designation} />
+              <div className="sm:col-span-2">
+                <InfoRow icon={MapPin} label="Address" value={customer.address} />
+              </div>
               <InfoRow icon={MessageSquare} label="Preferred Contact" value={customer.preferredContact} />
               <InfoRow icon={CalendarClock} label="Next Appointment" value={customer.nextAppointment ? formatDate(customer.nextAppointment, 'MMM dd, yyyy HH:mm') : undefined} />
             </CardContent>
@@ -208,6 +209,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                   <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-xs" onClick={() => setFaceOpen(true)}>
                     {hasFacePhoto ? 'Retake' : 'Enroll'}
                   </Button>
+                  {hasFacePhoto && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 shrink-0 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      loading={unenrollFace.isPending}
+                      onClick={() => unenrollFace.mutate(id)}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -19,8 +19,7 @@ export interface FullRegistrationData {
   guestName: string;
   email: string;
   phone: string;
-  company?: string;
-  designation?: string;
+  address: string;
   category: 'VIP' | 'Speaker' | 'Delegate' | 'Staff' | 'Press';
   
   // Event information
@@ -75,13 +74,13 @@ class WorkflowService {
         const existingGuests = await guestService.getGuests({ search: data.email, limit: 1 });
         if (existingGuests.data.length > 0) {
           guest = await guestService.updateGuest(existingGuests.data[0].id, {
-            name: data.guestName, phone: data.phone, company: data.company,
-            designation: data.designation, category: data.category, notes: data.notes,
+            name: data.guestName, phone: data.phone, address: data.address,
+            category: data.category, notes: data.notes,
           });
         } else {
           guest = await guestService.createGuest({
             name: data.guestName, email: data.email, phone: data.phone,
-            company: data.company, designation: data.designation, category: data.category,
+            address: data.address, category: data.category,
             status: 'active', checkedIn: false, registrationDate: new Date().toISOString(),
             notes: data.notes, tags: data.dietaryRestrictions?.concat(data.accessibilityNeeds || []),
           });

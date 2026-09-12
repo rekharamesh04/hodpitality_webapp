@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import { unwrapList } from '@/lib/axios';
+import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { Staff, TableFilters } from '@/types';
 
@@ -29,6 +29,7 @@ function buildParams(filters: StaffFilters): URLSearchParams {
   const p = new URLSearchParams();
   if (filters.search) p.set('search', filters.search);
   if (filters.status) p.set('status', filters.status);
+  p.set('limit', String(FULL_LIST_LIMIT));
   return p;
 }
 

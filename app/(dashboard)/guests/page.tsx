@@ -86,7 +86,12 @@ function GuestsPageInner() {
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  const createMutation = useCreateGuest();
+  const createMutation = useCreateGuest({
+    onDuplicate: (conflict) => {
+      setFormOpen(false);
+      router.push(conflict.entityType === 'CUSTOMER' ? `/customers/${conflict.id}` : `/guests/${conflict.id}`);
+    },
+  });
   const updateMutation = useUpdateGuest();
   const deleteMutation = useDeleteGuest();
   const enrollFace = useEnrollFace();

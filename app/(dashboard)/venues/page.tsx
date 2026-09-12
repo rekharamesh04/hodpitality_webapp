@@ -33,7 +33,6 @@ import {
   useVenues, useCreateVenue, useUpdateVenue, useDeleteVenue, useUpdateVenueOccupancy,
 } from '@/hooks/useVenues';
 import { useEvents } from '@/hooks/useEvents';
-import { getVenueCreatedRank } from '@/lib/local-venue-order';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateVenuePayload, UpdateVenuePayload } from '@/services/venue.service';
 import type { Venue, Event } from '@/types';
@@ -92,18 +91,8 @@ function VenuesPageInner() {
   const deleteMutation = useDeleteVenue();
   const occupancyMutation = useUpdateVenueOccupancy();
 
-  // GET /venues has no creation timestamp and no guaranteed ordering, so a venue just created
-  // from this app is pinned to the top via a locally-recorded creation time (see
-  // lib/local-venue-order.ts) — venues never created from here keep the backend's original
-  // relative order (stable sort).
-  const allVenues = useMemo(() => {
-    const list = venuesData ?? [];
-    return [...list].sort((a, b) => {
-      const ra = getVenueCreatedRank(getVenueId(a)) ?? -1;
-      const rb = getVenueCreatedRank(getVenueId(b)) ?? -1;
-      return rb - ra;
-    });
-  }, [venuesData]);
+  // GET /venues is already sorted newest-first by the backend.
+  const allVenues = useMemo(() => venuesData ?? [], [venuesData]);
   const allEvents = useMemo(() => eventsData ?? [], [eventsData]);
 
   const typeOptions = useMemo(

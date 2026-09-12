@@ -56,8 +56,7 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
     guestName: '',
     email: '',
     phone: '',
-    company: '',
-    designation: '',
+    address: '',
     category: 'Delegate' as 'VIP' | 'Speaker' | 'Delegate' | 'Staff' | 'Press',
     eventId: '',
     eventTitle: '',
@@ -188,20 +187,14 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="company">Company</Label>
+                <div className="grid gap-2 sm:col-span-2">
+                  <Label htmlFor="address">Address *</Label>
                   <Input
-                    id="company"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="designation">Designation</Label>
-                  <Input
-                    id="designation"
-                    value={formData.designation}
-                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                    id="address"
+                    required
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    placeholder="12 MG Road, Bengaluru"
                   />
                 </div>
               </div>

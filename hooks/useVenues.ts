@@ -4,7 +4,6 @@ import { venueService } from "@/services/venue.service";
 import type { VenueFilters, CreateVenuePayload, UpdateVenuePayload } from "@/services/venue.service";
 import { QUERY_KEYS } from "@/constants";
 import { getFriendlyErrorMessage } from "@/lib/utils";
-import { recordVenueCreated } from "@/lib/local-venue-order";
 
 export const venueKeys = {
   all:    QUERY_KEYS.VENUES,
@@ -32,9 +31,7 @@ export function useCreateVenue() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateVenuePayload) => venueService.createVenue(input),
-    onSuccess: (venue) => {
-      const id = venue?.id ?? (venue?.PK ? venue.PK.replace('VENUE#', '') : '');
-      if (id) recordVenueCreated(id);
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: venueKeys.all });
       toast.success("Venue created");
     },

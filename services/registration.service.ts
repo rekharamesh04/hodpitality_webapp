@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import { unwrapList } from '@/lib/axios';
+import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { Registration, TableFilters } from '@/types';
 
@@ -19,7 +19,7 @@ export const registrationService = {
     if (filters.status)        p.set('status', filters.status);
     if (filters.paymentStatus) p.set('paymentStatus', filters.paymentStatus);
     if (filters.eventId)       p.set('eventId', filters.eventId);
-    if (filters.limit)         p.set('limit', String(filters.limit));
+    p.set('limit', String(filters.limit ?? FULL_LIST_LIMIT));
     const { data } = await api.get(`${API_ENDPOINTS.REGISTRATIONS}?${p}`);
     return unwrapList<Registration>(data);
   },

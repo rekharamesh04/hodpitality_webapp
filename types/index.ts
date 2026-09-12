@@ -52,14 +52,18 @@ export interface Guest {
   name: string;
   email: string;
   phone: string;
-  company?: string;
-  designation?: string;
+  address?: string;
   category: 'VIP' | 'Speaker' | 'Delegate' | 'Staff' | 'Press' | 'regular' | 'standard';
   status: Status;
   checkedIn: boolean;
   checkInTime?: string;
   registrationDate?: string;
+  created_at?: string;
   createdAt?: string;
+  /** True once a face has been indexed for this guest. */
+  face_enrolled?: boolean;
+  /** Backend-hosted URL of the enrolled face photo. */
+  face_photo_url?: string;
   avatar?: string;
   qrCode?: string;
   notes?: string;
@@ -400,15 +404,7 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
-export interface PaginatedResponse<T = any> {
-  data: T[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
-}
-
-/** AWS Lambda paginated response shape returned by GET /guests and GET /customers */
+/** The single list envelope every paginated GET returns. */
 export interface PaginatedResponse<T = any> {
   data: T[];
   total: number;
@@ -579,7 +575,14 @@ export interface CalendarDayView {
 export interface PresignedUrlResponse {
   uploadUrl: string;
   fileUrl: string;
-  objectKey: string;
+  /** Documented name for the stored object key. */
+  s3_key?: string;
+  /** Older name for the same value. */
+  objectKey?: string;
+  expiresIn?: number;
+  maxBytes?: number;
+  /** The Content-Type the presign was issued for — PUT must use this exact value. */
+  contentType?: string;
 }
 
 // ============ Report / Chart types ============

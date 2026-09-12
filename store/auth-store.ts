@@ -3,22 +3,25 @@ import { persist } from 'zustand/middleware';
 import type { User } from '@/types';
 import { STORAGE_KEYS } from '@/constants';
 
-// Clear legacy keys written by the old mock-login code, including the
-// unauthenticated "local-session-*" bypass tokens the email/password login
-// form used to mint for ANY credentials — those must never be treated as a
-// valid session now that /auth/login actually checks the password. (Google
-// sign-in's separate "local-google-session-*" token is left alone: that flow
-// is still intentionally mocked and unaffected by this fix.)
+/** Tokens minted client-side before real auth existed. None of them is a Cognito session, so any request made with one would be answered by fake data rather than the API. */
+function isLocalBypassToken(token: string | null | undefined): boolean {
+  return !!token && (
+    token.startsWith('mock-jwt-') ||
+    token.startsWith('local-session-') ||
+    token.startsWith('local-google-session-')
+  );
+}
+
 if (typeof window !== 'undefined') {
   const legacyToken = localStorage.getItem('auth_token');
-  if (legacyToken && (legacyToken.startsWith('mock-jwt-') || legacyToken.startsWith('local-session-'))) {
+  if (isLocalBypassToken(legacyToken)) {
     localStorage.removeItem('auth_token');
     localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
     document.cookie = 'auth_token=; path=/; max-age=0';
   }
 }
 
-/** Tokens returned alongside a login/refresh response. `token` is required; the rest are optional because not every auth path (e.g. the mocked Google sign-in) produces them. */
+/** Tokens returned alongside a login/refresh response. `token` is required; the rest are optional because not every auth path returns them. */
 interface TokenSet {
   token: string;
   refreshToken?: string;
@@ -122,8 +125,8 @@ export const useAuthStore = create<AuthState>()(
       onRehydrateStorage: () => (state) => {
         state?.setLoading(false);
         if (!state) return;
-        // If a stale mock/password-bypass token survived in the persist store, force a clean logout
-        if (state.token && (state.token.startsWith('mock-jwt-') || state.token.startsWith('local-session-'))) {
+        // If a stale bypass token survived in the persist store, force a clean logout
+        if (isLocalBypassToken(state.token)) {
           state.logout();
           return;
         }

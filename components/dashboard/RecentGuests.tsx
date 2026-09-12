@@ -80,7 +80,7 @@ export function RecentGuests({ guests, isLoading, isError, error, onRetry }: Rec
                       {guest.checkedIn && <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-success" aria-label="Checked in" />}
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
-                      {guest.email || guest.company || guest.designation || '—'}
+                      {guest.email || guest.phone || '—'}
                     </p>
                   </div>
                   {guest.category && (

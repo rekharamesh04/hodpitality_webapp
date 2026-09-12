@@ -2,15 +2,30 @@ import api from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { PresignedUrlResponse } from '@/types';
 
+/**
+ * S3 signs the presigned URL over the exact `Content-Type` that was sent to
+ * /uploads/presigned-url, so a blank or differing type on the PUT fails with
+ * SignatureDoesNotMatch. Every caller must presign and PUT with this same value.
+ */
+function resolveContentType(type: string | undefined): string {
+  return type && type.trim() ? type : 'application/octet-stream';
+}
+
 /** Decodes a `data:<mime>;base64,...` URL (what CameraCaptureDialog produces) into raw bytes S3 can store. */
 function dataUrlToBlob(dataUrl: string): { blob: Blob; contentType: string } {
   const match = /^data:([^;,]+);base64,([\s\S]*)$/.exec(dataUrl);
   if (!match) throw new Error('Unsupported image format — please retake or upload the photo again.');
-  const contentType = match[1];
+  const contentType = resolveContentType(match[1]);
   const binary = atob(match[2]);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return { blob: new Blob([bytes], { type: contentType }), contentType };
+}
+
+function readObjectKey(presigned: PresignedUrlResponse): string {
+  const key = presigned.s3_key ?? presigned.objectKey;
+  if (!key) throw new Error('Upload failed — the server did not return a storage key.');
+  return key;
 }
 
 /**
@@ -24,10 +39,12 @@ function isRealUploadUrl(url: string | undefined): boolean {
 
 /**
  * PUT straight to S3. No Authorization/x-api-key header: a presigned URL is
- * self-contained and any extra header breaks its signature check. Content-Type must
- * match exactly what was sent to /uploads/presigned-url or S3 rejects the signature.
+ * self-contained and any extra header breaks its signature check.
  */
-async function putToS3(uploadUrl: string, body: Blob | File, contentType: string): Promise<void> {
+async function putToS3(uploadUrl: string, body: Blob | File, contentType: string, maxBytes?: number): Promise<void> {
+  if (maxBytes && body.size > maxBytes) {
+    throw new Error(`That file is too large (limit ${Math.floor(maxBytes / 1024 / 1024)} MB).`);
+  }
   const res = await fetch(uploadUrl, {
     method: 'PUT',
     body,
@@ -48,9 +65,10 @@ export const uploadService = {
 
   /** Get URL then upload file directly to S3 via PUT. Returns the public fileUrl. */
   async uploadFile(file: File): Promise<string> {
-    const presigned = await uploadService.getPresignedUrl(file.name, file.type);
+    const contentType = resolveContentType(file.type);
+    const presigned = await uploadService.getPresignedUrl(file.name, contentType);
     if (isRealUploadUrl(presigned.uploadUrl)) {
-      await putToS3(presigned.uploadUrl, file, file.type);
+      await putToS3(presigned.uploadUrl, file, contentType, presigned.maxBytes);
     }
     return presigned.fileUrl;
   },
@@ -70,8 +88,8 @@ export const uploadService = {
 
     const presigned = await uploadService.getPresignedUrl(fileName, contentType);
     if (isRealUploadUrl(presigned.uploadUrl)) {
-      await putToS3(presigned.uploadUrl, blob, contentType);
+      await putToS3(presigned.uploadUrl, blob, contentType, presigned.maxBytes);
     }
-    return presigned.objectKey ?? `uploads/${fileName}`;
+    return readObjectKey(presigned);
   },
 };

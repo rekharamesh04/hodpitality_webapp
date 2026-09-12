@@ -21,8 +21,7 @@ interface FormState {
   name: string;
   email: string;
   phone: string;
-  company: string;
-  designation: string;
+  address: string;
   tier: string;
   balance: string;
   visits: string;
@@ -32,7 +31,7 @@ interface FormState {
 }
 
 const EMPTY_FORM: FormState = {
-  name: '', email: '', phone: '', company: '', designation: '', tier: '',
+  name: '', email: '', phone: '', address: '', tier: '',
   balance: '', visits: '', allergyNotes: '', preferredContact: '', nextAppointment: '',
 };
 
@@ -41,8 +40,7 @@ function toFormState(customer: Customer): FormState {
     name: customer.name ?? '',
     email: customer.email ?? '',
     phone: customer.phone ?? '',
-    company: customer.company ?? '',
-    designation: customer.designation ?? '',
+    address: customer.address ?? '',
     tier: customer.tier ?? '',
     balance: customer.balance !== undefined ? String(customer.balance) : '',
     visits: customer.visits !== undefined ? String(customer.visits) : '',
@@ -57,20 +55,18 @@ function toFormState(customer: Customer): FormState {
  * backend can apply its own defaults for a brand-new item. On update, the sibling Guest edit
  * form proved the backend's UpdateItem call builds its DynamoDB UpdateExpression assuming every
  * free-text field it knows about is present in the body — omitting one crashes with "Invalid
- * UpdateExpression ... attribute value is not defined" — so edits always send
- * company/designation/allergyNotes, even as empty strings, to clear them safely. tier/
- * preferredContact/balance/visits/nextAppointment stay conditional: they're either a real enum
- * select or numeric/date fields where "send 0/blank" and "leave untouched" aren't the same
- * thing, and this hasn't been confirmed to hit the same crash — revisit if it does.
+ * UpdateExpression ... attribute value is not defined" — so edits always send allergyNotes, even
+ * as an empty string, to clear it safely. tier/preferredContact/balance/visits/nextAppointment
+ * stay conditional: they're either a real enum select or numeric/date fields where "send 0/blank"
+ * and "leave untouched" aren't the same thing.
  */
 function toPayload(form: FormState, isEditing: boolean): CreateCustomerPayload {
   const payload: CreateCustomerPayload = {
     name: form.name.trim(),
     email: form.email.trim(),
     phone: form.phone.trim(),
+    address: form.address.trim(),
   };
-  if (isEditing || form.company.trim())      payload.company = form.company.trim();
-  if (isEditing || form.designation.trim())  payload.designation = form.designation.trim();
   if (form.tier)                             payload.tier = form.tier;
   if (form.balance !== '')                   payload.balance = Number(form.balance);
   if (form.visits !== '')                    payload.visits = Number(form.visits);
@@ -80,7 +76,7 @@ function toPayload(form: FormState, isEditing: boolean): CreateCustomerPayload {
   return payload;
 }
 
-type FieldErrors = Partial<Record<'name' | 'email' | 'phone', string>>;
+type FieldErrors = Partial<Record<'name' | 'email' | 'phone' | 'address', string>>;
 
 function validate(form: FormState): FieldErrors {
   const errors: FieldErrors = {};
@@ -89,6 +85,7 @@ function validate(form: FormState): FieldErrors {
   else if (!isValidEmail(form.email.trim())) errors.email = 'Enter a valid email address';
   if (!form.phone.trim()) errors.phone = 'Phone is required';
   else if (!isValidPhone(form.phone.trim())) errors.phone = 'Enter a valid phone number';
+  if (!form.address.trim()) errors.address = 'Address is required';
   return errors;
 }
 
@@ -194,14 +191,18 @@ export function CustomerFormDialog({
               {fieldErrors.phone && <p id="cust-phone-error" className="text-xs text-destructive">{fieldErrors.phone}</p>}
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="cust-company">Company</Label>
-              <Input id="cust-company" value={form.company} onChange={(e) => update('company', e.target.value)} placeholder="Acme Inc." />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label htmlFor="cust-designation">Designation</Label>
-              <Input id="cust-designation" value={form.designation} onChange={(e) => update('designation', e.target.value)} placeholder="Director" />
+            <div className="space-y-1.5 sm:col-span-2">
+              <Label htmlFor="cust-address">Address *</Label>
+              <Textarea
+                id="cust-address"
+                value={form.address}
+                onChange={(e) => update('address', e.target.value)}
+                placeholder="12 MG Road, Bengaluru"
+                rows={2}
+                aria-invalid={!!fieldErrors.address}
+                aria-describedby={fieldErrors.address ? 'cust-address-error' : undefined}
+              />
+              {fieldErrors.address && <p id="cust-address-error" className="text-xs text-destructive">{fieldErrors.address}</p>}
             </div>
 
             <div className="space-y-1.5">

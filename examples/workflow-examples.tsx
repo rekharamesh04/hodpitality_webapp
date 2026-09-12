@@ -29,8 +29,7 @@ export function ExampleCompleteRegistration() {
       guestName: "Sarah Johnson",
       email: "sarah.johnson@techcorp.com",
       phone: "+1 (555) 987-6543",
-      company: "Tech Corp International",
-      designation: "Chief Technology Officer",
+      address: "12 MG Road, Bengaluru",
       category: "VIP",
       
       // Event Details
@@ -148,8 +147,7 @@ export function ExampleGuestCRUD() {
       name: "Michael Chen",
       email: "michael.chen@startup.io",
       phone: "+1 (555) 234-5678",
-      company: "Startup IO",
-      designation: "CTO",
+      address: "12 MG Road, Bengaluru",
       category: "Speaker",
       status: "active",
       checkedIn: false,
@@ -171,7 +169,6 @@ export function ExampleGuestCRUD() {
   // UPDATE
   const handleUpdate = async (guestId: string) => {
     await updateGuest(guestId, {
-      designation: "Chief Technology Officer",
       category: "VIP",
     });
   };
@@ -314,6 +311,7 @@ export async function demonstrateAllCRUDOperations() {
     name: "Test Guest",
     email: "test@example.com",
     phone: "+1234567890",
+    address: "12 MG Road, Bengaluru",
     category: "Delegate",
     status: "active",
     checkedIn: false,

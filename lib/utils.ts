@@ -206,6 +206,33 @@ export function getFriendlyErrorMessage(error: unknown, fallback = 'Something we
   return fallback;
 }
 
+export interface DuplicatePersonConflict {
+  /** Id of the person who already owns this email. */
+  id: string;
+  entityType: 'GUEST' | 'CUSTOMER';
+  email?: string;
+  message: string;
+}
+
+/**
+ * One email belongs to exactly one person across guests and customers, so a create/update that
+ * reuses one comes back as 409 carrying the existing record's id. Callers open that record
+ * instead of inserting a duplicate row.
+ */
+export function getDuplicatePersonConflict(error: unknown): DuplicatePersonConflict | null {
+  const response = (error as { response?: { status?: number; data?: unknown } } | undefined)?.response;
+  if (response?.status !== 409) return null;
+  const data = (response.data ?? {}) as Record<string, unknown>;
+  const id = data.id ?? data.guestId ?? data.customerId;
+  if (typeof id !== 'string' || !id) return null;
+  return {
+    id,
+    entityType: data.entityType === 'CUSTOMER' ? 'CUSTOMER' : 'GUEST',
+    email: typeof data.email === 'string' ? data.email : undefined,
+    message: typeof data.error === 'string' ? data.error : 'Someone with this email already exists.',
+  };
+}
+
 /** Formats a "HH:MM" 24-hour time string as a 12-hour label, e.g. "14:30" -> "2:30 PM". Returns "—" for anything unparseable. */
 export function formatTimeLabel(time?: string): string {
   if (!time) return '—';

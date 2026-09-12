@@ -34,8 +34,7 @@ export class BusinessWorkflowTester {
         guestName: "Test VIP Guest",
         email: "testvip@example.com",
         phone: "+1 (555) 999-8888",
-        company: "VIP Corp",
-        designation: "CEO",
+        address: "12 MG Road, Bengaluru",
         category: "VIP",
         eventId: "evt_test",
         eventTitle: "Test Summit 2024",
@@ -169,6 +168,7 @@ export class BusinessWorkflowTester {
         name: "CRUD Test Guest",
         email: "crud@test.com",
         phone: "+1 (555) 111-2222",
+        address: "12 MG Road, Bengaluru",
         category: "Delegate",
         status: "active",
         checkedIn: false,
@@ -186,11 +186,9 @@ export class BusinessWorkflowTester {
         // UPDATE Guest
         this.log('Updating guest...');
         const updatedGuest = await guestService.updateGuest(guestId, {
-          designation: "Senior Developer",
           category: "Speaker"
         });
-        this.success('Guest Updated', { 
-          designation: updatedGuest.designation,
+        this.success('Guest Updated', {
           category: updatedGuest.category
         });
 

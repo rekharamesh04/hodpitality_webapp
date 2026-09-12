@@ -15,6 +15,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { useAuthStore } from '@/store';
 import { authService } from '@/services/auth.service';
+import { getFriendlyErrorMessage } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
@@ -139,31 +140,31 @@ export default function LoginPage() {
   const onGoogleCredential = async (idToken: string) => {
     setIsLoading(true);
     try {
-      // TEMP: local-only Google login — no backend to verify the token against
-      // (no /auth/google, no AWS), so we trust Google's own signature and read
-      // the identity straight out of the ID token in the browser. The token IS
-      // a real, signed assertion from Google (the user just completed a real
-      // Google sign-in) — we're just not doing server-side verification of it.
-      const payload = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      completeLogin({
-        token: `local-google-session-${Date.now()}`,
-        user: {
-          id: payload.sub,
-          email: payload.email,
-          name: payload.name,
-          avatar: payload.picture,
-          role: 'admin',
-        },
-      });
+      // The backend verifies the token and issues a real Cognito session. It must never be
+      // decoded client-side into a local session again — that produced a mock-data login that
+      // looked signed in but never reached the API.
+      completeLogin(await authService.loginWithGoogle(idToken));
     } catch (err: any) {
-      console.error('[GOOGLE] failed to decode credential:', err);
-      toast.error('Google sign-in failed: could not read your Google profile.');
+      const status = err?.response?.status;
+      if (status === 501) {
+        toast.error('Google sign-in is not enabled yet. Please sign in with your email and password.');
+      } else if (status === 403) {
+        toast.error('This account is not a staff account and cannot access the admin portal.');
+      } else {
+        toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Google sign-in failed.'));
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   function completeLogin(result: Awaited<ReturnType<typeof authService.login>>) {
+    // Patients have no admin portal — the backend 403s them on every business API, so letting
+    // the session through would land them on a dashboard where nothing loads.
+    if ((result.user.role as string) === 'patient') {
+      toast.error('This portal is for staff only.');
+      return;
+    }
     const user = {
       ...result.user,
       name: result.user.name || result.user.email.split('@')[0],

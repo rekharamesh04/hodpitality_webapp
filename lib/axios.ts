@@ -1,6 +1,5 @@
 import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { STORAGE_KEYS, API_ENDPOINTS } from '@/constants';
-import { mockAdapter } from './mock-adapter';
 import { getJwtExpiryMs } from './jwt';
 import { useAuthStore } from '@/store/auth-store';
 
@@ -38,6 +37,22 @@ export function unwrapList<T>(raw: unknown): T[] {
   return [];
 }
 
+/** Reads the `{ data, total, page, limit }` list envelope, falling back to the row count when `total` is absent. */
+export function unwrapPage<T>(raw: unknown): { data: T[]; total: number } {
+  const data = unwrapList<T>(raw);
+  const total = raw && typeof raw === 'object' && typeof (raw as { total?: unknown }).total === 'number'
+    ? (raw as { total: number }).total
+    : data.length;
+  return { data, total };
+}
+
+/**
+ * Lists are paginated server-side and default to a small page. Pages that filter or sort the
+ * whole set in the browser must ask for everything explicitly or they would silently show only
+ * the first page. Server-side filtering removes the need for this — see each service's notes.
+ */
+export const FULL_LIST_LIMIT = 1000;
+
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 30000,
@@ -46,11 +61,6 @@ const api: AxiosInstance = axios.create({
     'x-api-key': API_KEY,
   },
 });
-
-function isLocalSession(): boolean {
-  return typeof window !== 'undefined'
-    && (localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ?? '').startsWith('local-');
-}
 
 // ─── Session lifecycle: proactive refresh scheduling + centralized logout ──────────────
 
@@ -175,13 +185,6 @@ api.interceptors.request.use(
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-      // TEMP: local-only sessions have no real backend to talk to, so every
-      // request is served from the in-memory mock backend instead of the
-      // network — this is what keeps the app free of 401s while there's no
-      // real login. Remove once real backend auth is wired up.
-      if (isLocalSession()) {
-        config.adapter = mockAdapter;
-      }
     }
     // Log all POST/PUT requests so invite payloads are visible in the browser console
     if (config.method === 'post' || config.method === 'put') {
@@ -221,7 +224,7 @@ api.interceptors.response.use(
     // TEMP: local-only sessions (see lib/axios.ts request interceptor) have no real backend
     // session to refresh or expire — a 401 here just means "this fake token isn't a real
     // Cognito token," not "your session expired."
-    if (status !== 401 || isPublicAuthRoute || isLocalSession()) {
+    if (status !== 401 || isPublicAuthRoute) {
       return Promise.reject(error);
     }
 

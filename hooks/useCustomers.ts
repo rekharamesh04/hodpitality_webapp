@@ -3,8 +3,7 @@ import { toast } from "sonner";
 import { customerService } from "@/services/customer.service";
 import type { CustomerFilters, CreateCustomerPayload, UpdateCustomerPayload } from "@/services/customer.service";
 import { QUERY_KEYS } from "@/constants";
-import { setLocalAvatar } from "@/lib/local-avatars";
-import { getFriendlyErrorMessage, extractInvitationWarning } from "@/lib/utils";
+import { getFriendlyErrorMessage, getDuplicatePersonConflict } from "@/lib/utils";
 
 export const customerKeys = {
   all:    QUERY_KEYS.CUSTOMERS,
@@ -28,20 +27,24 @@ export function useCustomer(id: string) {
   });
 }
 
-export function useCreateCustomer() {
+/** Customers have no login, so no invite is sent on create. A duplicate email returns 409 with the existing person's id. */
+export function useCreateCustomer(options?: { onDuplicate?: (conflict: NonNullable<ReturnType<typeof getDuplicatePersonConflict>>) => void }) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: CreateCustomerPayload) => customerService.createCustomer(input),
-    onSuccess: (data, variables) => {
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: customerKeys.all });
-      const invitationWarning = extractInvitationWarning(data);
-      if (invitationWarning) {
-        toast.warning("Customer created — invitation issue", { description: invitationWarning });
-      } else {
-        toast.success("Customer created", { description: `Invite sent to ${variables.email}` });
-      }
+      toast.success("Customer created");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create customer")),
+    onError: (err: any) => {
+      const conflict = getDuplicatePersonConflict(err);
+      if (conflict) {
+        toast.error(conflict.message, { description: "Opening the existing record instead." });
+        options?.onDuplicate?.(conflict);
+        return;
+      }
+      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create customer"));
+    },
   });
 }
 
@@ -76,18 +79,29 @@ export function useEnrollCustomerFace() {
   return useMutation({
     mutationFn: ({ customerId, image }: { customerId: string; image: string }) =>
       customerService.enrollFace(customerId, image),
-    onSuccess: (result, { customerId, image }) => {
+    onSuccess: (result, { customerId }) => {
       if (result?.success === false) {
         toast.error(result.message ?? "Face enrollment failed");
         return;
       }
-      // The enroll response doesn't echo back a viewable photo, so cache the
-      // captured image locally — same pattern as guest face enrollment.
-      setLocalAvatar(`customer:${customerId}`, image);
+      qc.invalidateQueries({ queryKey: customerKeys.all });
       qc.invalidateQueries({ queryKey: customerKeys.detail(customerId) });
       toast.success("Face enrolled successfully");
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? err?.response?.data?.error ?? "Face enrollment failed"),
+  });
+}
+
+export function useUnenrollCustomerFace() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (customerId: string) => customerService.unenrollFace(customerId),
+    onSuccess: (_result, customerId) => {
+      qc.invalidateQueries({ queryKey: customerKeys.all });
+      qc.invalidateQueries({ queryKey: customerKeys.detail(customerId) });
+      toast.success("Face removed");
+    },
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to remove face")),
   });
 }
 

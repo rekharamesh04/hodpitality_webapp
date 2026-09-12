@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import { unwrapList } from '@/lib/axios';
+import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { Hospitality as HospitalityBooking, TableFilters } from '@/types';
 
@@ -9,6 +9,7 @@ export const hospitalityService = {
     if (filters.status)  p.set('status',  filters.status);
     if (filters.type)    p.set('type',    filters.type);
     if (filters.guestId) p.set('guestId', filters.guestId);
+    p.set('limit', String(FULL_LIST_LIMIT));
     const { data } = await api.get(`${API_ENDPOINTS.HOSPITALITY}?${p}`);
     return unwrapList<HospitalityBooking>(data);
   },

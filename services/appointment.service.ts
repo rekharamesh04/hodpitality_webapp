@@ -1,5 +1,5 @@
 import api from '@/lib/axios';
-import { unwrapList } from '@/lib/axios';
+import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { Appointment } from '@/types';
 import { debugLog } from '@/utils/debugLog';
@@ -11,6 +11,10 @@ export type AppointmentStatusValue = NonNullable<Appointment['status']>;
 
 export interface AppointmentFilters {
   date?: string;
+  /** Server-side scoping for a single person's appointments — preferred over filtering the full list in the browser. */
+  guestId?: string;
+  customerId?: string;
+  staffId?: string;
 }
 
 export interface CreateAppointmentPayload {
@@ -41,7 +45,11 @@ export interface UpdateAppointmentPaymentPayload {
 export const appointmentService = {
   async getAppointments(filters: AppointmentFilters = {}): Promise<Appointment[]> {
     const p = new URLSearchParams();
-    if (filters.date) p.set('date', filters.date);
+    if (filters.date)       p.set('date', filters.date);
+    if (filters.guestId)    p.set('guestId', filters.guestId);
+    if (filters.customerId) p.set('customerId', filters.customerId);
+    if (filters.staffId)    p.set('staffId', filters.staffId);
+    p.set('limit', String(FULL_LIST_LIMIT));
     debugLog('[ADMIN][APPOINTMENTS][LIST][REQUEST]', { endpoint: API_ENDPOINTS.APPOINTMENTS });
     const response = await api.get(`${API_ENDPOINTS.APPOINTMENTS}?${p}`);
     const appointments = unwrapList<Appointment>(response.data);

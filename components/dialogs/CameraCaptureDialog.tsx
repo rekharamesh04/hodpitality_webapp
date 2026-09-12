@@ -20,6 +20,9 @@ interface CameraCaptureDialogProps {
   onSubmit: (imageDataUrl: string) => void;
 }
 
+/** Longest edge of a re-encoded upload — keeps a 12MP phone photo well under the presign's size cap. */
+const MAX_UPLOAD_EDGE = 1600;
+
 /**
  * Reusable webcam capture UI: live preview, snap-to-canvas, retake, or fall
  * back to a plain file upload when camera permission is unavailable/denied.
@@ -81,11 +84,35 @@ export function CameraCaptureDialog({
     startCamera();
   }
 
+  /**
+   * Re-encodes any picked file to a bounded JPEG. Rekognition only reads JPEG/PNG, so a phone
+   * HEIC or a WebP would otherwise upload fine and then fail as "no face detected".
+   */
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setCameraError(null);
     const reader = new FileReader();
-    reader.onload = () => setCaptured(reader.result as string);
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, MAX_UPLOAD_EDGE / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          setCameraError('Could not read that image. Please try another photo.');
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setCaptured(canvas.toDataURL('image/jpeg', 0.9));
+        stopStream();
+      };
+      img.onerror = () => setCameraError('That file is not a readable image. Please choose a JPEG or PNG.');
+      img.src = reader.result as string;
+    };
+    reader.onerror = () => setCameraError('Could not read that file. Please try again.');
     reader.readAsDataURL(file);
   }
 

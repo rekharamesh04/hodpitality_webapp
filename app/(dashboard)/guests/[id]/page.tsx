@@ -4,8 +4,8 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, Building2,
-  BadgeCheck, StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays,
+  ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
+  StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,11 +20,10 @@ import { GuestFormDialog } from '@/components/dialogs/GuestFormDialog';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 
 import {
-  useGuest, useUpdateGuest, useDeleteGuest, useEnrollFace,
+  useGuest, useUpdateGuest, useDeleteGuest, useEnrollFace, useUnenrollFace,
 } from '@/hooks/use-guests';
 import { useCheckIn } from '@/hooks/useCheckins';
 import { useAppointments } from '@/hooks/useAppointments';
-import { getLocalAvatar } from '@/lib/local-avatars';
 import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { GUEST_CATEGORY_BADGE_CLASSES } from '@/constants';
 import type { UpdateGuestPayload } from '@/services/guest.service';
@@ -41,18 +40,15 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
   const updateMutation = useUpdateGuest();
   const deleteMutation = useDeleteGuest();
   const enrollFace = useEnrollFace();
+  const unenrollFace = useUnenrollFace();
   const checkIn = useCheckIn();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [faceOpen, setFaceOpen] = useState(false);
 
-  // No dedicated "appointments by guest" endpoint exists — filter the full list client-side, same
-  // pattern used elsewhere in the app (see the legacy customer profile view this replaced).
-  const { data: appointmentsData } = useAppointments({}, { enabled: !!guest });
-  const relatedAppointments = (appointmentsData ?? []).filter(
-    (a) => a.guestId === id || a.customerId === id
-  );
+  const { data: appointmentsData } = useAppointments({ guestId: id }, { enabled: !!guest });
+  const relatedAppointments = appointmentsData ?? [];
 
   function handleUpdate(payload: UpdateGuestPayload) {
     updateMutation.mutate({ id, data: payload }, { onSuccess: () => setEditOpen(false) });
@@ -105,9 +101,8 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const resolvedId = getGuestId(guest.id, guest.PK);
-  const localPhoto = getLocalAvatar(resolvedId);
-  const photoSrc = guest.avatar ?? localPhoto;
-  const hasFacePhoto = !!photoSrc;
+  const photoSrc = guest.face_photo_url ?? guest.avatar;
+  const hasFacePhoto = !!guest.face_enrolled || !!photoSrc;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -188,7 +183,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
               />
               <StatChip icon={CalendarDays} label="Registered" value={guest.registrationDate ? formatDate(guest.registrationDate) : '—'} />
               <StatChip icon={CalendarClock} label="Upcoming Appointments" value={String(relatedAppointments.length)} />
-              <StatChip icon={Clock} label="Guest Since" value={guest.createdAt ? formatDate(guest.createdAt) : '—'} />
+              <StatChip icon={Clock} label="Guest Since" value={guest.created_at ? formatDate(guest.created_at) : '—'} />
             </div>
           </CardContent>
         </Card>
@@ -202,8 +197,9 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
             <CardContent className="grid gap-5 sm:grid-cols-2">
               <InfoRow icon={Mail} label="Email" value={guest.email} />
               <InfoRow icon={Phone} label="Phone" value={guest.phone} />
-              <InfoRow icon={Building2} label="Company" value={guest.company} />
-              <InfoRow icon={BadgeCheck} label="Designation" value={guest.designation} />
+              <div className="sm:col-span-2">
+                <InfoRow icon={MapPin} label="Address" value={guest.address} />
+              </div>
               {guest.notes && (
                 <div className="sm:col-span-2">
                   <InfoRow icon={StickyNote} label="Notes" value={guest.notes} />
@@ -229,6 +225,17 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                   <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-xs" onClick={() => setFaceOpen(true)}>
                     {hasFacePhoto ? 'Retake' : 'Enroll'}
                   </Button>
+                  {hasFacePhoto && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 shrink-0 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      loading={unenrollFace.isPending}
+                      onClick={() => unenrollFace.mutate(id)}
+                    >
+                      Remove
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -224,7 +224,7 @@ function CheckInsPageInner() {
   function handleFaceCheckIn(imageDataUrl: string) {
     facialCheckIn.mutate(
       { image: imageDataUrl, venue: faceVenue.trim() || undefined, eventId: faceEventId || undefined },
-      { onSuccess: (result) => { if (result.success) setCheckMode(null); } }
+      { onSuccess: () => setCheckMode(null) }
     );
   }
 

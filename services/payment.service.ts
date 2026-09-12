@@ -154,12 +154,15 @@ function normalizePaymentStats(raw: unknown): PaymentStats {
     }
   }
 
-  const totalPayments = statsObj?.totalPayments ?? statsObj?.total_payments ?? statsObj?.totalCount ?? statsObj?.count ?? statsObj?.total;
-  const successfulPayments = statsObj?.successfulPayments ?? statsObj?.successful_payments ?? statsObj?.successful ?? statsObj?.paid;
+  // Documented fields are `total_revenue`, `paidCount` and `count`; the other spellings are
+  // tolerated so an older deployment doesn't blank the whole summary.
+  const totalPayments = statsObj?.count ?? statsObj?.totalPayments ?? statsObj?.total_payments ?? statsObj?.totalCount ?? statsObj?.total;
+  const successfulPayments = statsObj?.paidCount ?? statsObj?.successfulPayments ?? statsObj?.successful_payments ?? statsObj?.successful ?? statsObj?.paid;
   const pendingPayments = statsObj?.pendingPayments ?? statsObj?.pending_payments ?? statsObj?.pending;
   const failedPayments = statsObj?.failedPayments ?? statsObj?.failed_payments ?? statsObj?.failed;
   const refundedPayments = statsObj?.refundedPayments ?? statsObj?.refunded_payments ?? statsObj?.refunded;
-  const totalAmount = statsObj?.totalAmount ?? statsObj?.total_amount ?? statsObj?.totalRevenue ?? statsObj?.revenue;
+  // Revenue is paid-only server-side — never add registration amounts on top or money is counted twice.
+  const totalAmount = statsObj?.total_revenue ?? statsObj?.totalAmount ?? statsObj?.total_amount ?? statsObj?.totalRevenue ?? statsObj?.revenue;
   const refundedAmount = statsObj?.refundedAmount ?? statsObj?.refunded_amount ?? statsObj?.refundedTotal;
   const netAmount = statsObj?.netAmount ?? statsObj?.net_amount ?? statsObj?.netRevenue;
 

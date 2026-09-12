@@ -72,7 +72,12 @@ function CustomersPageInner() {
   const total = data?.total ?? 0;
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
-  const createMutation = useCreateCustomer();
+  const createMutation = useCreateCustomer({
+    onDuplicate: (conflict) => {
+      setFormOpen(false);
+      router.push(conflict.entityType === 'GUEST' ? `/guests/${conflict.id}` : `/customers/${conflict.id}`);
+    },
+  });
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
 
@@ -249,7 +254,7 @@ function CustomersPageInner() {
                 <TableRow>
                   <TableHead>Customer</TableHead>
                   <TableHead>Contact</TableHead>
-                  <TableHead className="hidden md:table-cell">Company</TableHead>
+                  <TableHead className="hidden md:table-cell">Address</TableHead>
                   <TableHead>Tier</TableHead>
                   <TableHead className="hidden sm:table-cell">Visits</TableHead>
                   <TableHead className="hidden md:table-cell">Balance</TableHead>
@@ -277,8 +282,7 @@ function CustomersPageInner() {
                         <div className="text-xs text-muted-foreground">{c.phone || '—'}</div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        <div className="text-sm">{c.company || '—'}</div>
-                        {c.designation && <div className="text-xs text-muted-foreground">{c.designation}</div>}
+                        <div className="text-sm">{typeof c.address === 'string' && c.address ? c.address : '—'}</div>
                       </TableCell>
                       <TableCell>
                         {c.tier ? (

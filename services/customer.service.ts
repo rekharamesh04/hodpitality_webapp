@@ -2,10 +2,11 @@ import api from '@/lib/axios';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import { uploadService } from './upload.service';
+import type { FaceEnrollResult } from './guest.service';
 import type { PaginatedResponse, TableFilters } from '@/types';
 import { debugLog, maskEmail } from '@/utils/debugLog';
 
-/** Backend customer record. Field naming is inconsistent in places (createdAt vs created_at) — treat everything but id/name/email/phone as optional and read both spellings where relevant. */
+/** Backend customer record. `created_at` is canonical; `createdAt` is filled too for older callers. */
 export interface Customer {
   id: string;
   PK?: string;
@@ -13,16 +14,17 @@ export interface Customer {
   name: string;
   email: string;
   phone: string;
-  company?: string;
-  designation?: string;
+  address?: string;
   tier?: string;
   balance?: number;
   visits?: number;
   allergyNotes?: string;
   preferredContact?: string;
   nextAppointment?: string;
-  createdAt?: string;
+  face_enrolled?: boolean;
+  face_photo_url?: string;
   created_at?: string;
+  createdAt?: string;
   [key: string]: unknown;
 }
 
@@ -36,8 +38,8 @@ export interface CreateCustomerPayload {
   name: string;
   email: string;
   phone: string;
-  company?: string;
-  designation?: string;
+  /** Required by the backend — a create without it is rejected with 400. */
+  address: string;
   tier?: string;
   balance?: number;
   visits?: number;
@@ -97,20 +99,21 @@ export const customerService = {
     await api.delete(`${API_ENDPOINTS.CUSTOMERS}/${id}`);
   },
 
-  /** The export endpoint may return either a downloadable URL or the raw record set — never fabricate a download if neither shape is present. */
+  /** Export returns the rows themselves — `downloadUrl` is always null, so never advertise a file link. */
   async exportCustomers(): Promise<CustomerExportResult> {
     const { data } = await api.get(`${API_ENDPOINTS.CUSTOMERS}/export`);
-    if (data && typeof data === 'object' && !Array.isArray(data) && typeof (data as { downloadUrl?: unknown }).downloadUrl === 'string') {
-      return { downloadUrl: (data as { downloadUrl: string }).downloadUrl };
-    }
     const list = unwrapList<Customer>(data);
     return list.length ? { data: list } : {};
   },
 
-  /** Enrols the captured photo as this customer's face — S3 upload first, then index by `s3_key`. */
-  async enrollFace(customerId: string, imageDataUrl: string): Promise<{ success: boolean; message?: string; faceId?: string }> {
+  /** Enrols the captured photo as this customer's face — S3 upload first, then index by `s3_key`. Re-enrolling replaces the previous face. */
+  async enrollFace(customerId: string, imageDataUrl: string): Promise<FaceEnrollResult> {
     const s3Key = await uploadService.uploadImageDataUrl(imageDataUrl, 'face_enroll_customer');
     const { data } = await api.post(`${API_ENDPOINTS.CUSTOMERS}/${customerId}/face`, { s3_key: s3Key });
     return data;
+  },
+
+  async unenrollFace(customerId: string): Promise<void> {
+    await api.delete(`${API_ENDPOINTS.CUSTOMERS}/${customerId}/face`);
   },
 };
