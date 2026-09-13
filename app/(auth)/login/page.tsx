@@ -86,7 +86,30 @@ export default function LoginPage() {
       const status = err?.response?.status;
       const backendMsg = err?.backendMessage ?? err?.response?.data?.error ?? err?.response?.data?.message;
       console.error('[LOGIN] failed — status:', status, 'body:', err?.response?.data);
-      toast.error(status === 401 ? 'Invalid email or password.' : (backendMsg || 'Login failed. Please try again.'));
+
+      // Diagnose specific backend configuration issues
+      const rawError = String(backendMsg ?? '');
+      const isCognitoMisconfigured =
+        rawError.includes('ResourceNotFoundException') ||
+        rawError.includes('does not exist') ||
+        rawError.includes('User pool client');
+
+      if (isCognitoMisconfigured) {
+        console.error(
+          '[LOGIN] ── DIAGNOSIS: The Cognito User Pool Client ID configured on the backend Lambda does not exist.\n' +
+          '   This is an AWS backend configuration issue, NOT a frontend problem.\n' +
+          '   Fix: Go to AWS Console → Cognito → User Pool → App clients and verify the client ID.\n' +
+          '   Then update the Lambda environment variable (e.g. COGNITO_CLIENT_ID) with the correct value.'
+        );
+        toast.error('Backend misconfiguration: Cognito User Pool Client not found. Contact your administrator.');
+      } else if (status === 401) {
+        toast.error('Invalid email or password.');
+      } else if (status === 500) {
+        console.error('[LOGIN] ── Backend 500 error. Raw message:', rawError);
+        toast.error(backendMsg || 'Server error. Please try again later or contact support.');
+      } else {
+        toast.error(backendMsg || 'Login failed. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -138,20 +161,76 @@ export default function LoginPage() {
   };
 
   const onGoogleCredential = async (idToken: string) => {
+    console.log('[GOOGLE-LOGIN] ── Step 1: Received Google ID token from GIS popup');
+    // Decode the Google token to show which email is being used (public claims only)
+    try {
+      const claims = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+      console.log('[GOOGLE-LOGIN] ── Step 2: Google user email:', claims.email, '| name:', claims.name, '| sub:', claims.sub);
+    } catch { console.log('[GOOGLE-LOGIN] ── Step 2: Could not decode token claims (non-blocking)'); }
+
     setIsLoading(true);
     try {
-      // The backend verifies the token and issues a real Cognito session. It must never be
-      // decoded client-side into a local session again — that produced a mock-data login that
-      // looked signed in but never reached the API.
-      completeLogin(await authService.loginWithGoogle(idToken));
+      console.log('[GOOGLE-LOGIN] ── Step 3: Calling POST /auth/google on backend...');
+      const result = await authService.loginWithGoogle(idToken);
+      console.log('[GOOGLE-LOGIN] ── Step 4: Backend returned SUCCESS ✅', JSON.stringify({
+        hasToken: !!result.token,
+        hasRefreshToken: !!result.refreshToken,
+        hasAccessToken: !!result.accessToken,
+        userEmail: result.user?.email,
+        userRole: result.user?.role,
+        userName: result.user?.name,
+      }));
+      completeLogin(result);
     } catch (err: any) {
       const status = err?.response?.status;
-      if (status === 501) {
+      const body = err?.response?.data;
+      const backendMsg = err?.backendMessage ?? body?.message ?? body?.error;
+      console.error('[GOOGLE-LOGIN] ── Step 4: Backend returned ERROR ❌', {
+        status,
+        body,
+        backendMsg,
+        fullError: err?.message,
+      });
+
+      // Diagnose specific backend configuration issues
+      const rawError = String(backendMsg ?? '');
+      const isCognitoMisconfigured =
+        rawError.includes('ResourceNotFoundException') ||
+        rawError.includes('does not exist') ||
+        rawError.includes('User pool client');
+      const isSessionIssueFailed = rawError.includes('Failed to issue session');
+
+      if (isCognitoMisconfigured) {
+        console.error(
+          '[GOOGLE-LOGIN] ── DIAGNOSIS: Cognito User Pool Client is missing/deleted.\n' +
+          '   The Lambda tried to create a Cognito session after verifying the Google token,\n' +
+          '   but the User Pool Client ID it\'s configured with does not exist.\n' +
+          '   Fix: AWS Console → Cognito → User Pool → App clients → copy correct client ID → update Lambda env var.'
+        );
+        toast.error('Backend misconfiguration: Cognito User Pool Client not found. Contact your administrator.');
+      } else if (isSessionIssueFailed) {
+        console.error(
+          '[GOOGLE-LOGIN] ── DIAGNOSIS: Google token was verified OK, but the Lambda failed to create a Cognito session.\n' +
+          '   Likely causes:\n' +
+          '   1. The Cognito User Pool Client ID on the Lambda is wrong or deleted\n' +
+          '   2. The user (manikanta@araisolution.com) does not exist in the Cognito User Pool\n' +
+          '   3. The Lambda\'s IAM role lacks cognito-idp:AdminInitiateAuth permission\n' +
+          '   Check the Lambda\'s CloudWatch logs for the full stack trace.'
+        );
+        toast.error('Google sign-in failed: backend could not create your session. Check the server logs or contact admin.');
+      } else if (status === 501) {
+        console.error('[GOOGLE-LOGIN] ── Diagnosis: GOOGLE_CLIENT_ID is not set on the Lambda. Ask your backend admin to add it.');
         toast.error('Google sign-in is not enabled yet. Please sign in with your email and password.');
       } else if (status === 403) {
-        toast.error('This account is not a staff account and cannot access the admin portal.');
+        console.error('[GOOGLE-LOGIN] ── Diagnosis: This Google email is NOT registered as a staff member in Cognito.',
+          'You must first invite this email via POST /staff or the admin panel before they can Google sign-in.');
+        toast.error(backendMsg || 'This Google account is not registered. Ask your administrator to invite you first.');
+      } else if (status === 401) {
+        console.error('[GOOGLE-LOGIN] ── Diagnosis: Lambda could not verify the Google token. Check that GOOGLE_CLIENT_ID on Lambda matches NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local.');
+        toast.error(backendMsg ?? 'Google token verification failed. Please try again.');
       } else {
-        toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Google sign-in failed.'));
+        console.error('[GOOGLE-LOGIN] ── Unhandled error. Status:', status, 'Message:', rawError);
+        toast.error(backendMsg ?? getFriendlyErrorMessage(err, 'Google sign-in failed.'));
       }
     } finally {
       setIsLoading(false);
@@ -159,9 +238,17 @@ export default function LoginPage() {
   };
 
   function completeLogin(result: Awaited<ReturnType<typeof authService.login>>) {
+    console.log('[COMPLETE-LOGIN] ── Step 5: Processing login result...', {
+      userEmail: result.user?.email,
+      userRole: result.user?.role,
+      hasToken: !!result.token,
+      tokenPrefix: result.token?.substring(0, 20) + '...',
+    });
+
     // Patients have no admin portal — the backend 403s them on every business API, so letting
     // the session through would land them on a dashboard where nothing loads.
     if ((result.user.role as string) === 'patient') {
+      console.warn('[COMPLETE-LOGIN] ── BLOCKED: User role is "patient" — admin portal is staff-only.');
       toast.error('This portal is for staff only.');
       return;
     }
@@ -171,7 +258,9 @@ export default function LoginPage() {
       createdAt: result.user.createdAt ?? new Date().toISOString(),
       updatedAt: result.user.updatedAt ?? new Date().toISOString(),
     };
+    console.log('[COMPLETE-LOGIN] ── Step 6: Persisting session to Zustand store + localStorage + cookie...');
     login(user, { token: result.token, refreshToken: result.refreshToken, accessToken: result.accessToken });
+    console.log('[COMPLETE-LOGIN] ── Step 7: Session persisted ✅ Redirecting to /dashboard...');
     toast.success('Login successful!');
     window.location.href = '/dashboard';
   }
