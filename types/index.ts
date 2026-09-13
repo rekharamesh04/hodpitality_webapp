@@ -2,6 +2,7 @@ export type Status = 'active' | 'inactive' | 'pending' | 'completed' | 'cancelle
 
 export type UserRole =
   | 'admin'           // platform owner: sees everything — resellers + companies + all ops
+  | 'super_admin'     // alias for 'admin' accepted from the backend — same access
   | 'reseller_admin'  // sees companies under their reseller + all ops
   | 'company_admin'   // sees only their company's ops tabs
   | 'manager'

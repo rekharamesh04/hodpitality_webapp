@@ -62,7 +62,7 @@ function normalizeCheckInMethod(raw: string): string {
 
 export default function AnalyticsPage() {
   const { user } = useAuthStore();
-  const canView = user?.role === 'admin' || user?.role === 'reseller_admin';
+  const canView = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'reseller_admin';
 
   if (!canView) {
     return (

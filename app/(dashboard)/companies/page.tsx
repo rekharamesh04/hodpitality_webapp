@@ -67,7 +67,7 @@ function validate(form: FormState): FieldErrors {
 export default function CompaniesPage() {
   const { user } = useAuthStore();
   const role = user?.role;
-  const isAdmin = role === 'admin';
+  const isAdmin = role === 'admin' || role === 'super_admin';
   const isResellerAdmin = role === 'reseller_admin' || role === 'reseller';
   const isCompanyAdmin = role === 'company_admin';
   const canView = isAdmin || isResellerAdmin || isCompanyAdmin;
