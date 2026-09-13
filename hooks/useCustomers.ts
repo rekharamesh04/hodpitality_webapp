@@ -1,9 +1,10 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { customerService } from "@/services/customer.service";
-import type { CustomerFilters, CreateCustomerPayload, UpdateCustomerPayload } from "@/services/customer.service";
+import type { CustomerFilters, CreateCustomerPayload, UpdateCustomerPayload, Customer } from "@/services/customer.service";
 import { QUERY_KEYS } from "@/constants";
 import { getFriendlyErrorMessage, getDuplicatePersonConflict } from "@/lib/utils";
+import type { PaginatedResponse } from "@/types";
 
 export const customerKeys = {
   all:    QUERY_KEYS.CUSTOMERS,
@@ -74,18 +75,37 @@ export function useDeleteCustomer() {
   });
 }
 
+function resolveCustomerId(c: Partial<Customer> | undefined | null): string {
+  return c?.id ?? (c?.PK ? c.PK.replace("CUSTOMER#", "") : "") ?? "";
+}
+
+/**
+ * The backend only ever returns a bare S3 key/private URL for `face_photo_url`, so
+ * refetching after enroll can replace a working photo with one the browser can't load.
+ * We already have the exact bytes that were just uploaded (the captured data URL), so
+ * patch the cache with that directly instead of invalidating and trusting the refetch.
+ */
 export function useEnrollCustomerFace() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ customerId, image }: { customerId: string; image: string }) =>
       customerService.enrollFace(customerId, image),
-    onSuccess: (result, { customerId }) => {
+    onSuccess: (result, { customerId, image }) => {
       if (result?.success === false) {
         toast.error(result.message ?? "Face enrollment failed");
         return;
       }
-      qc.invalidateQueries({ queryKey: customerKeys.all });
-      qc.invalidateQueries({ queryKey: customerKeys.detail(customerId) });
+      const patch = { face_photo_url: image, face_enrolled: true };
+      qc.setQueryData(customerKeys.detail(customerId), (old: Customer | undefined) =>
+        old ? { ...old, ...patch } : old
+      );
+      qc.setQueriesData<PaginatedResponse<Customer>>({ queryKey: customerKeys.all }, (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((c) => (resolveCustomerId(c) === customerId ? { ...c, ...patch } : c)),
+        };
+      });
       toast.success("Face enrolled successfully");
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? err?.response?.data?.error ?? "Face enrollment failed"),
@@ -97,8 +117,17 @@ export function useUnenrollCustomerFace() {
   return useMutation({
     mutationFn: (customerId: string) => customerService.unenrollFace(customerId),
     onSuccess: (_result, customerId) => {
-      qc.invalidateQueries({ queryKey: customerKeys.all });
-      qc.invalidateQueries({ queryKey: customerKeys.detail(customerId) });
+      const patch = { face_photo_url: undefined, face_enrolled: false };
+      qc.setQueryData(customerKeys.detail(customerId), (old: Customer | undefined) =>
+        old ? { ...old, ...patch } : old
+      );
+      qc.setQueriesData<PaginatedResponse<Customer>>({ queryKey: customerKeys.all }, (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((c) => (resolveCustomerId(c) === customerId ? { ...c, ...patch } : c)),
+        };
+      });
       toast.success("Face removed");
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to remove face")),

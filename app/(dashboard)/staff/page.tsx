@@ -30,6 +30,7 @@ import {
   useStaff, useCreateStaff, useUpdateStaff, useDeleteStaff, useUpdateStaffSchedule,
 } from '@/hooks/useStaff';
 import { cn, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
+import { useAuthStore } from '@/store';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
 import type { Staff } from '@/types';
 
@@ -40,6 +41,24 @@ function formErrorMessage(err: unknown): string | null {
   if (!err) return null;
   const backendMsg = (err as { backendMessage?: string } | undefined)?.backendMessage;
   return backendMsg || getFriendlyErrorMessage(err, 'Unable to save staff member.');
+}
+
+/** Roles the inviter is allowed to hand out — never equal to or above their own level, except
+ * admin/super_admin who can assign anything. Prevents a company_admin from inviting a peer or
+ * platform-level admin through this form. */
+function assignableRoles(inviterRole: string | undefined): string[] {
+  switch (inviterRole) {
+    case 'admin':
+    case 'super_admin':
+      return ['admin', 'super_admin', 'reseller_admin', 'reseller', 'company_admin', 'manager', 'staff', 'viewer'];
+    case 'reseller_admin':
+    case 'reseller':
+      return ['company_admin', 'manager', 'staff', 'viewer'];
+    case 'company_admin':
+      return ['manager', 'staff', 'viewer'];
+    default:
+      return [];
+  }
 }
 
 export default function StaffPage() {
@@ -54,6 +73,15 @@ function StaffPageInner() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+
+  const { user } = useAuthStore();
+  const userRole = user?.role;
+  // Only these roles manage the staff roster — everyone else (staff, manager, viewer) can
+  // still see the team list but can't invite, edit, delete, or set schedules for colleagues.
+  const canManageStaff =
+    userRole === 'admin' || userRole === 'super_admin' ||
+    userRole === 'reseller_admin' || userRole === 'reseller' ||
+    userRole === 'company_admin';
 
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [status, setStatus] = useState(searchParams.get('status') ?? '');
@@ -83,10 +111,20 @@ function StaffPageInner() {
     () => Array.from(new Set(allStaff.map((s) => s.department).filter((d): d is string => !!d))),
     [allStaff]
   );
-  const roleOptions = useMemo(
+  // Roles present in the current data set — used only to populate the "filter by role" dropdown.
+  const existingRoleValues = useMemo(
     () => Array.from(new Set(allStaff.map((s) => s.role).filter((r): r is string => !!r && typeof r === 'string'))) as string[],
     [allStaff]
   );
+  // Roles the logged-in user is permitted to hand out via Add/Edit Staff — a fixed, permission-
+  // scoped list, independent of what happens to already exist in the fetched staff page. Also
+  // keeps the staff member being edited selectable even if their role is above the inviter's
+  // own assignable range (e.g. viewing a company_admin's record without downgrading it).
+  const dialogRoleOptions = useMemo(() => {
+    const base = assignableRoles(userRole);
+    const editingRole = editingStaff && typeof editingStaff.role === 'string' ? editingStaff.role : null;
+    return editingRole && !base.includes(editingRole) ? [...base, editingRole] : base;
+  }, [userRole, editingStaff]);
 
   const filtered = useMemo(() => {
     return allStaff.filter((s) => {
@@ -129,10 +167,11 @@ function StaffPageInner() {
     router.replace(pathname, { scroll: false });
   }
 
-  function openCreate() { setEditingStaff(null); setFormOpen(true); }
-  function openEdit(s: Staff) { setEditingStaff(s); setFormOpen(true); }
+  function openCreate() { if (!canManageStaff) return; setEditingStaff(null); setFormOpen(true); }
+  function openEdit(s: Staff) { if (!canManageStaff) return; setEditingStaff(s); setFormOpen(true); }
 
   function handleFormSubmit(payload: CreateStaffPayload | UpdateStaffPayload) {
+    if (!canManageStaff) return;
     if (editingStaff) {
       updateMutation.mutate({ id: getStaffId(editingStaff), data: payload }, { onSuccess: () => setFormOpen(false) });
     } else {
@@ -141,12 +180,12 @@ function StaffPageInner() {
   }
 
   function handleDeleteConfirm() {
-    if (!deleteTarget) return;
+    if (!canManageStaff || !deleteTarget) return;
     deleteMutation.mutate(getStaffId(deleteTarget), { onSuccess: () => setDeleteTarget(null) });
   }
 
   function handleScheduleSubmit(schedule: Record<string, string>) {
-    if (!scheduleTarget) return;
+    if (!canManageStaff || !scheduleTarget) return;
     scheduleMutation.mutate(
       { id: getStaffId(scheduleTarget), schedule },
       { onSuccess: () => setScheduleTarget(null) }
@@ -164,10 +203,12 @@ function StaffPageInner() {
           <h1 className="text-2xl font-bold sm:text-3xl">Staff</h1>
           <p className="text-muted-foreground">Manage your team members</p>
         </div>
-        <Button size="sm" onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          Add Staff
-        </Button>
+        {canManageStaff && (
+          <Button size="sm" onClick={openCreate}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Add Staff
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
@@ -192,7 +233,7 @@ function StaffPageInner() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All roles</SelectItem>
-            {roleOptions.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
+            {existingRoleValues.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={status || 'all'} onValueChange={handleStatusChange}>
@@ -237,8 +278,8 @@ function StaffPageInner() {
                 <EmptyState
                   icon={UserCog}
                   title="No staff members yet"
-                  description="Add your first staff member to get started."
-                  action={{ label: 'Add Staff', onClick: openCreate }}
+                  description={canManageStaff ? 'Add your first staff member to get started.' : 'No staff members have been added yet.'}
+                  action={canManageStaff ? { label: 'Add Staff', onClick: openCreate } : undefined}
                 />
               )}
             </div>
@@ -291,19 +332,23 @@ function StaffPageInner() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/staff/${id}`)}>
                                 <Eye className="mr-2 h-4 w-4" /> View
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit(s)}>
-                                <Pencil className="mr-2 h-4 w-4" /> Edit
-                              </DropdownMenuItem>
-                              <DropdownMenuItem className="cursor-pointer" onClick={() => setScheduleTarget(s)}>
-                                <Clock className="mr-2 h-4 w-4" /> Set Schedule
-                              </DropdownMenuItem>
                               <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/calendar')}>
                                 <CalendarDays className="mr-2 h-4 w-4" /> View Calendar
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(s)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                              {canManageStaff && (
+                                <>
+                                  <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit(s)}>
+                                    <Pencil className="mr-2 h-4 w-4" /> Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="cursor-pointer" onClick={() => setScheduleTarget(s)}>
+                                    <Clock className="mr-2 h-4 w-4" /> Set Schedule
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(s)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -334,7 +379,7 @@ function StaffPageInner() {
         staff={editingStaff}
         isSubmitting={isSubmittingForm}
         submitError={formSubmitError}
-        roleOptions={roleOptions}
+        roleOptions={dialogRoleOptions}
         departmentOptions={departmentOptions}
         onSubmit={handleFormSubmit}
       />

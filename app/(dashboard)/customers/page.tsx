@@ -15,7 +15,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { SearchInput } from '@/components/common/SearchInput';
 import { Pagination } from '@/components/common/Pagination';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -270,6 +270,7 @@ function CustomersPageInner() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8 shrink-0">
+                            <AvatarImage src={c.face_photo_url} alt={c.name} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
                               {c.name ? getInitials(c.name) : '?'}
                             </AvatarFallback>

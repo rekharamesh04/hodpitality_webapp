@@ -89,18 +89,37 @@ export function useDeleteGuest() {
   });
 }
 
+function resolveGuestId(g: Partial<Guest> | undefined | null): string {
+  return g?.id ?? (g?.PK ? g.PK.replace('GUEST#', '') : '') ?? '';
+}
+
+/**
+ * The backend only ever returns a bare S3 key/private URL for `face_photo_url`, so
+ * refetching after enroll can replace a working photo with one the browser can't load.
+ * We already have the exact bytes that were just uploaded (the captured data URL), so
+ * patch the cache with that directly instead of invalidating and trusting the refetch.
+ */
 export function useEnrollFace() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ guestId, image }: { guestId: string; image: string }) =>
       guestService.enrollFace(guestId, image),
-    onSuccess: (result, { guestId }) => {
+    onSuccess: (result, { guestId, image }) => {
       if (result?.success === false) {
         toast.error(result.message ?? 'Face enrollment failed');
         return;
       }
-      qc.invalidateQueries({ queryKey: guestKeys.all });
-      qc.invalidateQueries({ queryKey: guestKeys.detail(guestId) });
+      const patch = { face_photo_url: image, avatar: image, face_enrolled: true };
+      qc.setQueryData(guestKeys.detail(guestId), (old: Guest | undefined) =>
+        old ? { ...old, ...patch } : old
+      );
+      qc.setQueriesData<PaginatedResponse<Guest>>({ queryKey: guestKeys.all }, (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((g) => (resolveGuestId(g) === guestId ? { ...g, ...patch } : g)),
+        };
+      });
       toast.success('Face enrolled successfully');
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? err?.response?.data?.error ?? 'Face enrollment failed'),
@@ -112,8 +131,17 @@ export function useUnenrollFace() {
   return useMutation({
     mutationFn: (guestId: string) => guestService.unenrollFace(guestId),
     onSuccess: (_result, guestId) => {
-      qc.invalidateQueries({ queryKey: guestKeys.all });
-      qc.invalidateQueries({ queryKey: guestKeys.detail(guestId) });
+      const patch = { face_photo_url: undefined, avatar: undefined, face_enrolled: false };
+      qc.setQueryData(guestKeys.detail(guestId), (old: Guest | undefined) =>
+        old ? { ...old, ...patch } : old
+      );
+      qc.setQueriesData<PaginatedResponse<Guest>>({ queryKey: guestKeys.all }, (old) => {
+        if (!old?.data) return old;
+        return {
+          ...old,
+          data: old.data.map((g) => (resolveGuestId(g) === guestId ? { ...g, ...patch } : g)),
+        };
+      });
       toast.success('Face removed');
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove face')),
