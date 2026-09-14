@@ -1,5 +1,6 @@
 import api from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
+import { useAuthStore } from '@/store/auth-store';
 import type {
   DashboardStats, DailyReport, ChartDataPoint, DashboardActivityItem, ActivityFeedItem,
   RevenueTrendPoint, GuestArrivalPoint,
@@ -34,7 +35,11 @@ function normalizeActivity(raw: DashboardActivityItem, index: number): ActivityF
 
 export const reportService = {
   async getDashboardStats(): Promise<DashboardStats> {
+    // TEMP DEBUG: remove after diagnosing role-based zeroing
+    const currentUser = useAuthStore.getState().user;
+    console.log('[DEBUG dashboard-stats] current user:', JSON.stringify(currentUser, null, 2));
     const { data } = await api.get<DashboardStats>(API_ENDPOINTS.REPORTS.DASHBOARD_STATS);
+    console.log('[DEBUG dashboard-stats] raw response:', JSON.stringify(data, null, 2));
     return data;
   },
 
