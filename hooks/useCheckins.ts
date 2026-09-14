@@ -4,7 +4,8 @@ import { checkInService } from "@/services/checkin.service";
 import type { CheckInFilters } from "@/services/checkin.service";
 import { QUERY_KEYS } from "@/constants";
 import type { CheckInStats } from "@/types";
-import { getFriendlyErrorMessage } from "@/lib/utils";
+import { getFriendlyErrorMessage, formatCheckInTimestamp } from "@/lib/utils";
+import type { CheckIn } from "@/types";
 
 export const checkInKeys = {
   all:   QUERY_KEYS.CHECKINS,
@@ -36,6 +37,30 @@ function isAlreadyCheckedIn(err: any): boolean {
   return err?.response?.status === 409;
 }
 
+/** Pulls the existing record out of a 409 body — the backend nests it under `checkin`/`existingCheckIn`, or returns it at the top level. */
+function extractExistingCheckIn(err: any): Partial<CheckIn> | null {
+  const data = err?.response?.data;
+  if (!data || typeof data !== "object") return null;
+  const candidate = data.checkin ?? data.checkIn ?? data.existingCheckIn ?? data.existing ?? data;
+  if (!candidate || typeof candidate !== "object") return null;
+  const hasUsefulField = candidate.timestamp ?? candidate.checkInTime ?? candidate.method ?? candidate.checkInMethod;
+  return hasUsefulField ? candidate : null;
+}
+
+/** "Today, 5:49 PM via facial recognition at Main Hall" — built from whatever the 409 body actually included. */
+function alreadyCheckedInDetail(err: any): string | undefined {
+  const existing = extractExistingCheckIn(err);
+  if (!existing) return undefined;
+  const when = formatCheckInTimestamp(existing.timestamp ?? existing.checkInTime);
+  const method = (existing.method ?? existing.checkInMethod ?? "").toString().replace(/_/g, " ").trim();
+  const parts = [
+    when !== "—" ? when : null,
+    method ? `via ${method}` : null,
+    existing.venue ? `at ${existing.venue}` : null,
+  ].filter(Boolean);
+  return parts.length ? parts.join(" ") : undefined;
+}
+
 function checkInErrorMessage(err: any, fallback: string): string {
   if (isAlreadyCheckedIn(err)) return err?.backendMessage ?? "This guest has already checked in.";
   return err?.backendMessage ?? getFriendlyErrorMessage(err, fallback);
@@ -56,7 +81,7 @@ export function useCheckIn() {
       if (isAlreadyCheckedIn(err)) {
         // Refresh so the row the backend already holds is what the user sees.
         qc.invalidateQueries({ queryKey: checkInKeys.all });
-        toast.info(checkInErrorMessage(err, "Already checked in"));
+        toast.info(checkInErrorMessage(err, "Already checked in"), { description: alreadyCheckedInDetail(err) });
         return;
       }
       toast.error(checkInErrorMessage(err, "Check-in failed"));
@@ -78,7 +103,7 @@ export function useQrCheckIn() {
     onError: (err: any) => {
       if (isAlreadyCheckedIn(err)) {
         qc.invalidateQueries({ queryKey: checkInKeys.all });
-        toast.info(checkInErrorMessage(err, "Already checked in"));
+        toast.info(checkInErrorMessage(err, "Already checked in"), { description: alreadyCheckedInDetail(err) });
         return;
       }
       toast.error(checkInErrorMessage(err, "QR check-in failed"));
@@ -114,7 +139,7 @@ export function useFacialCheckIn() {
     onError: (err: any) => {
       if (isAlreadyCheckedIn(err)) {
         qc.invalidateQueries({ queryKey: checkInKeys.all });
-        toast.info(facialErrorMessage(err));
+        toast.info(facialErrorMessage(err), { description: alreadyCheckedInDetail(err) });
         return;
       }
       toast.error(facialErrorMessage(err));
