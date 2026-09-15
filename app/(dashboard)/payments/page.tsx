@@ -230,7 +230,7 @@ interface CreateStandalonePaymentDialogProps {
 function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymentDialogProps) {
   const [registrationId, setRegistrationId] = useState('');
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('INR');
+  const [currency, setCurrency] = useState('USD');
   const [method, setMethod] = useState<string>('credit_card');
   const [transactionId, setTransactionId] = useState('');
   const [status, setStatus] = useState<PaymentStatus>('paid');
@@ -256,7 +256,7 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
       {
         registrationId: registrationId.trim(),
         amount: val,
-        currency: currency.trim().toUpperCase() || 'INR',
+        currency: currency.trim().toUpperCase() || 'USD',
         method,
         paymentMethod: method === 'credit_card' ? 'card' : (method as PaymentMethodType),
         transactionId: transactionId.trim() || undefined,
@@ -267,7 +267,7 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
         onSuccess: () => {
           setRegistrationId('');
           setAmount('');
-          setCurrency('INR');
+          setCurrency('USD');
           setTransactionId('');
           setDescription('');
           onClose();
@@ -329,7 +329,7 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
                   maxLength={3}
-                  placeholder="INR"
+                  placeholder="USD"
                 />
               </div>
             </div>
@@ -649,7 +649,7 @@ export default function PaymentsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="font-semibold">{formatCurrency(payment.amount ?? 0)}</div>
-                          <div className="text-xs text-muted-foreground">{payment.currency || 'INR'}</div>
+                          <div className="text-xs text-muted-foreground">{payment.currency || 'USD'}</div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge variant="outline" className="capitalize text-xs">

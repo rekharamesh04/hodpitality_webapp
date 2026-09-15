@@ -33,7 +33,7 @@ interface RecordPaymentDialogProps {
  */
 export function RecordPaymentDialog({ open, onOpenChange, registration }: RecordPaymentDialogProps) {
   const [amount, setAmount] = useState('');
-  const [currency, setCurrency] = useState('INR');
+  const [currency, setCurrency] = useState('USD');
   const [method, setMethod] = useState<PaymentMethodType>('cash');
   const [transactionId, setTransactionId] = useState('');
   const [fieldError, setFieldError] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export function RecordPaymentDialog({ open, onOpenChange, registration }: Record
   useEffect(() => {
     if (open && registration) {
       setAmount(registration.amount ? String(registration.amount) : '');
-      setCurrency('INR');
+      setCurrency('USD');
       setMethod('cash');
       setTransactionId('');
       setFieldError(null);
@@ -66,7 +66,7 @@ export function RecordPaymentDialog({ open, onOpenChange, registration }: Record
         id: registration!.id,
         status: 'paid',
         amount: value,
-        currency: currency || 'INR',
+        currency: currency || 'USD',
         method,
         transactionId: transactionId.trim() || undefined,
       },

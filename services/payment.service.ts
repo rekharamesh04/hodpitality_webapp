@@ -68,7 +68,7 @@ function normalizePayment(raw: any): Payment {
   const paymentMethod = (rawMethod === 'credit_card' ? 'card' : rawMethod ?? 'card') as PaymentMethodType;
   const amount = Number(raw.amount ?? raw.total ?? 0);
   const status = (raw.status ?? raw.paymentStatus ?? raw.payment_status ?? 'paid') as PaymentStatus;
-  const currency = raw.currency ?? 'INR';
+  const currency = raw.currency ?? 'USD';
   const paidAt = raw.paidAt ?? raw.paid_at ?? raw.createdAt ?? raw.created_at ?? raw.timestamp;
 
   return {
