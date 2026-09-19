@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { settingsService } from "@/services/settings.service";
 import { QUERY_KEYS } from "@/constants";
+import { getFriendlyErrorMessage } from "@/lib/utils";
 import type { User, Settings } from "@/types";
 
 export function useSettingsProfile() {
@@ -19,7 +20,7 @@ export function useUpdateProfile() {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.SETTINGS });
       toast.success("Profile updated");
     },
-    onError: () => toast.error("Failed to update profile"),
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update profile")),
   });
 }
 
@@ -32,7 +33,7 @@ export function useUpdateOrganisation() {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.SETTINGS });
       toast.success("Organisation settings saved");
     },
-    onError: () => toast.error("Failed to save organisation settings"),
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to save organisation settings")),
   });
 }
 
@@ -45,7 +46,7 @@ export function useUpdateNotificationPrefs() {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.SETTINGS });
       toast.success("Notification preferences saved");
     },
-    onError: () => toast.error("Failed to save preferences"),
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to save preferences")),
   });
 }
 
@@ -54,6 +55,6 @@ export function useChangePassword() {
     mutationFn: (payload: { currentPassword: string; newPassword: string }) =>
       settingsService.changePassword(payload),
     onSuccess: () => toast.success("Password changed successfully"),
-    onError:   () => toast.error("Failed to change password"),
+    onError:   (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to change password")),
   });
 }

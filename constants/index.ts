@@ -1,10 +1,10 @@
 // Brand Colors
 export const BRAND_COLORS = {
-  primary: '#0F766E',
-  primaryHover: '#0D5F58',
-  primaryLight: '#CCFBF1',
+  primary: '#4F46E5',
+  primaryHover: '#4338CA',
+  primaryLight: '#E0E7FF',
   secondary: '#0F172A',
-  accent: '#06B6D4',
+  accent: '#8B5CF6',
   success: '#22C55E',
   danger: '#EF4444',
   warning: '#F59E0B',
@@ -156,8 +156,8 @@ export const STORAGE_KEYS = {
 
 // Chart Colors
 export const CHART_COLORS = {
-  PRIMARY: '#0F766E',
-  SECONDARY: '#06B6D4',
+  PRIMARY: '#4F46E5',
+  SECONDARY: '#8B5CF6',
   SUCCESS: '#22C55E',
   WARNING: '#F59E0B',
   DANGER: '#EF4444',
@@ -165,6 +165,16 @@ export const CHART_COLORS = {
   PURPLE: '#A855F7',
   PINK: '#EC4899',
 } as const;
+
+// Display names for check-in methods; anything unlisted falls back to the raw value, de-underscored.
+export const CHECKIN_METHOD_LABELS: Record<string, string> = {
+  qr: 'QR code',
+  qr_scan: 'QR code',
+  facial_recognition: 'Face scan',
+  manual: 'Manual',
+  quick: 'Quick',
+  self: 'Self',
+};
 
 // Toast Duration
 export const TOAST_DURATION = 3000;

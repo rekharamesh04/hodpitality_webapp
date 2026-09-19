@@ -8,16 +8,9 @@ import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStat
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
-import { cn, formatTimeLabel, addMinutesToTime, getFriendlyErrorMessage } from '@/lib/utils';
+import { cn, formatTimeLabel, addMinutesToTime, getFriendlyErrorMessage, getStatusColor } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
 import type { Appointment } from '@/types';
-
-const PAYMENT_STATUS_STYLES: Record<string, string> = {
-  paid: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  pending: 'bg-amber-100 text-amber-700 border-amber-200',
-  failed: 'bg-red-100 text-red-700 border-red-200',
-  refunded: 'bg-purple-100 text-purple-700 border-purple-200',
-};
 
 interface AppointmentListTableProps {
   appointments: Appointment[];
@@ -102,7 +95,7 @@ export function AppointmentListTable({
                 <span
                   className={cn(
                     'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold',
-                    APPOINTMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-300'
+                    APPOINTMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700'
                   )}
                 >
                   {APPOINTMENT_STATUS_LABELS[status] ?? status}
@@ -112,7 +105,7 @@ export function AppointmentListTable({
                 <span
                   className={cn(
                     'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold capitalize',
-                    PAYMENT_STATUS_STYLES[paymentStatus] ?? 'bg-gray-100 text-gray-700 border-gray-300'
+                    getStatusColor(paymentStatus)
                   )}
                 >
                   {paymentStatus}

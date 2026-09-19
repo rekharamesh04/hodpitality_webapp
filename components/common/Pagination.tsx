@@ -33,21 +33,20 @@ export function Pagination({
   const endItem = Math.min(currentPage * pageSize, total);
 
   return (
-    <div className="flex items-center justify-between px-2">
-      <div className="flex items-center gap-2">
-        <p className="text-sm text-muted-foreground">
-          Showing {startItem} to {endItem} of {total} results
-        </p>
-      </div>
+    <div className="flex flex-col gap-3 px-1 sm:flex-row sm:items-center sm:justify-between sm:px-2">
+      <p className="text-sm text-muted-foreground">
+        Showing <span className="font-medium text-foreground">{total === 0 ? 0 : startItem}–{endItem}</span> of{' '}
+        <span className="font-medium text-foreground">{total}</span>
+      </p>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center justify-between gap-4 sm:justify-end sm:gap-6">
         <div className="flex items-center gap-2">
-          <p className="text-sm text-muted-foreground">Rows per page</p>
+          <p className="hidden text-sm text-muted-foreground sm:block">Rows per page</p>
           <Select
             value={String(pageSize)}
             onValueChange={(value) => onPageSizeChange(Number(value))}
           >
-            <SelectTrigger className="h-8 w-[70px]">
+            <SelectTrigger className="h-8 w-[70px]" aria-label="Rows per page">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -64,9 +63,10 @@ export function Pagination({
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="hidden h-8 w-8 sm:inline-flex"
             onClick={() => onPageChange(1)}
             disabled={currentPage === 1}
+            aria-label="First page"
           >
             <ChevronsLeft className="h-4 w-4" />
           </Button>
@@ -76,11 +76,12 @@ export function Pagination({
             className="h-8 w-8"
             onClick={() => onPageChange(currentPage - 1)}
             disabled={currentPage === 1}
+            aria-label="Previous page"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-1 px-2">
-            <p className="text-sm font-medium">
+            <p className="whitespace-nowrap text-sm font-medium tabular-nums">
               Page {currentPage} of {totalPages}
             </p>
           </div>
@@ -89,16 +90,18 @@ export function Pagination({
             size="icon"
             className="h-8 w-8"
             onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage >= totalPages}
+            aria-label="Next page"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8"
+            className="hidden h-8 w-8 sm:inline-flex"
             onClick={() => onPageChange(totalPages)}
-            disabled={currentPage === totalPages}
+            disabled={currentPage >= totalPages}
+            aria-label="Last page"
           >
             <ChevronsRight className="h-4 w-4" />
           </Button>

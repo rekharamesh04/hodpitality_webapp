@@ -214,10 +214,10 @@ function AnalyticsPageInner() {
         <h2 id="analytics-trends-heading" className="text-lg font-semibold">Trends &amp; Revenue</h2>
 
         {/* Row 1: Daily bookings (bar) + Revenue trend (area) */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard
             title="Daily Bookings (Last 30 Days)"
-            description="Booking count per day — GET /reports/daily"
+            description="Booking count per day"
             isLoading={dailyReports.isLoading}
             isError={dailyReports.isError}
             error={dailyReports.error}
@@ -235,7 +235,7 @@ function AnalyticsPageInner() {
 
           <ChartCard
             title="Revenue Trend (Last 30 Days)"
-            description="Daily paid revenue — GET /reports/revenue-trend"
+            description="Daily paid revenue"
             isLoading={revenueTrend.isLoading}
             isError={revenueTrend.isError}
             error={revenueTrend.error}
@@ -253,10 +253,10 @@ function AnalyticsPageInner() {
         </div>
 
         {/* Row 2: Guest arrivals by hour (line) + Monthly events (bar) */}
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard
             title="Guest Arrivals Time-of-Day"
-            description="Peak walk-in traffic by hour — GET /reports/guest-arrivals"
+            description="Peak walk-in traffic by hour"
             isLoading={guestArrivals.isLoading}
             isError={guestArrivals.isError}
             error={guestArrivals.error}
@@ -274,7 +274,7 @@ function AnalyticsPageInner() {
 
           <ChartCard
             title="Monthly Events (Last 12 Months)"
-            description="Event count per month — GET /reports/monthly-events"
+            description="Event count per month"
             isLoading={monthlyEvents.isLoading}
             isError={monthlyEvents.isError}
             error={monthlyEvents.error}
@@ -295,7 +295,7 @@ function AnalyticsPageInner() {
       {/* Appointments & Check-ins */}
       <section aria-labelledby="analytics-appts-heading" className="space-y-6">
         <h2 id="analytics-appts-heading" className="text-lg font-semibold">Appointments &amp; Check-ins</h2>
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <DistributionCard
             title="Appointment Status"
             description="Current appointments grouped by status"
@@ -313,7 +313,7 @@ function AnalyticsPageInner() {
         </div>
         <ChartCard
           title="Check-in Funnel"
-          description="Expected vs. actual check-in outcomes (GET /check-ins/stats)"
+          description="Expected vs. actual check-in outcomes"
           isLoading={checkInStats.isLoading}
           isError={checkInStats.isError}
           error={checkInStats.error}
@@ -342,7 +342,7 @@ function AnalyticsPageInner() {
       {/* Events & Guests */}
       <section aria-labelledby="analytics-events-heading" className="space-y-6">
         <h2 id="analytics-events-heading" className="text-lg font-semibold">Events &amp; Guests</h2>
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard title="Events by Status" description="Current events grouped by status" isLoading={events.isLoading} isError={events.isError} error={events.error} onRetry={() => events.refetch()} empty={eventStatusData.length === 0}>
             {/* Too many distinct statuses make a donut unreadable — fall back to a bar chart. */}
             {eventStatusData.length <= 5 ? (
@@ -370,7 +370,7 @@ function AnalyticsPageInner() {
         <Card>
           <CardHeader>
             <CardTitle>Guest Activity</CardTitle>
-            <CardDescription>Current guest status snapshot (GET /reports/dashboard-stats)</CardDescription>
+            <CardDescription>Current guest status snapshot</CardDescription>
           </CardHeader>
           <CardContent>
             {stats.isLoading ? (
@@ -438,7 +438,7 @@ function AnalyticsPageInner() {
       {/* Staff overview */}
       <section aria-labelledby="analytics-staff-heading" className="space-y-4">
         <h2 id="analytics-staff-heading" className="text-lg font-semibold">Staff Overview</h2>
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card>
             <CardContent className="flex items-center gap-4 p-6">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10">

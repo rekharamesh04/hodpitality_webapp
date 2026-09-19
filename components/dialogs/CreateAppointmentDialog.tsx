@@ -17,7 +17,7 @@ import { CustomerCombobox } from '@/components/appointments/CustomerCombobox';
 import { useStaff } from '@/hooks/useStaff';
 import { useServices } from '@/hooks/useCalendar';
 import { useCreateAppointment } from '@/hooks/useAppointments';
-import { getFriendlyErrorMessage } from '@/lib/utils';
+import { getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { Customer } from '@/services/customer.service';
 
 interface CreateAppointmentDialogProps {
@@ -27,7 +27,7 @@ interface CreateAppointmentDialogProps {
 }
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateInput();
 }
 
 function conflictAwareMessage(err: unknown): string | null {

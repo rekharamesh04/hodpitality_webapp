@@ -8,10 +8,10 @@ export function WelcomeHeader() {
   const currentDate = new Date();
 
   return (
-    <div className="mb-8">
-      <h1 className="text-3xl font-bold">Dashboard</h1>
-      <p className="mt-2 text-muted-foreground">
-        Welcome back, {user?.name?.split(' ')[0] || 'Admin'} — here's what's happening today, {formatDate(currentDate, 'MMMM dd, yyyy')}.
+    <div>
+      <h1 className="text-2xl font-bold sm:text-3xl">Dashboard</h1>
+      <p className="text-muted-foreground">
+        Welcome back, {user?.name?.split(' ')[0] || 'Admin'} — here&apos;s what&apos;s happening today, {formatDate(currentDate, 'MMMM dd, yyyy')}.
       </p>
     </div>
   );

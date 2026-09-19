@@ -37,7 +37,9 @@ import {
 } from '@/hooks/useCheckins';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useEvents } from '@/hooks/useEvents';
-import { cn, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
+import { useActionParam } from '@/hooks/useActionParam';
+import { CHECKIN_METHOD_LABELS } from '@/constants';
+import { cn, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { CheckIn, Guest, Appointment } from '@/types';
 
 type CheckMode = 'quick' | 'qr' | 'face' | null;
@@ -52,7 +54,7 @@ const METHOD_BADGE: Record<string, string> = {
 };
 
 function todayIso() {
-  return new Date().toISOString().slice(0, 10);
+  return toLocalDateInput();
 }
 
 function getCheckInId(ci: CheckIn): string {
@@ -62,9 +64,7 @@ function getCheckInId(ci: CheckIn): string {
 function checkInDateIso(ci: CheckIn): string | null {
   const raw = ci.timestamp ?? ci.checkInTime;
   if (!raw) return null;
-  const d = new Date(raw);
-  if (isNaN(d.getTime())) return null;
-  return d.toISOString().slice(0, 10);
+  return toLocalDateInput(raw) || null;
 }
 
 function getEventId(e: { id: string; PK?: string }): string {
@@ -203,6 +203,12 @@ function CheckInsPageInner() {
     router.replace(pathname, { scroll: false });
   }
 
+  useActionParam({
+    checkin: () => setCheckMode('quick'),
+    qr: () => setCheckMode('qr'),
+    face: () => setCheckMode('face'),
+  });
+
   function handleQuickCheckIn() {
     if (!selectedGuest) return;
     const guestId = selectedGuest.id ?? (selectedGuest.PK ? selectedGuest.PK.replace('GUEST#', '') : '');
@@ -229,12 +235,12 @@ function CheckInsPageInner() {
   }
 
   const STAT_CARDS = [
-    { label: 'Expected',  value: stats?.expected  ?? 0, color: 'text-blue-700 dark:text-blue-400' },
-    { label: 'Arrived',   value: stats?.arrived   ?? 0, color: 'text-teal-700 dark:text-teal-400' },
+    { label: 'Expected',  value: stats?.expected  ?? 0, color: 'text-foreground' },
+    { label: 'Arrived',   value: stats?.arrived   ?? 0, color: 'text-primary' },
     { label: 'On Site',   value: stats?.onSite    ?? 0, color: 'text-green-700 dark:text-green-400' },
-    { label: 'Completed', value: stats?.completed ?? 0, color: 'text-gray-700 dark:text-gray-300' },
-    { label: 'No Shows',  value: stats?.noShows   ?? 0, color: 'text-orange-700 dark:text-orange-400' },
-    { label: 'Cancelled', value: stats?.cancelled ?? 0, color: 'text-red-600 dark:text-red-400' },
+    { label: 'Completed', value: stats?.completed ?? 0, color: 'text-muted-foreground' },
+    { label: 'No Shows',  value: stats?.noShows   ?? 0, color: 'text-amber-700 dark:text-amber-400' },
+    { label: 'Cancelled', value: stats?.cancelled ?? 0, color: 'text-red-700 dark:text-red-400' },
   ];
 
   const hasActiveFilters = !!search || !!status || !!eventFilter || !!date;
@@ -249,7 +255,7 @@ function CheckInsPageInner() {
           <p className="text-muted-foreground">Live front-desk check-in management</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={() => refetch()} aria-label="Refresh">
+          <Button size="sm" variant="outline" onClick={() => refetch()} aria-label="Refresh" title="Refresh">
             <RefreshCw className="h-4 w-4" />
           </Button>
           <Button size="sm" variant="outline" onClick={() => setCheckMode('qr')}>
@@ -265,6 +271,18 @@ function CheckInsPageInner() {
             Check In
           </Button>
         </div>
+      </div>
+
+      {/* Today at a glance */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {STAT_CARDS.map((s) => (
+          <Card key={s.label}>
+            <CardContent className="px-4 pb-3 pt-4">
+              <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
+              <p className={cn('mt-1 text-2xl font-bold tabular-nums', s.color)}>{s.value}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Filters */}
@@ -412,7 +430,7 @@ function CheckInsPageInner() {
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           <span className={cn('inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium capitalize', METHOD_BADGE[method] ?? METHOD_BADGE.manual)}>
-                            {method.replace(/_/g, ' ')}
+                            {CHECKIN_METHOD_LABELS[method] ?? method.replace(/_/g, ' ')}
                           </span>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell whitespace-nowrap text-sm text-muted-foreground">
@@ -428,7 +446,7 @@ function CheckInsPageInner() {
                         <TableCell className="text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon-sm" aria-label="Actions">
+                              <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${ci.guestName ?? 'check-in'}`}>
                                 <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -473,18 +491,6 @@ function CheckInsPageInner() {
           onPageSizeChange={handlePageSizeChange}
         />
       )}
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {STAT_CARDS.map((s) => (
-          <Card key={s.label}>
-            <CardContent className="pt-4 pb-3 px-4">
-              <p className={cn('text-2xl font-bold', s.color)}>{s.value}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{s.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
       {/* Quick Check-in Dialog */}
       <Dialog open={checkMode === 'quick'} onOpenChange={(v) => { if (!v) { setCheckMode(null); setSelectedGuest(null); } }}>

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   CreditCard, TrendingUp, Clock, RefreshCw, DollarSign,
-  MoreHorizontal, Search, SlidersHorizontal, X, Plus,
+  MoreHorizontal, SlidersHorizontal, X, Plus, Download, ClipboardList,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,28 +27,23 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ErrorState } from '@/components/common/ErrorState';
 import { EmptyState } from '@/components/common/EmptyState';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { SearchInput } from '@/components/common/SearchInput';
+import { RegistrationCombobox } from '@/components/common/RegistrationCombobox';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/common/SkeletonLoader';
 import {
   usePayments, usePaymentStats, useRefundPayment, useUpdatePaymentStatus, useCreatePayment,
 } from '@/hooks/usePayments';
-import { formatDate, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
-import type { Payment, PaymentStatus, PaymentMethodType } from '@/types';
+import { useActionParam } from '@/hooks/useActionParam';
+import { paymentService } from '@/services/payment.service';
+import { formatDate, formatCurrency, getFriendlyErrorMessage, exportToCSV, toLocalDateInput } from '@/lib/utils';
+import type { Payment, PaymentStatus, PaymentMethodType, Registration } from '@/types';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS: PaymentStatus[] = [
   'pending', 'processing', 'paid', 'failed', 'cancelled', 'refunded', 'partially_refunded',
 ];
-
-const STATUS_COLORS: Record<PaymentStatus, string> = {
-  paid: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  pending: 'bg-amber-100 text-amber-700 border-amber-200',
-  processing: 'bg-blue-100 text-blue-700 border-blue-200',
-  failed: 'bg-red-100 text-red-700 border-red-200',
-  cancelled: 'bg-gray-100 text-gray-600 border-gray-200',
-  refunded: 'bg-purple-100 text-purple-700 border-purple-200',
-  partially_refunded: 'bg-orange-100 text-orange-700 border-orange-200',
-};
 
 const METHOD_OPTIONS: PaymentMethodType[] = ['credit_card', 'cash', 'card', 'upi', 'bank_transfer', 'online', 'other'];
 
@@ -57,17 +53,6 @@ const METHOD_LABELS: Record<PaymentMethodType, string> = {
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-
-function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
-  return (
-    <Badge
-      variant="outline"
-      className={`capitalize text-xs font-medium border ${STATUS_COLORS[status] ?? ''}`}
-    >
-      {status.replace('_', ' ')}
-    </Badge>
-  );
-}
 
 interface RefundDialogProps {
   payment: Payment | null;
@@ -93,7 +78,7 @@ function RefundDialog({ payment, onClose }: RefundDialogProps) {
       return;
     }
     if (val > maxRefundable) {
-      setFieldError(`Maximum refundable amount is ${formatCurrency(maxRefundable)}`);
+      setFieldError(`Maximum refundable amount is ${formatCurrency(maxRefundable, payment!.currency)}`);
       return;
     }
     setFieldError(null);
@@ -113,7 +98,7 @@ function RefundDialog({ payment, onClose }: RefundDialogProps) {
         <DialogHeader>
           <DialogTitle>Refund Payment</DialogTitle>
           <DialogDescription>
-            {formatCurrency(payment.amount)} {payment.currency} — {payment.paymentMethod?.toUpperCase()}
+            {formatCurrency(payment.amount, payment.currency)} — {payment.paymentMethod?.toUpperCase()}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} noValidate>
@@ -125,7 +110,7 @@ function RefundDialog({ payment, onClose }: RefundDialogProps) {
             )}
             <div className="space-y-1.5">
               <Label htmlFor="refund-amount">
-                Refund Amount * <span className="text-xs text-muted-foreground">(max {formatCurrency(maxRefundable)})</span>
+                Refund Amount * <span className="text-xs text-muted-foreground">(max {formatCurrency(maxRefundable, payment?.currency)})</span>
               </Label>
               <Input
                 id="refund-amount"
@@ -202,7 +187,7 @@ function StatusDialog({ payment, onClose }: StatusDialogProps) {
               <SelectContent>
                 {STATUS_OPTIONS.map((s) => (
                   <SelectItem key={s} value={s} className="capitalize">
-                    {s.replace('_', ' ')}
+                    {s.replace(/_/g, ' ')}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -228,6 +213,8 @@ interface CreateStandalonePaymentDialogProps {
 }
 
 function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymentDialogProps) {
+  const [registration, setRegistration] = useState<Registration | null>(null);
+  const [manualId, setManualId] = useState(false);
   const [registrationId, setRegistrationId] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('USD');
@@ -243,7 +230,7 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
     e.preventDefault();
     if (createPayment.isPending) return;
     if (!registrationId.trim()) {
-      setFieldError('Registration ID is required so we know who paid');
+      setFieldError('Select the registration this payment is for');
       return;
     }
     const val = Number(amount);
@@ -265,6 +252,8 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
       },
       {
         onSuccess: () => {
+          setRegistration(null);
+          setManualId(false);
           setRegistrationId('');
           setAmount('');
           setCurrency('USD');
@@ -286,9 +275,8 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
           <DialogDescription>
-            For marking an event registration as paid, use “Record Payment” on the Registrations
-            page instead — it also updates the registration. Use this only to add a payment
-            directly to the ledger for an existing registration.
+            Add a payment to the ledger for an existing registration. To mark a registration
+            as paid, you can also use “Record Payment” on the Registrations page.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} noValidate>
@@ -299,15 +287,33 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
               </Alert>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="create-payment-reg">Registration ID *</Label>
-              <Input
-                id="create-payment-reg"
-                value={registrationId}
-                onChange={(e) => setRegistrationId(e.target.value)}
-                placeholder="e.g. r2222222-aaaa-bbbb-cccc-ddddeeeeffff"
-                required
-              />
-              <p className="text-xs text-muted-foreground">Required so the backend knows who paid.</p>
+              <Label htmlFor="create-payment-reg">Registration *</Label>
+              {manualId ? (
+                <Input
+                  id="create-payment-reg"
+                  value={registrationId}
+                  onChange={(e) => setRegistrationId(e.target.value)}
+                  placeholder="Registration ID"
+                  required
+                />
+              ) : (
+                <RegistrationCombobox
+                  selected={registration}
+                  disabled={createPayment.isPending}
+                  onSelect={(r) => {
+                    setRegistration(r);
+                    setRegistrationId(r.id);
+                    if (r.amount != null && !amount) setAmount(String(r.amount));
+                  }}
+                />
+              )}
+              <button
+                type="button"
+                className="rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => { setManualId((m) => !m); setRegistration(null); setRegistrationId(''); }}
+              >
+                {manualId ? 'Pick from the registration list' : 'Enter a registration ID manually'}
+              </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -397,17 +403,64 @@ function CreateStandalonePaymentDialog({ open, onClose }: CreateStandalonePaymen
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PaymentsPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><TableSkeleton rows={8} /></div>}>
+      <PaymentsPageInner />
+    </Suspense>
+  );
+}
+
+function PaymentsPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventIdFilter = searchParams.get('eventId') || '';
 
   const [search, setSearch] = useState('');
+  // Bumped on "Clear" to remount the (uncontrolled) search box empty.
+  const [searchResetKey, setSearchResetKey] = useState(0);
   const [statusFilter, setStatusFilter] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [refundTarget, setRefundTarget] = useState<Payment | null>(null);
   const [statusTarget, setStatusTarget] = useState<Payment | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  useActionParam({ add: () => setCreateOpen(true) });
+
+  async function handleExport() {
+    setIsExporting(true);
+    try {
+      const rows = await paymentService.exportPayments();
+      if (rows.length === 0) {
+        toast.error('There are no payments to export.');
+        return;
+      }
+      exportToCSV(
+        rows.map((p) => ({
+          'Payment ID': (p.id || '').replace('PAYMENT#', ''),
+          Guest: p.guestName ?? '',
+          Email: p.guestEmail ?? '',
+          Type: p.type ?? (p.appointmentId ? 'consultation' : 'event'),
+          'Event / Service': p.event ?? p.service ?? '',
+          Amount: p.amount ?? 0,
+          Currency: p.currency ?? '',
+          Method: p.paymentMethod ?? p.method ?? '',
+          Status: p.status ?? '',
+          'Refunded Amount': p.refundAmount ?? '',
+          'Transaction ID': p.transactionId ?? '',
+          'Registration ID': p.registrationId ?? '',
+          'Paid At': p.paidAt ?? p.createdAt ?? '',
+        })),
+        `payments-export-${toLocalDateInput()}`
+      );
+      toast.success(`Exported ${rows.length} payment${rows.length === 1 ? '' : 's'}`);
+    } catch (err) {
+      toast.error(getFriendlyErrorMessage(err, 'Failed to export payments.'));
+    } finally {
+      setIsExporting(false);
+    }
+  }
 
   const { data: statsData, isLoading: statsLoading } = usePaymentStats();
   const {
@@ -472,7 +525,7 @@ export default function PaymentsPage() {
   }, [statsData, payments]);
 
   const hasActiveFilters = !!statusFilter || !!methodFilter || !!search;
-  function clearFilters() { setStatusFilter(''); setMethodFilter(''); setSearch(''); }
+  function clearFilters() { setStatusFilter(''); setMethodFilter(''); setSearch(''); setSearchResetKey((k) => k + 1); }
   function clearEventFilter() { router.push('/payments'); }
 
   return (
@@ -483,45 +536,47 @@ export default function PaymentsPage() {
           <h1 className="text-2xl font-bold sm:text-3xl">Payments</h1>
           <p className="text-muted-foreground">Track revenue, manage refunds, and update payment statuses.</p>
         </div>
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Record Payment
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport} loading={isExporting}>
+            {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
+            Export
+          </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Record Payment
+          </Button>
+        </div>
       </div>
 
       {/* ─── Stats Row ─── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {statsLoading && !payments.length ? (
           Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
         ) : (
           <>
             <StatsCard
-              icon={<DollarSign className="h-5 w-5 text-emerald-600" />}
+              icon={DollarSign}
               label="Net Revenue"
               value={formatCurrency(summaryStats.netAmount ?? 0)}
               sub={`${summaryStats.totalPayments ?? 0} transactions`}
-              color="emerald"
             />
             <StatsCard
-              icon={<TrendingUp className="h-5 w-5 text-blue-600" />}
+              icon={TrendingUp}
               label="Successful"
               value={String(summaryStats.successfulPayments ?? 0)}
               sub={formatCurrency(summaryStats.totalAmount ?? 0) + ' collected'}
-              color="blue"
             />
             <StatsCard
-              icon={<Clock className="h-5 w-5 text-amber-600" />}
+              icon={Clock}
               label="Pending"
               value={String(summaryStats.pendingPayments ?? 0)}
               sub="awaiting confirmation"
-              color="amber"
             />
             <StatsCard
-              icon={<RefreshCw className="h-5 w-5 text-purple-600" />}
+              icon={RefreshCw}
               label="Refunded"
               value={String(summaryStats.refundedPayments ?? 0)}
               sub={formatCurrency(summaryStats.refundedAmount ?? 0) + ' returned'}
-              color="purple"
             />
           </>
         )}
@@ -529,16 +584,13 @@ export default function PaymentsPage() {
 
       {/* ─── Filters ─── */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            id="payments-search"
-            placeholder="Search by ID or transaction…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          key={searchResetKey}
+          placeholder="Search by guest, ID or transaction…"
+          defaultValue={search}
+          onSearch={setSearch}
+          className="w-full sm:max-w-xs"
+        />
         <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
           <SelectTrigger className="w-[180px]" aria-label="Filter by payment status" id="payments-status-filter">
             <SelectValue placeholder="All statuses" />
@@ -546,7 +598,7 @@ export default function PaymentsPage() {
           <SelectContent>
             <SelectItem value="all">All statuses</SelectItem>
             {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s} className="capitalize">{s.replace('_', ' ')}</SelectItem>
+              <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -648,8 +700,8 @@ export default function PaymentsPage() {
                             : (payment.event || '—')}
                         </TableCell>
                         <TableCell>
-                          <div className="font-semibold">{formatCurrency(payment.amount ?? 0)}</div>
-                          <div className="text-xs text-muted-foreground">{payment.currency || 'USD'}</div>
+                          <div className="font-semibold tabular-nums">{formatCurrency(payment.amount ?? 0, payment.currency)}</div>
+                          <div className="text-xs text-muted-foreground">{(payment.currency || 'USD').toUpperCase()}</div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge variant="outline" className="capitalize text-xs">
@@ -657,7 +709,7 @@ export default function PaymentsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <PaymentStatusBadge status={payment.status ?? 'paid'} />
+                          <StatusBadge status={payment.status ?? 'paid'} />
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground whitespace-nowrap">
                           {paidDate ? formatDate(paidDate) : '—'}
@@ -675,6 +727,15 @@ export default function PaymentsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              {payment.registrationId && (
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => router.push(`/registrations/${payment.registrationId}`)}
+                                >
+                                  <ClipboardList className="mr-2 h-4 w-4" />
+                                  View Registration
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuItem
                                 className="cursor-pointer"
                                 onClick={() => setStatusTarget(payment)}
@@ -709,8 +770,9 @@ export default function PaymentsPage() {
 
       {/* ─── Dialogs ─── */}
       <CreateStandalonePaymentDialog open={createOpen} onClose={() => setCreateOpen(false)} />
-      <RefundDialog payment={refundTarget} onClose={() => setRefundTarget(null)} />
-      <StatusDialog payment={statusTarget} onClose={() => setStatusTarget(null)} />
+      {/* Keyed by payment so each opening starts from that payment's current values. */}
+      <RefundDialog key={refundTarget?.id ?? 'refund'} payment={refundTarget} onClose={() => setRefundTarget(null)} />
+      <StatusDialog key={statusTarget?.id ?? 'status'} payment={statusTarget} onClose={() => setStatusTarget(null)} />
     </div>
   );
 }
@@ -718,23 +780,24 @@ export default function PaymentsPage() {
 // ─── StatsCard helper ─────────────────────────────────────────────────────────
 
 function StatsCard({
-  icon, label, value, sub, color,
+  icon: Icon, label, value, sub,
 }: {
-  icon: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
   sub: string;
-  color: string;
 }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
-        <div className={`p-2 rounded-lg bg-${color}-50`}>{icon}</div>
+    <Card className="card-hover">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 p-4 pb-2 sm:p-5 sm:pb-2">
+        <CardTitle className="truncate text-xs font-medium text-muted-foreground sm:text-sm">{label}</CardTitle>
+        <div className="shrink-0 rounded-lg bg-primary/10 p-1.5 sm:p-2">
+          <Icon className="h-4 w-4 text-primary sm:h-5 sm:w-5" aria-hidden="true" />
+        </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        <p className="text-xs text-muted-foreground mt-1">{sub}</p>
+      <CardContent className="p-4 pt-0 sm:p-5 sm:pt-0">
+        <div data-stat className="truncate text-xl font-bold tracking-tight sm:text-2xl">{value}</div>
+        <p className="mt-1 truncate text-xs text-muted-foreground">{sub}</p>
       </CardContent>
     </Card>
   );

@@ -81,7 +81,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       <div className="mx-auto max-w-5xl space-y-6">
         <Skeleton className="h-8 w-32" />
         <Skeleton className="h-56 w-full rounded-2xl" />
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Skeleton className="h-64 w-full rounded-2xl lg:col-span-2" />
           <Skeleton className="h-64 w-full rounded-2xl" />
         </div>
@@ -195,7 +195,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       </Card>
 
       {/* Details */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">Event Information</CardTitle>
@@ -204,7 +204,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
             {event.description && (
               <InfoRow icon={Info} label="Description" value={event.description} />
             )}
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <InfoRow icon={MapPin} label="Venue" value={event.venue} />
               <InfoRow icon={Building2} label="Organizer" value={event.organizer} />
             </div>

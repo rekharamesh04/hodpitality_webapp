@@ -5,7 +5,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Plus, Download, MoreHorizontal, Eye, Pencil, Trash2, Users, ScanFace, UserCheck, ClipboardList,
+  Plus, Download, Upload, MoreHorizontal, Eye, Pencil, Trash2, Users, ScanFace, UserCheck, ClipboardList, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { SearchInput } from '@/components/common/SearchInput';
 import { Pagination } from '@/components/common/Pagination';
 import { EmptyState } from '@/components/common/EmptyState';
@@ -29,15 +30,17 @@ import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { GuestFormDialog } from '@/components/dialogs/GuestFormDialog';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+import { GuestImportDialog } from '@/components/dialogs/GuestImportDialog';
 import {
-  useGuests, useCreateGuest, useUpdateGuest, useDeleteGuest, useEnrollFace,
+  useGuests, useCreateGuest, useUpdateGuest, useDeleteGuest, useEnrollFace, useBulkDeleteGuests,
 } from '@/hooks/use-guests';
 import { useCheckIn } from '@/hooks/useCheckins';
+import { useActionParam } from '@/hooks/useActionParam';
 import { guestService } from '@/services/guest.service';
 import type { CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
 import { GUEST_CATEGORIES, GUEST_CATEGORY_BADGE_CLASSES, QUERY_KEYS } from '@/constants';
 import {
-  cn, formatDate, formatCheckInTimestamp, getInitials, exportToCSV, getFriendlyErrorMessage,
+  cn, formatDate, formatCheckInTimestamp, getInitials, exportToCSV, getFriendlyErrorMessage, toLocalDateInput,
 } from '@/lib/utils';
 import type { Guest } from '@/types';
 
@@ -75,6 +78,9 @@ function GuestsPageInner() {
   const [deleteTarget, setDeleteTarget] = useState<Guest | null>(null);
   const [enrollTarget, setEnrollTarget] = useState<Guest | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   const filters = useMemo(
     () => ({ page, limit, search: search || undefined, category: category || undefined }),
@@ -96,6 +102,42 @@ function GuestsPageInner() {
   const deleteMutation = useDeleteGuest();
   const enrollFace = useEnrollFace();
   const checkIn = useCheckIn();
+  const bulkDelete = useBulkDeleteGuests();
+
+  // Selection is scoped to the rows currently on screen, so it resets whenever the page's rows change.
+  const pageIds = useMemo(() => guests.map(getGuestId).filter(Boolean), [guests]);
+  const pageIdsKey = pageIds.join(',');
+  const [selectionKey, setSelectionKey] = useState(pageIdsKey);
+  if (selectionKey !== pageIdsKey) {
+    setSelectionKey(pageIdsKey);
+    setSelectedIds(new Set());
+  }
+  const allOnPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const someOnPageSelected = !allOnPageSelected && pageIds.some((id) => selectedIds.has(id));
+
+  function toggleAll(checked: boolean) {
+    setSelectedIds(checked ? new Set(pageIds) : new Set());
+  }
+
+  function toggleOne(id: string, checked: boolean) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  function handleBulkDeleteConfirm() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    bulkDelete.mutate(ids, {
+      onSuccess: () => {
+        setBulkDeleteOpen(false);
+        setSelectedIds(new Set());
+      },
+    });
+  }
 
   function syncUrl(next: { search?: string; category?: string; page?: number; limit?: number }) {
     const s = next.search ?? search;
@@ -147,6 +189,8 @@ function GuestsPageInner() {
     setFormOpen(true);
   }
 
+  useActionParam({ add: openCreate });
+
   function openEdit(g: Guest) {
     setEditingGuest(g);
     setFormOpen(true);
@@ -186,7 +230,7 @@ function GuestsPageInner() {
       if (res.downloadUrl) {
         window.open(res.downloadUrl, '_blank', 'noopener,noreferrer');
       } else if (res.data && res.data.length > 0) {
-        exportToCSV(res.data, `guests-export-${new Date().toISOString().slice(0, 10)}`);
+        exportToCSV(res.data, `guests-export-${toLocalDateInput()}`);
         toast.success('Guest export downloaded');
       } else {
         toast.error('The export returned no data.');
@@ -213,6 +257,10 @@ function GuestsPageInner() {
           <Button variant="outline" size="sm" onClick={() => router.push('/registrations')}>
             <ClipboardList className="mr-2 h-4 w-4" aria-hidden="true" />
             Registrations
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+            <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
+            Import
           </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} loading={isExporting}>
             {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
@@ -244,6 +292,22 @@ function GuestsPageInner() {
           </SelectContent>
         </Select>
       </div>
+
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
+          <p className="text-sm font-medium">
+            {selectedIds.size} guest{selectedIds.size === 1 ? '' : 's'} selected
+          </p>
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+            <X className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+            Clear selection
+          </Button>
+          <Button variant="destructive" size="sm" className="ml-auto" onClick={() => setBulkDeleteOpen(true)}>
+            <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+            Delete selected
+          </Button>
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -282,6 +346,13 @@ function GuestsPageInner() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10 pr-0">
+                      <Checkbox
+                        checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
+                        onCheckedChange={(v) => toggleAll(v === true)}
+                        aria-label="Select all guests on this page"
+                      />
+                    </TableHead>
                     <TableHead>Guest</TableHead>
                     <TableHead className="hidden sm:table-cell">Contact</TableHead>
                     <TableHead>Category</TableHead>
@@ -294,7 +365,14 @@ function GuestsPageInner() {
                   {guests.map((g) => {
                     const id = getGuestId(g);
                     return (
-                      <TableRow key={id}>
+                      <TableRow key={id} data-state={selectedIds.has(id) ? 'selected' : undefined}>
+                        <TableCell className="w-10 pr-0">
+                          <Checkbox
+                            checked={selectedIds.has(id)}
+                            onCheckedChange={(v) => toggleOne(id, v === true)}
+                            aria-label={`Select ${g.name || 'guest'}`}
+                          />
+                        </TableCell>
                         <TableCell>
                           <button
                             className="flex items-center gap-3 text-left hover:underline"
@@ -415,6 +493,20 @@ function GuestsPageInner() {
         isConfirming={deleteMutation.isPending}
         onConfirm={handleDeleteConfirm}
       />
+
+      <ConfirmDialog
+        open={bulkDeleteOpen}
+        onOpenChange={setBulkDeleteOpen}
+        title={`Delete ${selectedIds.size} guest${selectedIds.size === 1 ? '' : 's'}?`}
+        description="The selected guests will be permanently removed. This action cannot be undone."
+        confirmLabel="Delete"
+        confirmingLabel="Deleting…"
+        destructive
+        isConfirming={bulkDelete.isPending}
+        onConfirm={handleBulkDeleteConfirm}
+      />
+
+      <GuestImportDialog open={importOpen} onOpenChange={setImportOpen} />
 
       <CameraCaptureDialog
         open={!!enrollTarget}

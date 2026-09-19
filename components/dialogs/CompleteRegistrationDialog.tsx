@@ -28,6 +28,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, Trash2 } from 'lucide-react';
 import { eventService } from '@/services/event.service';
 import type { Event } from '@/types';
+import { toLocalDateInput } from '@/lib/utils';
 
 interface CompleteRegistrationDialogProps {
   open: boolean;
@@ -73,7 +74,7 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
     setHospitalityRequests([...hospitalityRequests, {
       type: 'Hotel',
       description: '',
-      serviceDate: new Date().toISOString().split('T')[0],
+      serviceDate: toLocalDateInput(),
       cost: 0,
     }]);
   };

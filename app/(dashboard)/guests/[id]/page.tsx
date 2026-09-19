@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
-  StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays,
+  StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays, Hotel,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,6 +24,7 @@ import {
 } from '@/hooks/use-guests';
 import { useCheckIn } from '@/hooks/useCheckins';
 import { useAppointments } from '@/hooks/useAppointments';
+import { useGuestHospitality } from '@/hooks/useHospitality';
 import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { GUEST_CATEGORY_BADGE_CLASSES } from '@/constants';
 import type { UpdateGuestPayload } from '@/services/guest.service';
@@ -49,6 +50,8 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
 
   const { data: appointmentsData } = useAppointments({ guestId: id }, { enabled: !!guest });
   const relatedAppointments = appointmentsData ?? [];
+  const { data: hospitalityData, isLoading: hospitalityLoading } = useGuestHospitality(id, { enabled: !!guest });
+  const hospitalityRequests = hospitalityData ?? [];
 
   function handleUpdate(payload: UpdateGuestPayload) {
     updateMutation.mutate({ id, data: payload }, { onSuccess: () => setEditOpen(false) });
@@ -76,7 +79,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
       <div className="mx-auto max-w-5xl space-y-6">
         <Skeleton className="h-8 w-40" />
         <Skeleton className="h-56 w-full rounded-2xl" />
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Skeleton className="h-64 w-full rounded-2xl lg:col-span-2" />
           <Skeleton className="h-64 w-full rounded-2xl" />
         </div>
@@ -182,19 +185,19 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                 value={guest.checkedIn ? formatCheckInTimestamp(guest.checkInTime) : 'Not checked in'}
               />
               <StatChip icon={CalendarDays} label="Registered" value={guest.registrationDate ? formatDate(guest.registrationDate) : '—'} />
-              <StatChip icon={CalendarClock} label="Upcoming Appointments" value={String(relatedAppointments.length)} />
+              <StatChip icon={CalendarClock} label="Appointments" value={String(relatedAppointments.length)} />
               <StatChip icon={Clock} label="Guest Since" value={guest.created_at ? formatDate(guest.created_at) : '—'} />
             </div>
           </CardContent>
         </Card>
 
         {/* Details */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-base">Guest Information</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-5 sm:grid-cols-2">
+            <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <InfoRow icon={Mail} label="Email" value={guest.email} />
               <InfoRow icon={Phone} label="Phone" value={guest.phone} />
               <div className="sm:col-span-2">
@@ -266,6 +269,50 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
             </Card>
           </div>
         </div>
+
+        {/* Hospitality */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base">Hospitality Requests</CardTitle>
+            <Button size="sm" variant="outline" onClick={() => router.push('/hospitality?action=add')}>
+              <Hotel className="mr-2 h-4 w-4" aria-hidden="true" />
+              New Request
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {hospitalityLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : hospitalityRequests.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hospitality requests for this guest.</p>
+            ) : (
+              <ul className="divide-y rounded-lg border">
+                {hospitalityRequests.map((h) => (
+                  <li key={h.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-accent"
+                      onClick={() => router.push(`/hospitality/${h.id}`)}
+                    >
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                        <Hotel className="h-4 w-4 text-primary" aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{h.type}{h.description ? ` — ${h.description}` : ''}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDate(h.scheduledAt || h.serviceDate)}{h.venue ? ` · ${h.venue}` : ''}
+                        </p>
+                      </div>
+                      <StatusBadge status={h.status} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Edit dialog */}
         <GuestFormDialog

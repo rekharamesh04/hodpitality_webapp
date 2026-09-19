@@ -1,5 +1,5 @@
 import { Badge } from '@/components/ui/badge';
-import { cn, getStatusColor, getStatusColorDark } from '@/lib/utils';
+import { cn, getStatusColor } from '@/lib/utils';
 import type { Status } from '@/types';
 
 interface StatusBadgeProps {
@@ -12,14 +12,9 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
   return (
     <Badge
       variant="outline"
-      className={cn(
-        'capitalize',
-        getStatusColor(status as Status),
-        'dark:' + getStatusColorDark(status as Status),
-        className
-      )}
+      className={cn('capitalize whitespace-nowrap', getStatusColor(status), className)}
     >
-      {status.replace('_', ' ')}
+      {status.replace(/[_-]/g, ' ')}
     </Badge>
   );
 }

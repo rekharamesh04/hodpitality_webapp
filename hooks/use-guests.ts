@@ -153,10 +153,35 @@ export function useBulkDeleteGuests() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (ids: string[]) => guestService.bulkDeleteGuests(ids),
-    onSuccess: () => {
+    onSuccess: (data, ids) => {
       qc.invalidateQueries({ queryKey: guestKeys.all });
-      toast.success('Guests removed');
+      // The backend silently skips IDs that no longer exist or belong to another tenant, so
+      // trust `deleted` rather than assuming every requested ID went.
+      const deleted = Array.isArray(data?.deleted) ? data.deleted.length : ids.length;
+      const skipped = ids.length - deleted;
+      if (deleted === 0) {
+        toast.error('No guests were deleted — they may already be gone or you may not have access to them.');
+      } else if (skipped > 0) {
+        toast.warning(`${deleted} of ${ids.length} guests deleted. ${skipped} could not be deleted (already removed or not accessible).`);
+      } else {
+        toast.success(`${deleted} guest${deleted === 1 ? '' : 's'} deleted`);
+      }
     },
     onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove guests')),
+  });
+}
+
+export function useBulkImportGuests() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (guests: Array<Partial<Guest>>) => guestService.bulkImportGuests(guests),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: guestKeys.all });
+      const failed = result?.errors?.length ?? 0;
+      const imported = result?.imported ?? 0;
+      if (failed > 0) toast.warning(`Imported ${imported} guest${imported === 1 ? '' : 's'} — ${failed} row${failed === 1 ? '' : 's'} failed`);
+      else toast.success(`Imported ${imported} guest${imported === 1 ? '' : 's'}`);
+    },
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to import guests')),
   });
 }

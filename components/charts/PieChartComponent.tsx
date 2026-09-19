@@ -1,8 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { CHART_COLORS } from '@/constants';
+import { ChartFrame, tooltipProps } from './chartTheme';
 
 interface PieChartComponentProps {
   title: string;
@@ -30,12 +30,7 @@ export function PieChartComponent({
 }: PieChartComponentProps) {
   const safeData = Array.isArray(data) ? data : [];
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
+    <ChartFrame title={title} description={description}>
         <ResponsiveContainer width="100%" height={height}>
           <PieChart>
             <Pie
@@ -46,25 +41,21 @@ export function PieChartComponent({
               // Percent-only label — the name already appears in the Legend below, so this
               // keeps label text short enough not to collide with neighbouring slices/legend.
               label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+              innerRadius={52}
               outerRadius={90}
-              fill="#8884d8"
+              paddingAngle={2}
+              stroke="var(--card)"
+              strokeWidth={2}
               dataKey="value"
             >
               {safeData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-            />
-            <Legend />
+            <Tooltip {...tooltipProps} />
+            <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: 12 }} />
           </PieChart>
         </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    </ChartFrame>
   );
 }

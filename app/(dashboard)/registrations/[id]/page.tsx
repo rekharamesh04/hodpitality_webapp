@@ -121,17 +121,17 @@ export default function RegistrationDetailPage({ params }: { params: Promise<{ i
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base">Guest Information</CardTitle></CardHeader>
-          <CardContent className="grid gap-5 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <InfoRow icon={Mail} label="Email" value={registration.guestEmail} />
             <InfoRow icon={Phone} label="Phone" value={registration.phone} />
           </CardContent>
         </Card>
         <Card>
           <CardHeader><CardTitle className="text-base">Booking Details</CardTitle></CardHeader>
-          <CardContent className="grid gap-5 sm:grid-cols-2">
+          <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <InfoRow icon={Calendar} label="Event" value={registration.event} />
             <InfoRow icon={Tag} label="Category" value={registration.category} />
             <InfoRow icon={CreditCard} label="Amount" value={registration.amount != null ? formatCurrency(registration.amount) : undefined} />

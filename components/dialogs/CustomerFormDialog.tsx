@@ -143,7 +143,7 @@ export function CustomerFormDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} noValidate>
-          <div className="grid gap-4 py-2 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
             {submitError && (
               <Alert variant="destructive" className="sm:col-span-2">
                 <AlertCircle className="h-4 w-4" />

@@ -14,48 +14,36 @@ export function QuickActions() {
       label: 'Add Guest',
       description: 'Register new guest',
       onClick: () => router.push('/guests?action=add'),
-      color: 'text-blue-600',
-      bg: 'bg-blue-50 dark:bg-blue-950/30',
     },
     {
       icon: CheckCircle,
       label: 'Check-in',
       description: 'Manual check-in',
       onClick: () => router.push('/check-ins?action=checkin'),
-      color: 'text-green-600',
-      bg: 'bg-green-50 dark:bg-green-950/30',
     },
     {
       icon: Hotel,
       label: 'Hospitality',
       description: 'Book service',
       onClick: () => router.push('/hospitality?action=add'),
-      color: 'text-purple-600',
-      bg: 'bg-purple-50 dark:bg-purple-950/30',
     },
     {
       icon: Calendar,
       label: 'New Event',
       description: 'Create event',
       onClick: () => router.push('/events?action=add'),
-      color: 'text-orange-600',
-      bg: 'bg-orange-50 dark:bg-orange-950/30',
     },
     {
       icon: FileText,
       label: 'Generate Report',
       description: 'Create report',
       onClick: () => router.push('/reports?action=generate'),
-      color: 'text-cyan-600',
-      bg: 'bg-cyan-50 dark:bg-cyan-950/30',
     },
     {
       icon: Users,
       label: 'Manage Staff',
       description: 'View team',
       onClick: () => router.push('/staff'),
-      color: 'text-pink-600',
-      bg: 'bg-pink-50 dark:bg-pink-950/30',
     },
   ];
 
@@ -72,15 +60,15 @@ export function QuickActions() {
               <Button
                 key={action.label}
                 variant="outline"
-                className="h-auto flex-col items-start gap-2 p-4 hover:bg-accent"
+                className="group h-auto flex-col items-start gap-2 whitespace-normal p-4 hover:border-primary/40 hover:bg-primary/5"
                 onClick={action.onClick}
               >
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${action.bg}`}>
-                  <Icon className={`h-5 w-5 ${action.color}`} />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <Icon className="h-5 w-5 text-primary group-hover:text-primary-foreground" aria-hidden="true" />
                 </div>
                 <div className="text-left">
                   <p className="font-semibold">{action.label}</p>
-                  <p className="text-xs text-muted-foreground">{action.description}</p>
+                  <p className="text-xs font-normal text-muted-foreground">{action.description}</p>
                 </div>
               </Button>
             );

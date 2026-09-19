@@ -9,7 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { SpaAppointment, AppointmentStatus, Customer, CalendarStaff, SpaService } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, toLocalDateInput } from '@/lib/utils';
 import { guestService } from '@/services/guest.service';
 import { staffService } from '@/services/staff.service';
 import { calendarService } from '@/services/calendar.service';
@@ -94,7 +94,7 @@ export default function NewAppointmentDialog({
       service: service?.name ?? selectedServiceId,
       duration: service?.duration ?? 60,
       room: service?.room ?? '',
-      date: defaultDate ?? new Date().toISOString().split('T')[0],
+      date: defaultDate ?? toLocalDateInput(),
       startTime: selectedTime,
       status: 'scheduled' as AppointmentStatus,
     };

@@ -48,7 +48,7 @@ export function AppointmentCard({ appointment: a, onClick, className, showStaff 
           <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
           {formatTimeLabel(a.startTime)}{endTime ? `–${formatTimeLabel(endTime)}` : ''}
         </span>
-        <span className={cn('shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-semibold leading-tight', APPOINTMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-300')}>
+        <span className={cn('shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-semibold leading-tight', APPOINTMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700')}>
           {APPOINTMENT_STATUS_LABELS[status] ?? status}
         </span>
       </div>

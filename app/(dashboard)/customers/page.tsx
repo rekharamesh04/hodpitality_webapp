@@ -27,7 +27,7 @@ import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer }
 import { customerService } from '@/services/customer.service';
 import type { Customer, CreateCustomerPayload, UpdateCustomerPayload } from '@/services/customer.service';
 import { CUSTOMER_TIERS, TIER_BADGE_CLASSES } from '@/constants';
-import { cn, formatDate, formatCurrency, getInitials, exportToCSV, getFriendlyErrorMessage } from '@/lib/utils';
+import { cn, formatDate, formatCurrency, getInitials, exportToCSV, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 
 function getCustomerId(c: Customer): string {
   return c.id ?? (c.PK ? c.PK.replace('CUSTOMER#', '') : '') ?? '';
@@ -161,7 +161,7 @@ function CustomersPageInner() {
       if (res.downloadUrl) {
         window.open(res.downloadUrl, '_blank', 'noopener,noreferrer');
       } else if (res.data && res.data.length > 0) {
-        exportToCSV(res.data, `customers-export-${new Date().toISOString().slice(0, 10)}`);
+        exportToCSV(res.data, `customers-export-${toLocalDateInput()}`);
         toast.success('Customer export downloaded');
       } else {
         toast.error('The export returned no data.');

@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { CHECKIN_METHOD_LABELS } from '@/constants';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, UserCheck, QrCode, ScanFace, MapPin, Calendar } from 'lucide-react';
@@ -68,7 +69,7 @@ export function CheckInOverview({ checkIns, stats, isLoading, isError, error, on
         {stats && !isLoading && !isError && (
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg border p-2">
-              <p className="text-lg font-bold text-teal-700 dark:text-teal-400">{stats.arrived ?? 0}</p>
+              <p className="text-lg font-bold text-primary">{stats.arrived ?? 0}</p>
               <p className="text-xs text-muted-foreground">Arrived</p>
             </div>
             <div className="rounded-lg border p-2">
@@ -107,7 +108,7 @@ export function CheckInOverview({ checkIns, stats, isLoading, isError, error, on
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium leading-none">{ci.guestName || ci.guestId || 'Guest'}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                      <span className="capitalize">{method.replace(/_/g, ' ')}</span>
+                      <span className="capitalize">{CHECKIN_METHOD_LABELS[method] ?? method.replace(/_/g, ' ')}</span>
                       {ci.venue && (
                         <span className="flex items-center gap-0.5">
                           <MapPin className="h-3 w-3" aria-hidden="true" />

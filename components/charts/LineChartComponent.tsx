@@ -1,8 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CHART_COLORS } from '@/constants';
+import { ChartFrame, axisProps, gridProps, tooltipProps } from './chartTheme';
 
 interface LineChartComponentProps {
   title: string;
@@ -13,47 +13,25 @@ interface LineChartComponentProps {
   height?: number;
 }
 
-export function LineChartComponent({
-  title,
-  description,
-  data,
-  dataKey,
-  xAxisKey,
-  height = 300,
-}: LineChartComponentProps) {
+export function LineChartComponent({ title, description, data, dataKey, xAxisKey, height = 300 }: LineChartComponentProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={height}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis
-              dataKey={xAxisKey}
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
-            />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-            />
-            <Line
-              type="monotone"
-              dataKey={dataKey}
-              stroke={CHART_COLORS.PRIMARY}
-              strokeWidth={2}
-              dot={{ fill: CHART_COLORS.PRIMARY, strokeWidth: 2 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <ChartFrame title={title} description={description}>
+      <ResponsiveContainer width="100%" height={height}>
+        <LineChart data={Array.isArray(data) ? data : []} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+          <CartesianGrid {...gridProps} />
+          <XAxis dataKey={xAxisKey} {...axisProps} interval="preserveStartEnd" minTickGap={12} />
+          <YAxis {...axisProps} allowDecimals={false} width={44} />
+          <Tooltip {...tooltipProps} cursor={{ stroke: 'var(--border)' }} />
+          <Line
+            type="monotone"
+            dataKey={dataKey}
+            stroke={CHART_COLORS.PRIMARY}
+            strokeWidth={2.5}
+            dot={false}
+            activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--card)' }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </ChartFrame>
   );
 }

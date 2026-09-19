@@ -1,5 +1,4 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { reportService } from "@/services/report.service";
 import { QUERY_KEYS } from "@/constants";
 
@@ -65,14 +64,5 @@ export function useRevenueTrendChart() {
   });
 }
 
-export function useExportReport() {
-  return useMutation({
-    mutationFn: (payload: { type: string; format: 'pdf' | 'excel'; dateFrom?: string; dateTo?: string }) =>
-      reportService.exportReport(payload),
-    onSuccess: (data) => {
-      toast.success("Report generated!");
-      if (data.downloadUrl) window.open(data.downloadUrl, '_blank');
-    },
-    onError: () => toast.error("Failed to generate report"),
-  });
-}
+// No export mutation: POST /reports/export is a backend stub that always returns
+// { downloadUrl: "mock-url" }. Reports are built client-side — see GenerateReportDialog.

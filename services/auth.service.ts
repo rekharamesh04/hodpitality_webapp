@@ -10,7 +10,6 @@ export const authService = {
   async register(payload: RegisterCredentials): Promise<{ message?: string }> {
     try {
       const { data } = await api.post<{ message?: string }>(API_ENDPOINTS.AUTH.REGISTER, payload);
-      console.log('[REGISTER] raw response ←', JSON.stringify(data));
       return data;
     } catch (err: any) {
       console.error('[REGISTER] HTTP error ←', err?.response?.status, JSON.stringify(err?.response?.data));
@@ -22,7 +21,6 @@ export const authService = {
   async loginWithGoogle(idToken: string): Promise<LoginResponse> {
     try {
       const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.GOOGLE, { idToken });
-      console.log('[GOOGLE] raw response ←', JSON.stringify(data));
       return data;
     } catch (err: any) {
       console.error('[GOOGLE] HTTP error ←', err?.response?.status, JSON.stringify(err?.response?.data));
@@ -33,7 +31,6 @@ export const authService = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
       const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
-      console.log('[LOGIN] raw response ←', JSON.stringify(data));
       return data;
     } catch (err: any) {
       const resp = err?.response;
@@ -44,11 +41,9 @@ export const authService = {
 
   /** Complete a NEW_PASSWORD_REQUIRED Cognito challenge and receive the real token. */
   async respondChallenge(payload: { email: string; session: string; newPassword: string }): Promise<LoginResponse> {
-    console.log('[CHALLENGE] calling POST /auth/login (challenge mode)...');
     try {
       // Backend detects session+newPassword in the body and runs RespondToAuthChallenge internally
       const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, payload);
-      console.log('[CHALLENGE] raw response ←', JSON.stringify(data));
       return data;
     } catch (err: any) {
       console.error('[CHALLENGE] HTTP error ←', err?.response?.status, JSON.stringify(err?.response?.data));

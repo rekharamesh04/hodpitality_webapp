@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, MoreHorizontal, Eye, Trash2, Hotel, RefreshCw } from 'lucide-react';
+import { Plus, MoreHorizontal, Eye, Trash2, Hotel, RefreshCw, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -23,13 +23,16 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { GuestCombobox } from '@/components/common/GuestCombobox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/common/SkeletonLoader';
 import { Badge } from '@/components/ui/badge';
 import { formatDate, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
 import {
-  useHospitalityBookings, useCreateBooking, useUpdateBookingStatus, useDeleteBooking,
+  useHospitalityBookings, useCreateBooking, useUpdateBookingStatus, useDeleteBooking, useVipGuests,
 } from '@/hooks/useHospitality';
-import type { Hospitality, Status } from '@/types';
+import { useActionParam } from '@/hooks/useActionParam';
+import type { Guest, Hospitality, Status } from '@/types';
 
 const TYPES: Hospitality['type'][] = ['Hotel', 'Transport', 'Meal', 'Airport Pickup', 'Special Request'];
 // The backend's update_hospitality_status doesn't validate status server-side, but the rest of
@@ -49,6 +52,14 @@ const emptyForm = {
 };
 
 export default function HospitalityPage() {
+  return (
+    <Suspense fallback={<div className="p-6"><TableSkeleton rows={8} /></div>}>
+      <HospitalityPageInner />
+    </Suspense>
+  );
+}
+
+function HospitalityPageInner() {
   const router = useRouter();
   const [status, setStatus] = useState('');
   const [type, setType] = useState('');
@@ -62,6 +73,9 @@ export default function HospitalityPage() {
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
+  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
+  const [manualGuest, setManualGuest] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Hospitality | null>(null);
 
   const allBookings = bookings ?? [];
@@ -69,17 +83,35 @@ export default function HospitalityPage() {
 
   function clearFilters() { setStatus(''); setType(''); }
 
-  function handleOpen() {
+  function handleOpen(guest: Guest | null = null) {
     setForm(emptyForm);
+    setSelectedGuest(guest);
+    setManualGuest(false);
+    setFormError(null);
+    createBookingMutation.reset();
     setOpen(true);
   }
 
+  useActionParam({ add: () => handleOpen() });
+
+  const vipGuests = useVipGuests();
+  const vips = vipGuests.data ?? [];
+  // VIPs without any arrangement first — they're the ones that need action.
+  const sortedVips = [...vips].sort((a, b) => (a.hospitalityBookings?.length ?? 0) - (b.hospitalityBookings?.length ?? 0));
+  const vipsWithoutBookings = vips.filter((v) => !v.hospitalityBookings?.length).length;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.guestName.trim() || !form.type || !form.serviceDate) return;
+    const guestName = manualGuest ? form.guestName.trim() : selectedGuest?.name ?? '';
+    const guestId = manualGuest ? undefined : selectedGuest?.id ?? selectedGuest?.PK?.replace('GUEST#', '');
+    if (!guestName) return setFormError(manualGuest ? 'Enter the guest name.' : 'Select a guest.');
+    if (!form.serviceDate) return setFormError('Choose a scheduled date.');
+    if (!form.description.trim()) return setFormError('Add a short description of the service.');
+    setFormError(null);
     createBookingMutation.mutate(
       {
-        guestName: form.guestName,
+        guestName,
+        ...(guestId ? { guestId } : {}),
         type: form.type,
         description: form.description,
         status: 'pending',
@@ -115,7 +147,7 @@ export default function HospitalityPage() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Refresh
           </Button>
-          <Button size="sm" onClick={handleOpen}>
+          <Button size="sm" onClick={() => handleOpen()}>
             <Plus className="mr-2 h-4 w-4" />
             New Request
           </Button>
@@ -134,6 +166,52 @@ export default function HospitalityPage() {
           </>
         )}
       </div>
+
+      {vips.length > 0 && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Crown className="h-4 w-4 text-primary" aria-hidden="true" />
+                <h2 className="text-sm font-semibold">VIP Guests</h2>
+                <span className="text-xs text-muted-foreground">
+                  {vips.length} VIP{vips.length === 1 ? '' : 's'}
+                  {vipsWithoutBookings > 0 && ` · ${vipsWithoutBookings} without arrangements`}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-1">
+              {sortedVips.map((v) => {
+                const count = v.hospitalityBookings?.length ?? 0;
+                const vipId = v.id ?? v.PK?.replace('GUEST#', '') ?? '';
+                return (
+                  <div key={vipId} className="flex w-60 shrink-0 flex-col gap-2 rounded-lg border p-3">
+                    <button
+                      type="button"
+                      className="min-w-0 text-left hover:underline"
+                      onClick={() => vipId && router.push(`/guests/${vipId}`)}
+                    >
+                      <p className="truncate text-sm font-medium">{v.name || 'Unnamed guest'}</p>
+                      <p className="truncate text-xs text-muted-foreground">{v.email || '—'}</p>
+                    </button>
+                    <div className="mt-auto flex items-center justify-between gap-2">
+                      {count > 0 ? (
+                        <span className="text-xs text-muted-foreground">{count} arrangement{count === 1 ? '' : 's'}</span>
+                      ) : (
+                        <Badge variant="warning" className="text-[11px]">Nothing arranged</Badge>
+                      )}
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => handleOpen(v)}>
+                        <Plus className="mr-1 h-3 w-3" aria-hidden="true" />
+                        Arrange
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <Select value={status || 'all'} onValueChange={(v) => setStatus(v === 'all' ? '' : v)}>
@@ -170,7 +248,7 @@ export default function HospitalityPage() {
               {hasActiveFilters ? (
                 <EmptyState icon={Hotel} title="No hospitality requests found" description="Try changing your filters." action={{ label: 'Clear filters', onClick: clearFilters }} />
               ) : (
-                <EmptyState icon={Hotel} title="No hospitality requests yet" description="Create your first request to get started." action={{ label: 'New Request', onClick: handleOpen }} />
+                <EmptyState icon={Hotel} title="No hospitality requests yet" description="Create your first request to get started." action={{ label: 'New Request', onClick: () => handleOpen() }} />
               )}
             </div>
           ) : (
@@ -241,16 +319,34 @@ export default function HospitalityPage() {
       </Card>
 
       {/* Create Request */}
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(v) => !createBookingMutation.isPending && setOpen(v)}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>New Hospitality Request</DialogTitle>
             <DialogDescription>Book a hotel, transport, meal, or other guest service.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="grid gap-4 py-2 sm:grid-cols-2">
+          <form onSubmit={handleSubmit} noValidate className="grid grid-cols-1 gap-4 py-2 sm:grid-cols-2">
+            {(formError || createBookingMutation.error) && (
+              <Alert variant="destructive" className="sm:col-span-2">
+                <AlertDescription>
+                  {formError || getFriendlyErrorMessage(createBookingMutation.error, 'Unable to create request.')}
+                </AlertDescription>
+              </Alert>
+            )}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="guestName">Guest *</Label>
-              <Input id="guestName" placeholder="e.g. Sarah Anderson" value={form.guestName} onChange={(e) => setForm((f) => ({ ...f, guestName: e.target.value }))} required />
+              {manualGuest ? (
+                <Input id="guestName" placeholder="Guest full name" value={form.guestName} onChange={(e) => setForm((f) => ({ ...f, guestName: e.target.value }))} />
+              ) : (
+                <GuestCombobox selected={selectedGuest} onSelectGuest={setSelectedGuest} disabled={createBookingMutation.isPending} />
+              )}
+              <button
+                type="button"
+                className="rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                onClick={() => { setManualGuest((m) => !m); setSelectedGuest(null); setForm((f) => ({ ...f, guestName: '' })); }}
+              >
+                {manualGuest ? 'Choose an existing guest instead' : 'Guest not in the list? Enter a name'}
+              </button>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="type">Service Type *</Label>
@@ -263,11 +359,11 @@ export default function HospitalityPage() {
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="serviceDate">Scheduled Date *</Label>
-              <Input id="serviceDate" type="date" value={form.serviceDate} onChange={(e) => setForm((f) => ({ ...f, serviceDate: e.target.value }))} required />
+              <Input id="serviceDate" type="date" value={form.serviceDate} onChange={(e) => setForm((f) => ({ ...f, serviceDate: e.target.value }))} />
             </div>
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="description">Description *</Label>
-              <Input id="description" placeholder="e.g. Grand Hotel - Suite 304" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} required />
+              <Input id="description" placeholder="e.g. Grand Hotel - Suite 304" value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="venue">Venue</Label>

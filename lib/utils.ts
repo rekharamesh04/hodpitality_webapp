@@ -29,11 +29,28 @@ export function formatDate(date: string | Date | undefined | null, format: strin
     .replace('mm', minutes);
 }
 
+/**
+ * "YYYY-MM-DD" for the given moment in the user's LOCAL timezone. Use this instead of
+ * `toISOString().slice(0, 10)`, which returns the UTC date — e.g. the previous day for
+ * anyone in IST between midnight and 05:30.
+ */
+export function toLocalDateInput(date: string | Date = new Date()): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function formatCurrency(amount: number, currency: string = 'USD'): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-  }).format(amount);
+  const value = Number.isFinite(amount) ? amount : 0;
+  try {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: (currency || 'USD').toUpperCase(),
+    }).format(value);
+  } catch {
+    // Unknown/invalid ISO code from the API — show the number rather than crash the page.
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value);
+  }
 }
 
 export function formatNumber(num: number): string {
@@ -70,48 +87,41 @@ export function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-export function getStatusColor(status: string): string {
-  const statusMap: Record<string, string> = {
-    active: 'text-green-600 bg-green-50 border-green-200',
-    inactive: 'text-gray-600 bg-gray-50 border-gray-200',
-    pending: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-    completed: 'text-blue-600 bg-blue-50 border-blue-200',
-    cancelled: 'text-red-600 bg-red-50 border-red-200',
-    confirmed: 'text-green-600 bg-green-50 border-green-200',
-    checked_in: 'text-blue-600 bg-blue-50 border-blue-200',
-    checked_out: 'text-gray-600 bg-gray-50 border-gray-200',
-    arrived: 'text-teal-600 bg-teal-50 border-teal-200',
-    on_site: 'text-green-600 bg-green-50 border-green-200',
-    // Payment statuses reuse the same semantic buckets above — no new colors.
-    paid: 'text-green-600 bg-green-50 border-green-200',
-    processing: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-    failed: 'text-red-600 bg-red-50 border-red-200',
-    refunded: 'text-blue-600 bg-blue-50 border-blue-200',
-    partially_refunded: 'text-teal-600 bg-teal-50 border-teal-200',
-  };
-  return statusMap[(status ?? '').toLowerCase()] || statusMap.inactive;
-}
+// Semantic status buckets. Every class — including the `dark:` variants — is written out in
+// full so Tailwind's source scanner generates it; never build these strings dynamically.
+const STATUS_TONES = {
+  success: 'text-green-700 bg-green-50 border-green-200 dark:text-green-400 dark:bg-green-950/30 dark:border-green-800',
+  neutral: 'text-gray-600 bg-gray-50 border-gray-200 dark:text-gray-400 dark:bg-gray-900/30 dark:border-gray-700',
+  warning: 'text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-950/30 dark:border-amber-800',
+  info:    'text-blue-700 bg-blue-50 border-blue-200 dark:text-blue-400 dark:bg-blue-950/30 dark:border-blue-800',
+  danger:  'text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950/30 dark:border-red-800',
+  brand:   'text-indigo-700 bg-indigo-50 border-indigo-200 dark:text-indigo-300 dark:bg-indigo-950/40 dark:border-indigo-800',
+} as const;
 
-export function getStatusColorDark(status: string): string {
-  const statusMap: Record<string, string> = {
-    active: 'text-green-400 bg-green-950/30 border-green-800',
-    inactive: 'text-gray-400 bg-gray-900/30 border-gray-700',
-    pending: 'text-yellow-400 bg-yellow-950/30 border-yellow-800',
-    completed: 'text-blue-400 bg-blue-950/30 border-blue-800',
-    cancelled: 'text-red-400 bg-red-950/30 border-red-800',
-    confirmed: 'text-green-400 bg-green-950/30 border-green-800',
-    checked_in: 'text-blue-400 bg-blue-950/30 border-blue-800',
-    checked_out: 'text-gray-400 bg-gray-900/30 border-gray-700',
-    arrived: 'text-teal-400 bg-teal-950/30 border-teal-800',
-    on_site: 'text-green-400 bg-green-950/30 border-green-800',
-    // Payment statuses reuse the same semantic buckets above — no new colors.
-    paid: 'text-green-400 bg-green-950/30 border-green-800',
-    processing: 'text-yellow-400 bg-yellow-950/30 border-yellow-800',
-    failed: 'text-red-400 bg-red-950/30 border-red-800',
-    refunded: 'text-blue-400 bg-blue-950/30 border-blue-800',
-    partially_refunded: 'text-teal-400 bg-teal-950/30 border-teal-800',
-  };
-  return statusMap[(status ?? '').toLowerCase()] || statusMap.inactive;
+const STATUS_TONE_MAP: Record<string, keyof typeof STATUS_TONES> = {
+  active: 'success',
+  inactive: 'neutral',
+  pending: 'warning',
+  completed: 'info',
+  cancelled: 'danger',
+  confirmed: 'success',
+  checked_in: 'info',
+  checked_out: 'neutral',
+  arrived: 'brand',
+  on_site: 'success',
+  no_show: 'danger',
+  // Payment statuses reuse the same semantic buckets above — no new colors.
+  paid: 'success',
+  processing: 'warning',
+  failed: 'danger',
+  refunded: 'info',
+  partially_refunded: 'brand',
+};
+
+/** Light + dark badge classes for any record/payment status. */
+export function getStatusColor(status: string): string {
+  const key = (status ?? '').toLowerCase().replace(/[\s-]/g, '_');
+  return STATUS_TONES[STATUS_TONE_MAP[key] ?? 'neutral'];
 }
 
 export function generateQRCode(data: string): string {
@@ -119,23 +129,23 @@ export function generateQRCode(data: string): string {
   return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
 }
 
+function csvCell(value: unknown): string {
+  if (value == null) return '';
+  const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
+  return /[",\r\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
 export function exportToCSV(data: any[], filename: string): void {
   if (!data.length) return;
-  
-  const headers = Object.keys(data[0]);
+
+  // Union of keys across all rows, so a field missing from the first row isn't dropped.
+  const headers = Array.from(new Set(data.flatMap((row) => Object.keys(row ?? {}))));
   const csv = [
-    headers.join(','),
-    ...data.map(row => 
-      headers.map(header => {
-        const value = row[header];
-        return typeof value === 'string' && value.includes(',') 
-          ? `"${value}"` 
-          : value;
-      }).join(',')
-    ),
+    headers.map(csvCell).join(','),
+    ...data.map((row) => headers.map((header) => csvCell(row?.[header])).join(',')),
   ].join('\n');
-  
-  const blob = new Blob([csv], { type: 'text/csv' });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

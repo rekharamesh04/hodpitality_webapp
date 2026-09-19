@@ -66,7 +66,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       <div className="mx-auto max-w-5xl space-y-6">
         <Skeleton className="h-8 w-40" />
         <Skeleton className="h-56 w-full rounded-2xl" />
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Skeleton className="h-64 w-full rounded-2xl lg:col-span-2" />
           <Skeleton className="h-64 w-full rounded-2xl" />
         </div>
@@ -176,12 +176,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         </Card>
 
         {/* Details */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-base">Customer Information</CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-5 sm:grid-cols-2">
+            <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <InfoRow icon={Mail} label="Email" value={customer.email} />
               <InfoRow icon={Phone} label="Phone" value={customer.phone} />
               <div className="sm:col-span-2">

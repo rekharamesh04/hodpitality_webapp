@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { hospitalityService } from "@/services/hospitality.service";
+import { getFriendlyErrorMessage } from "@/lib/utils";
 import type { TableFilters, Hospitality } from "@/types";
 type FilterOptions = TableFilters & { guestId?: string; type?: string };
 type HospitalityBooking = Hospitality;
@@ -10,6 +11,7 @@ export const hospitalityKeys = {
   list: (filters: FilterOptions) => ["hospitality", "list", filters] as const,
   detail: (id: string) => ["hospitality", id] as const,
   vip: ["hospitality", "vip"] as const,
+  guest: (guestId: string) => ["hospitality", "guest", guestId] as const,
 };
 
 export function useHospitalityBookings(filters: FilterOptions = {}) {
@@ -34,6 +36,15 @@ export function useVipGuests() {
   });
 }
 
+/** GET /hospitality/guest/{guestId} — every hospitality request linked to one guest. */
+export function useGuestHospitality(guestId: string, options?: { enabled?: boolean }) {
+  return useQuery({
+    queryKey: hospitalityKeys.guest(guestId),
+    queryFn: () => hospitalityService.getGuestBookings(guestId),
+    enabled: !!guestId && (options?.enabled ?? true),
+  });
+}
+
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
@@ -41,9 +52,9 @@ export function useCreateBooking() {
       hospitalityService.createBooking(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: hospitalityKeys.all });
-      toast.success("Booking created");
+      toast.success("Hospitality request created");
     },
-    onError: () => toast.error("Failed to create booking"),
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create request")),
   });
 }
 
@@ -55,9 +66,9 @@ export function useUpdateBookingStatus() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: hospitalityKeys.all });
       qc.invalidateQueries({ queryKey: hospitalityKeys.detail(vars.id) });
-      toast.success("Booking updated");
+      toast.success("Request status updated");
     },
-    onError: () => toast.error("Update failed"),
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update request")),
   });
 }
 
@@ -67,8 +78,8 @@ export function useDeleteBooking() {
     mutationFn: (id: string) => hospitalityService.deleteBooking(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: hospitalityKeys.all });
-      toast.success("Booking deleted");
+      toast.success("Hospitality request deleted");
     },
-    onError: () => toast.error("Failed to delete booking"),
+    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete request")),
   });
 }

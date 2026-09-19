@@ -1,7 +1,6 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
@@ -61,16 +60,19 @@ export function ActivityFeed({ activities, isLoading, isError, error, onRetry }:
         ) : safeActivities.length === 0 ? (
           <EmptyState icon={ActivityIcon} title="No recent activity" description="Activity will appear here as it happens." />
         ) : (
-          <ScrollArea className="h-[400px] pr-4">
-            <div className="space-y-4">
-              {safeActivities.map((activity) => {
+          <div className="max-h-[400px] overflow-y-auto pr-1">
+            <ol className="relative">
+              {safeActivities.map((activity, idx) => {
                 const Icon = iconMap[activity.type] ?? AlertCircle;
+                const isLast = idx === safeActivities.length - 1;
                 return (
-                  <div key={activity.id} className="flex gap-4">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
+                  <li key={activity.id} className="relative flex gap-4 pb-5 last:pb-0">
+                    {/* timeline connector */}
+                    {!isLast && <span className="absolute left-[19px] top-10 bottom-0 w-px bg-border" aria-hidden="true" />}
+                    <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 ring-4 ring-card">
+                      <Icon className="h-[18px] w-[18px] text-primary" aria-hidden="true" />
                     </div>
-                    <div className="flex-1 space-y-1">
+                    <div className="min-w-0 flex-1 space-y-1 pt-0.5">
                       <p className="text-sm font-medium leading-none">{activity.title}</p>
                       {activity.description && (
                         <p className="text-sm text-muted-foreground">{activity.description}</p>
@@ -85,11 +87,11 @@ export function ActivityFeed({ activities, isLoading, isError, error, onRetry }:
                         )}
                       </div>
                     </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
-          </ScrollArea>
+            </ol>
+          </div>
         )}
       </CardContent>
     </Card>

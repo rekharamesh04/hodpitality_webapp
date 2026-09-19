@@ -109,7 +109,7 @@ export default function HospitalityDetailPage({ params }: { params: Promise<{ id
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Card>
           <CardHeader><CardTitle className="text-base">Service Information</CardTitle></CardHeader>
           <CardContent className="grid gap-5">

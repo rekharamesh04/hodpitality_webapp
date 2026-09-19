@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 import { STORAGE_KEYS, API_ENDPOINTS } from '@/constants';
 import { getJwtExpiryMs } from './jwt';
 import { useAuthStore } from '@/store/auth-store';
+import { debugLog } from '@/utils/debugLog';
 
 // Endpoints that run without a session — a 401 here means "request rejected",
 // not "your session expired", so it must not trigger the global logout redirect
@@ -22,8 +23,9 @@ declare module 'axios' {
   }
 }
 
-export const BASE_URL = 'https://x8nrv9hcrf.execute-api.ap-south-1.amazonaws.com/dev';
-const API_KEY = 'entryflow-secret-key-2026!@';
+// Configure per environment via .env.local; the fallbacks keep the current dev backend working.
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://x8nrv9hcrf.execute-api.ap-south-1.amazonaws.com/dev';
+const API_KEY = process.env.NEXT_PUBLIC_LAMBDA_API_KEY || 'entryflow-secret-key-2026!@';
 
 /** Normalise any Lambda response into a plain array regardless of wrapping shape. */
 export function unwrapList<T>(raw: unknown): T[] {
@@ -186,10 +188,8 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     }
-    // Log all POST/PUT requests so invite payloads are visible in the browser console
-    if (config.method === 'post' || config.method === 'put') {
-      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`, config.data);
-    }
+    // Never log request bodies — they carry passwords, OTPs and personal data.
+    debugLog(`[API] ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error: AxiosError) => {
@@ -201,10 +201,7 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    // Log POST/PUT responses so we can see what the backend confirms
-    if (response.config.method === 'post' || response.config.method === 'put') {
-      console.log(`[API] ← ${response.status} ${response.config.url}`, response.data);
-    }
+    debugLog(`[API] ← ${response.status} ${response.config.method?.toUpperCase()} ${response.config.url}`);
     return response;
   },
   async (error: AxiosError<{ error?: string; message?: string }>) => {

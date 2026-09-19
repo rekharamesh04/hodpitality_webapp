@@ -54,7 +54,7 @@ export function NotificationsPanel({
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+      <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 space-y-0 pb-4">
         <div className="flex items-center gap-2">
           <CardTitle>Notifications</CardTitle>
           {unreadCount > 0 && <Badge variant="secondary">{unreadCount} new</Badge>}

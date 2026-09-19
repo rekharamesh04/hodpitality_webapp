@@ -1,8 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { CHART_COLORS } from '@/constants';
+import { ChartFrame, axisProps, gridProps, tooltipProps } from './chartTheme';
 
 interface BarChartComponentProps {
   title: string;
@@ -13,41 +13,18 @@ interface BarChartComponentProps {
   height?: number;
 }
 
-export function BarChartComponent({
-  title,
-  description,
-  data,
-  dataKey,
-  xAxisKey,
-  height = 300,
-}: BarChartComponentProps) {
+export function BarChartComponent({ title, description, data, dataKey, xAxisKey, height = 300 }: BarChartComponentProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={height}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-            <XAxis
-              dataKey={xAxisKey}
-              stroke="hsl(var(--muted-foreground))"
-              fontSize={12}
-            />
-            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'hsl(var(--card))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '8px',
-              }}
-            />
-            <Bar dataKey={dataKey} fill={CHART_COLORS.PRIMARY} radius={[8, 8, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </CardContent>
-    </Card>
+    <ChartFrame title={title} description={description}>
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart data={Array.isArray(data) ? data : []} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+          <CartesianGrid {...gridProps} />
+          <XAxis dataKey={xAxisKey} {...axisProps} interval="preserveStartEnd" minTickGap={12} />
+          <YAxis {...axisProps} allowDecimals={false} width={44} />
+          <Tooltip {...tooltipProps} />
+          <Bar dataKey={dataKey} fill={CHART_COLORS.PRIMARY} radius={[6, 6, 0, 0]} maxBarSize={48} />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartFrame>
   );
 }

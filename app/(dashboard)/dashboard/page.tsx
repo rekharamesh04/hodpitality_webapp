@@ -41,7 +41,7 @@ export default function DashboardPage() {
 
       <QuickActions />
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ActivityFeed
           activities={activity.data ?? []}
           isLoading={activity.isLoading}
@@ -58,7 +58,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <CheckInOverview
           checkIns={checkIns.data ?? []}
           stats={checkInStats.data}
@@ -76,7 +76,7 @@ export default function DashboardPage() {
         />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <HospitalityOverview
           bookings={hospitality.data ?? []}
           isLoading={hospitality.isLoading}

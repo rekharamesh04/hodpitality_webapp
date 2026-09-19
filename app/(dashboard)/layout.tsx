@@ -1,14 +1,13 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { TopNav } from '@/components/layout/TopNav';
+import { AppHeader } from '@/components/layout/AppHeader';
+import { MobileNavDrawer, MobileTabBar } from '@/components/layout/MobileNav';
 import { CommandPalette } from '@/components/common/CommandPalette';
 import { Loading } from '@/components/common/Loading';
-import { useAuthStore, useUIStore } from '@/store';
+import { useAuthStore } from '@/store';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { useMediaQuery } from '@/hooks/useMediaQuery';
 
 export default function DashboardLayout({
   children,
@@ -16,9 +15,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { sidebarCollapsed } = useUIStore();
   const { isAuthenticated, isLoading } = useAuthStore();
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -29,34 +26,24 @@ export default function DashboardLayout({
   if (isLoading) return <Loading />;
   if (!isAuthenticated) return null;
 
-  const marginLeft = isDesktop
-    ? sidebarCollapsed ? 'var(--sidebar-collapsed-w)' : 'var(--sidebar-w)'
-    : '0px';
-
   return (
-    <div className="relative flex min-h-screen">
-      <Sidebar />
+    <div className="flex min-h-screen flex-col bg-background">
+      <AppHeader />
+      <MobileNavDrawer />
 
-      <motion.div
-        initial={false}
-        animate={{ marginLeft }}
-        transition={{ duration: 0.3, ease: 'easeInOut' }}
-        className="flex min-h-screen flex-1 flex-col overflow-x-hidden"
-      >
-        <TopNav />
+      {/* Bottom padding on phones keeps content clear of the fixed tab bar. */}
+      <main className="flex-1 pb-[calc(4.5rem+env(safe-area-inset-bottom))] md:pb-0">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.25 }}
+          className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8"
+        >
+          {children}
+        </motion.div>
+      </main>
 
-        <main className="flex-1 bg-background">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-            className="p-4 sm:p-6"
-          >
-            {children}
-          </motion.div>
-        </main>
-      </motion.div>
-
+      <MobileTabBar />
       <CommandPalette />
     </div>
   );

@@ -8,18 +8,11 @@ import { Button } from '@/components/ui/button';
 import { CreditCard } from 'lucide-react';
 import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
 import { RecordAppointmentPaymentDialog } from '@/components/dialogs/RecordAppointmentPaymentDialog';
-import { cn, formatDate, formatTimeLabel, addMinutesToTime, getRelativeTime, formatCurrency } from '@/lib/utils';
+import { cn, formatDate, formatTimeLabel, addMinutesToTime, getRelativeTime, formatCurrency, getStatusColor } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
 import { TIER_BADGE_CLASSES } from '@/constants/customer';
 import { debugLog } from '@/utils/debugLog';
 import type { Appointment } from '@/types';
-
-const PAYMENT_STATUS_STYLES: Record<string, string> = {
-  paid: 'bg-emerald-100 text-emerald-700 border-emerald-200',
-  pending: 'bg-amber-100 text-amber-700 border-amber-200',
-  failed: 'bg-red-100 text-red-700 border-red-200',
-  refunded: 'bg-purple-100 text-purple-700 border-purple-200',
-};
 
 interface AppointmentDetailDialogProps {
   appointment: Appointment | null;
@@ -62,10 +55,10 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
                 {a.customerTier}
               </span>
             )}
-            <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold', APPOINTMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-300')}>
+            <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold', APPOINTMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700')}>
               {APPOINTMENT_STATUS_LABELS[status] ?? status}
             </span>
-            <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold capitalize', PAYMENT_STATUS_STYLES[paymentStatus] ?? 'bg-gray-100 text-gray-700 border-gray-300')}>
+            <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold capitalize', getStatusColor(paymentStatus))}>
               {paymentStatus}
             </span>
           </div>

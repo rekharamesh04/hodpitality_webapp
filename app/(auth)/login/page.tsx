@@ -161,25 +161,9 @@ export default function LoginPage() {
   };
 
   const onGoogleCredential = async (idToken: string) => {
-    console.log('[GOOGLE-LOGIN] ── Step 1: Received Google ID token from GIS popup');
-    // Decode the Google token to show which email is being used (public claims only)
-    try {
-      const claims = JSON.parse(atob(idToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-      console.log('[GOOGLE-LOGIN] ── Step 2: Google user email:', claims.email, '| name:', claims.name, '| sub:', claims.sub);
-    } catch { console.log('[GOOGLE-LOGIN] ── Step 2: Could not decode token claims (non-blocking)'); }
-
     setIsLoading(true);
     try {
-      console.log('[GOOGLE-LOGIN] ── Step 3: Calling POST /auth/google on backend...');
       const result = await authService.loginWithGoogle(idToken);
-      console.log('[GOOGLE-LOGIN] ── Step 4: Backend returned SUCCESS ✅', JSON.stringify({
-        hasToken: !!result.token,
-        hasRefreshToken: !!result.refreshToken,
-        hasAccessToken: !!result.accessToken,
-        userEmail: result.user?.email,
-        userRole: result.user?.role,
-        userName: result.user?.name,
-      }));
       completeLogin(result);
     } catch (err: any) {
       const status = err?.response?.status;
@@ -217,13 +201,13 @@ export default function LoginPage() {
           '   3. The Lambda\'s IAM role lacks cognito-idp:AdminInitiateAuth permission\n' +
           '   Check the Lambda\'s CloudWatch logs for the full stack trace.'
         );
-        toast.error('Google sign-in failed: backend could not create your session. Check the server logs or contact admin.');
+        toast.error('Google sign-in failed. Please try again, or sign in with your email and password.');
       } else if (status === 501) {
         console.error('[GOOGLE-LOGIN] ── Diagnosis: GOOGLE_CLIENT_ID is not set on the Lambda. Ask your backend admin to add it.');
         toast.error('Google sign-in is not enabled yet. Please sign in with your email and password.');
       } else if (status === 403) {
         console.error('[GOOGLE-LOGIN] ── Diagnosis: This Google email is NOT registered as a staff member in Cognito.',
-          'You must first invite this email via POST /staff or the admin panel before they can Google sign-in.');
+          'Ask an administrator to invite this email from the Staff page before signing in with Google.');
         toast.error(backendMsg || 'This Google account is not registered. Ask your administrator to invite you first.');
       } else if (status === 401) {
         console.error('[GOOGLE-LOGIN] ── Diagnosis: Lambda could not verify the Google token. Check that GOOGLE_CLIENT_ID on Lambda matches NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local.');
@@ -238,13 +222,6 @@ export default function LoginPage() {
   };
 
   function completeLogin(result: Awaited<ReturnType<typeof authService.login>>) {
-    console.log('[COMPLETE-LOGIN] ── Step 5: Processing login result...', {
-      userEmail: result.user?.email,
-      userRole: result.user?.role,
-      hasToken: !!result.token,
-      tokenPrefix: result.token?.substring(0, 20) + '...',
-    });
-
     // Patients have no admin portal — the backend 403s them on every business API, so letting
     // the session through would land them on a dashboard where nothing loads.
     if ((result.user.role as string) === 'patient') {
@@ -258,9 +235,7 @@ export default function LoginPage() {
       createdAt: result.user.createdAt ?? new Date().toISOString(),
       updatedAt: result.user.updatedAt ?? new Date().toISOString(),
     };
-    console.log('[COMPLETE-LOGIN] ── Step 6: Persisting session to Zustand store + localStorage + cookie...');
     login(user, { token: result.token, refreshToken: result.refreshToken, accessToken: result.accessToken });
-    console.log('[COMPLETE-LOGIN] ── Step 7: Session persisted ✅ Redirecting to /dashboard...');
     toast.success('Login successful!');
     window.location.href = '/dashboard';
   }

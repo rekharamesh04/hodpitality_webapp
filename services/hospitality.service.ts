@@ -1,7 +1,10 @@
 import api from '@/lib/axios';
 import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Hospitality as HospitalityBooking, TableFilters } from '@/types';
+import type { Guest, Hospitality as HospitalityBooking, TableFilters } from '@/types';
+
+/** GET /hospitality/vip-guests item: a normal guest record plus the guest's hospitality bookings. */
+export type VipGuest = Guest & { hospitalityBookings?: HospitalityBooking[] };
 
 export const hospitalityService = {
   async getBookings(filters: TableFilters & { guestId?: string; type?: string } = {}): Promise<HospitalityBooking[]> {
@@ -33,9 +36,10 @@ export const hospitalityService = {
     await api.delete(`${API_ENDPOINTS.HOSPITALITY}/${id}`);
   },
 
-  async getVipGuests(): Promise<HospitalityBooking[]> {
+  /** Guests whose category (or tier) is "VIP", any case. Without `limit` the backend returns all of them. */
+  async getVipGuests(): Promise<VipGuest[]> {
     const { data } = await api.get(`${API_ENDPOINTS.HOSPITALITY}/vip-guests`);
-    return unwrapList<HospitalityBooking>(data);
+    return unwrapList<VipGuest>(data);
   },
 
   async getGuestBookings(guestId: string): Promise<HospitalityBooking[]> {

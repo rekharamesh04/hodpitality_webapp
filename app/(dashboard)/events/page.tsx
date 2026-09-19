@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useMemo, useState } from 'react';
+import { useActionParam } from '@/hooks/useActionParam';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
   Plus, MoreHorizontal, Eye, Pencil, Trash2, Calendar, MapPin,
@@ -29,7 +30,7 @@ import { EventFormDialog } from '@/components/dialogs/EventFormDialog';
 import {
   useEvents, useCreateEvent, useUpdateEvent, useDeleteEvent,
 } from '@/hooks/useEvents';
-import { cn, formatDate, getFriendlyErrorMessage } from '@/lib/utils';
+import { cn, formatDate, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { CreateEventPayload, UpdateEventPayload } from '@/services/event.service';
 import type { Event } from '@/types';
 
@@ -39,8 +40,7 @@ function getEventId(e: Event): string {
 function eventDateIso(e: Event): string | null {
   const raw = e.startDate ?? e.date;
   if (!raw) return null;
-  const d = new Date(raw);
-  return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+  return toLocalDateInput(raw) || null;
 }
 function formErrorMessage(err: unknown): string | null {
   if (!err) return null;
@@ -147,6 +147,7 @@ function EventsPageInner() {
   }
 
   function openCreate() { setEditingEvent(null); setFormOpen(true); }
+  useActionParam({ add: openCreate });
   function openEdit(e: Event) { setEditingEvent(e); setFormOpen(true); }
 
   function handleFormSubmit(payload: CreateEventPayload | UpdateEventPayload) {
