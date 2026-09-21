@@ -25,7 +25,10 @@ declare module 'axios' {
 
 // Configure per environment via .env.local; the fallbacks keep the current dev backend working.
 export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://x8nrv9hcrf.execute-api.ap-south-1.amazonaws.com/dev';
-const API_KEY = process.env.NEXT_PUBLIC_LAMBDA_API_KEY || 'entryflow-secret-key-2026!@';
+// No hard-coded fallback: anything NEXT_PUBLIC_* ships inside the browser bundle, so it is not a
+// secret. Users are identified by their Cognito token. The header is only sent when this env var
+// is set (e.g. if API Gateway is configured to require an API key).
+const API_KEY = process.env.NEXT_PUBLIC_LAMBDA_API_KEY || '';
 
 /** Normalise any Lambda response into a plain array regardless of wrapping shape. */
 export function unwrapList<T>(raw: unknown): T[] {
@@ -60,7 +63,7 @@ const api: AxiosInstance = axios.create({
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
-    'x-api-key': API_KEY,
+    ...(API_KEY ? { 'x-api-key': API_KEY } : {}),
   },
 });
 

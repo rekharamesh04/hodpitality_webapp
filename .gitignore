@@ -1,3 +1,8 @@
 node_modules
 .next/
 *.tsbuildinfo
+
+# Local environment files hold keys and must never be committed
+.env
+.env.local
+.env.*.local

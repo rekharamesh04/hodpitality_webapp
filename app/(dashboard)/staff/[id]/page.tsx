@@ -2,7 +2,6 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
 import {
   ArrowLeft, Pencil, Trash2, Mail, Phone, Building2, BadgeCheck, Clock, CalendarDays, CalendarClock,
 } from 'lucide-react';
@@ -19,6 +18,8 @@ import {
   useStaffMember, useUpdateStaff, useDeleteStaff, useUpdateStaffSchedule, useStaff,
 } from '@/hooks/useStaff';
 import { getInitials, formatDate, getFriendlyErrorMessage } from '@/lib/utils';
+import { useAuthStore } from '@/store';
+import { assignableRoles, canManageStaffMember, roleLabel } from '@/constants/roles';
 import type { UpdateStaffPayload } from '@/services/staff.service';
 
 const DAY_LABELS: Record<string, string> = {
@@ -33,6 +34,7 @@ function getStaffId(id: string, pk?: string): string {
 export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { user } = useAuthStore();
 
   const { data: staff, isLoading, isError, error, refetch } = useStaffMember(id);
   const { data: allStaff } = useStaff();
@@ -44,7 +46,8 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
 
-  const roleOptions = Array.from(new Set((allStaff ?? []).map((s) => s.role).filter((r): r is string => !!r && typeof r === 'string')));
+  // Same rule as the backend: only roles the logged-in user may hand out.
+  const roleOptions = assignableRoles(user?.role);
   const departmentOptions = Array.from(new Set((allStaff ?? []).map((s) => s.department).filter((d): d is string => !!d)));
 
   function handleUpdate(payload: UpdateStaffPayload) {
@@ -52,12 +55,8 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   function handleDelete() {
-    deleteMutation.mutate(id, {
-      onSuccess: () => {
-        toast.success('Staff member deleted');
-        router.push('/staff');
-      },
-    });
+    // useDeleteStaff already shows the success / error toast.
+    deleteMutation.mutate(id, { onSuccess: () => router.push('/staff') });
   }
 
   function handleScheduleSubmit(schedule: Record<string, string>) {
@@ -94,6 +93,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   const resolvedId = getStaffId(staff.id, staff.PK);
+  const canManage = canManageStaffMember(user?.role, staff.role);
   const scheduleEntries = staff.schedule && typeof staff.schedule === 'object'
     ? DAY_ORDER
         .map((day) => [day, (staff.schedule as Record<string, unknown>)[day]] as const)
@@ -123,8 +123,8 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                   <h1 className="text-2xl font-bold tracking-tight">{staff.name || 'Unnamed'}</h1>
                   {typeof staff.role === 'string' && staff.role && (
-                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold capitalize">
-                      {staff.role}
+                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
+                      {roleLabel(staff.role)}
                     </span>
                   )}
                   <StatusBadge status={staff.status} />
@@ -134,32 +134,38 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div className="flex items-center justify-center gap-2 sm:pb-1">
-              <Button size="sm" onClick={() => setEditOpen(true)}>
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setScheduleOpen(true)}>
-                <Clock className="mr-2 h-4 w-4" />
-                Set Schedule
-              </Button>
+              {canManage && (
+                <>
+                  <Button size="sm" onClick={() => setEditOpen(true)}>
+                    <Pencil className="mr-2 h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setScheduleOpen(true)}>
+                    <Clock className="mr-2 h-4 w-4" />
+                    Set Schedule
+                  </Button>
+                </>
+              )}
               <Button size="sm" variant="outline" onClick={() => router.push('/calendar')}>
                 <CalendarDays className="mr-2 h-4 w-4" />
                 View Calendar
               </Button>
-              <Button
-                size="icon" variant="outline"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Delete staff member"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {canManage && (
+                <Button
+                  size="icon" variant="outline"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Delete staff member"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatChip icon={Building2} label="Department" value={staff.department || '—'} />
-            <StatChip icon={BadgeCheck} label="Role" value={typeof staff.role === 'string' && staff.role ? staff.role : '—'} />
+            <StatChip icon={BadgeCheck} label="Role" value={roleLabel(staff.role)} />
             <StatChip icon={CalendarClock} label="Joined" value={staff.joinedDate || staff.createdAt ? formatDate(staff.joinedDate ?? staff.createdAt) : '—'} />
             <StatChip icon={Clock} label="Scheduled Days" value={String(scheduleEntries.length)} />
           </div>
@@ -176,7 +182,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
             <InfoRow icon={Mail} label="Email" value={staff.email} />
             <InfoRow icon={Phone} label="Phone" value={staff.phone} />
             <InfoRow icon={Building2} label="Department" value={staff.department} />
-            <InfoRow icon={BadgeCheck} label="Role" value={typeof staff.role === 'string' ? staff.role : undefined} />
+            <InfoRow icon={BadgeCheck} label="Role" value={staff.role ? roleLabel(staff.role) : undefined} />
           </CardContent>
         </Card>
 
@@ -195,10 +201,12 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               ))
             )}
-            <Button size="sm" variant="outline" className="w-full" onClick={() => setScheduleOpen(true)}>
-              <Clock className="mr-2 h-4 w-4" />
-              {scheduleEntries.length > 0 ? 'Edit Schedule' : 'Set Schedule'}
-            </Button>
+            {canManage && (
+              <Button size="sm" variant="outline" className="w-full" onClick={() => setScheduleOpen(true)}>
+                <Clock className="mr-2 h-4 w-4" />
+                {scheduleEntries.length > 0 ? 'Edit Schedule' : 'Set Schedule'}
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -209,7 +217,10 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         onOpenChange={setEditOpen}
         staff={staff}
         isSubmitting={updateMutation.isPending}
-        submitError={updateMutation.error ? getFriendlyErrorMessage(updateMutation.error, 'Unable to save staff member.') : null}
+        submitError={updateMutation.error
+          ? ((updateMutation.error as { backendMessage?: string }).backendMessage
+            || getFriendlyErrorMessage(updateMutation.error, 'Unable to save staff member.'))
+          : null}
         roleOptions={roleOptions}
         departmentOptions={departmentOptions}
         onSubmit={handleUpdate}
@@ -220,7 +231,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title="Delete Staff Member?"
-        description={`Are you sure you want to delete ${staff.name || 'this staff member'}? This action cannot be undone.`}
+        description={`Remove ${staff.name || 'this staff member'}? Their login will be disabled and they will be signed out of the web portal and mobile app.`}
         confirmLabel="Delete Staff"
         confirmingLabel="Deleting…"
         destructive

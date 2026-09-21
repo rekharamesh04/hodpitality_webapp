@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
 import { isValidEmail, isValidPhone } from '@/lib/utils';
+import { roleLabel } from '@/constants/roles';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
 import type { Staff } from '@/types';
 
@@ -23,10 +24,11 @@ interface FormState {
   department: string;
   role: string;
   status: string;
+  tenantId: string;
 }
 
 function emptyForm(): FormState {
-  return { name: '', email: '', phone: '', department: '', role: '', status: '' };
+  return { name: '', email: '', phone: '', department: '', role: '', status: '', tenantId: '' };
 }
 
 function toFormState(staff: Staff): FormState {
@@ -37,6 +39,7 @@ function toFormState(staff: Staff): FormState {
     department: staff.department ?? '',
     role: typeof staff.role === 'string' ? staff.role : '',
     status: staff.status ?? '',
+    tenantId: '',
   };
 }
 
@@ -54,6 +57,7 @@ function toCreatePayload(form: FormState): CreateStaffPayload {
   if (form.department.trim()) payload.department = form.department.trim();
   if (form.role)               payload.role = form.role;
   if (form.status)             payload.status = form.status as Staff['status'];
+  if (form.tenantId)           payload.tenant_id = form.tenantId;
   return payload;
 }
 
@@ -67,10 +71,13 @@ function toUpdatePayload(form: FormState): UpdateStaffPayload {
   };
 }
 
-type FieldErrors = Partial<Record<'name' | 'email' | 'phone', string>>;
+type FieldErrors = Partial<Record<'name' | 'email' | 'phone' | 'tenantId' | 'role', string>>;
 
-function validate(form: FormState): FieldErrors {
+function validate(form: FormState, needsHospital: boolean, isEditing: boolean): FieldErrors {
   const errors: FieldErrors = {};
+  if (!isEditing && !form.role) errors.role = 'Choose a role';
+  // A super admin needs no hospital; every other role belongs to one.
+  if (needsHospital && form.role !== 'super_admin' && !form.tenantId) errors.tenantId = 'Choose a hospital';
   if (!form.name.trim()) errors.name = 'Name is required';
   if (!form.email.trim()) errors.email = 'Email is required';
   else if (!isValidEmail(form.email.trim())) errors.email = 'Enter a valid email address';
@@ -85,14 +92,17 @@ interface StaffFormDialogProps {
   isSubmitting?: boolean;
   submitError?: string | null;
   roleOptions: string[];
+  /** Hospitals to choose from — only passed for super_admin / reseller callers. */
+  hospitalOptions?: { value: string; label: string }[];
   departmentOptions: string[];
   onSubmit: (payload: CreateStaffPayload | UpdateStaffPayload) => void;
 }
 
 export function StaffFormDialog({
-  open, onOpenChange, staff, isSubmitting, submitError, roleOptions, departmentOptions, onSubmit,
+  open, onOpenChange, staff, isSubmitting, submitError, roleOptions, hospitalOptions = [], departmentOptions, onSubmit,
 }: StaffFormDialogProps) {
   const isEditing = !!staff;
+  const needsHospital = !isEditing && hospitalOptions.length > 0;
   const [form, setForm] = useState<FormState>(emptyForm());
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
@@ -114,7 +124,7 @@ export function StaffFormDialog({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isSubmitting) return;
-    const errors = validate(form);
+    const errors = validate(form, needsHospital, isEditing);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -202,14 +212,31 @@ export function StaffFormDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="staff-role">Role</Label>
+              <Label htmlFor="staff-role">Role *</Label>
               <Select value={form.role || undefined} onValueChange={(v) => update('role', v)}>
-                <SelectTrigger id="staff-role"><SelectValue placeholder="Backend default" /></SelectTrigger>
+                <SelectTrigger id="staff-role" aria-invalid={!!fieldErrors.role}><SelectValue placeholder="Choose a role" /></SelectTrigger>
                 <SelectContent>
-                  {roleOptions.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
+                  {roleOptions.map((r) => <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>)}
                 </SelectContent>
               </Select>
+              {fieldErrors.role && <p className="text-xs text-destructive">{fieldErrors.role}</p>}
+              {isEditing && (
+                <p className="text-xs text-muted-foreground">Changing the role signs them out so the new access applies at next login.</p>
+              )}
             </div>
+
+            {needsHospital && form.role !== 'super_admin' && (
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="staff-hospital">Hospital *</Label>
+                <Select value={form.tenantId || undefined} onValueChange={(v) => update('tenantId', v)}>
+                  <SelectTrigger id="staff-hospital" aria-invalid={!!fieldErrors.tenantId}><SelectValue placeholder="Choose a hospital" /></SelectTrigger>
+                  <SelectContent>
+                    {hospitalOptions.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                {fieldErrors.tenantId && <p className="text-xs text-destructive">{fieldErrors.tenantId}</p>}
+              </div>
+            )}
 
             {isEditing && (
               <div className="space-y-1.5">
@@ -221,6 +248,7 @@ export function StaffFormDialog({
                     <SelectItem value="inactive">Inactive</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Inactive staff cannot sign in.</p>
               </div>
             )}
           </div>

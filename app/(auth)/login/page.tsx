@@ -16,6 +16,7 @@ import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { useAuthStore } from '@/store';
 import { authService } from '@/services/auth.service';
 import { getFriendlyErrorMessage } from '@/lib/utils';
+import { isKnownRole } from '@/constants/roles';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
@@ -222,11 +223,16 @@ export default function LoginPage() {
   };
 
   function completeLogin(result: Awaited<ReturnType<typeof authService.login>>) {
-    // Patients have no admin portal — the backend 403s them on every business API, so letting
-    // the session through would land them on a dashboard where nothing loads.
-    if ((result.user.role as string) === 'patient') {
-      console.warn('[COMPLETE-LOGIN] ── BLOCKED: User role is "patient" — admin portal is staff-only.');
-      toast.error('This portal is for staff only.');
+    // Only the official staff roles (constants/roles.ts) get in. The backend 403s every other
+    // role (patient, a blank role, or an old value like "manager"), so letting the session
+    // through would land them on a dashboard where nothing loads.
+    if (!isKnownRole(result.user.role)) {
+      console.warn('[COMPLETE-LOGIN] ── BLOCKED: unrecognised role', result.user.role);
+      toast.error(
+        (result.user.role as string) === 'patient'
+          ? 'This portal is for staff only.'
+          : 'Your account has no valid role. Ask your administrator to set your role.'
+      );
       return;
     }
     const user = {

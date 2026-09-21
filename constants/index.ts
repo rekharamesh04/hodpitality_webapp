@@ -23,14 +23,15 @@ export const STATUS_TYPES = {
   CHECKED_OUT: 'checked_out',
 } as const;
 
-// User Roles
+// User Roles — the full list and helpers live in ./roles (shared with backend + mobile).
 export const USER_ROLES = {
-  ADMIN: 'admin',
-  RESELLER_ADMIN: 'reseller_admin',
+  SUPER_ADMIN: 'super_admin',
+  RESELLER: 'reseller',
   COMPANY_ADMIN: 'company_admin',
-  MANAGER: 'manager',
   STAFF: 'staff',
-  VIEWER: 'viewer',
+  RECEPTIONIST: 'receptionist',
+  DOCTOR: 'doctor',
+  NURSE: 'nurse',
 } as const;
 
 // Date Formats

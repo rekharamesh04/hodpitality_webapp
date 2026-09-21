@@ -38,11 +38,10 @@ export interface NavSection {
   items: NavItem[];
 }
 
-// Role constants for readability
-const ALL_ROLES = undefined; // no restriction
-const ADMIN_ONLY = ['admin', 'super_admin'];
-const ADMIN_AND_RESELLER = ['admin', 'super_admin', 'reseller_admin'];
-const COMPANY_ROLES = ['admin', 'super_admin', 'reseller_admin', 'reseller', 'company_admin'];
+// Role groups — names must match constants/roles.ts (the backend's role list).
+const ADMIN_ONLY = ['super_admin'];
+const ADMIN_AND_RESELLER = ['super_admin', 'reseller'];
+const COMPANY_ROLES = ['super_admin', 'reseller', 'company_admin'];
 
 export const NAV_SECTIONS: NavSection[] = [
   {

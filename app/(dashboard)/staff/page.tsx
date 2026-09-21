@@ -31,6 +31,10 @@ import {
 } from '@/hooks/useStaff';
 import { cn, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { useAuthStore } from '@/store';
+import { useCompanies } from '@/hooks/useCompanies';
+import {
+  assignableRoles, canManageStaff as canRoleManageStaff, canManageStaffMember, roleLabel,
+} from '@/constants/roles';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
 import type { Staff } from '@/types';
 
@@ -41,24 +45,6 @@ function formErrorMessage(err: unknown): string | null {
   if (!err) return null;
   const backendMsg = (err as { backendMessage?: string } | undefined)?.backendMessage;
   return backendMsg || getFriendlyErrorMessage(err, 'Unable to save staff member.');
-}
-
-/** Roles the inviter is allowed to hand out — never equal to or above their own level, except
- * admin/super_admin who can assign anything. Prevents a company_admin from inviting a peer or
- * platform-level admin through this form. */
-function assignableRoles(inviterRole: string | undefined): string[] {
-  switch (inviterRole) {
-    case 'admin':
-    case 'super_admin':
-      return ['admin', 'super_admin', 'reseller_admin', 'reseller', 'company_admin', 'manager', 'staff', 'viewer'];
-    case 'reseller_admin':
-    case 'reseller':
-      return ['company_admin', 'manager', 'staff', 'viewer'];
-    case 'company_admin':
-      return ['manager', 'staff', 'viewer'];
-    default:
-      return [];
-  }
 }
 
 export default function StaffPage() {
@@ -76,12 +62,19 @@ function StaffPageInner() {
 
   const { user } = useAuthStore();
   const userRole = user?.role;
-  // Only these roles manage the staff roster — everyone else (staff, manager, viewer) can
-  // still see the team list but can't invite, edit, delete, or set schedules for colleagues.
-  const canManageStaff =
-    userRole === 'admin' || userRole === 'super_admin' ||
-    userRole === 'reseller_admin' || userRole === 'reseller' ||
-    userRole === 'company_admin';
+  // Only super_admin / reseller / company_admin manage the roster (the backend enforces the
+  // same rule). Desk roles can still see the team list.
+  const canManageStaff = canRoleManageStaff(userRole);
+  // Super admins and resellers work across hospitals, so they must pick which one a new
+  // staff member belongs to. A company_admin always adds to their own hospital.
+  const picksHospital = userRole === 'super_admin' || userRole === 'reseller';
+  const { data: companies } = useCompanies({ enabled: canManageStaff && picksHospital });
+  const hospitalOptions = useMemo(
+    () => (picksHospital ? (companies ?? []) : [])
+      .filter((c) => !!c.tenant_id)
+      .map((c) => ({ value: c.tenant_id as string, label: c.name || (c.tenant_id as string) })),
+    [companies, picksHospital]
+  );
 
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [status, setStatus] = useState(searchParams.get('status') ?? '');
@@ -116,15 +109,8 @@ function StaffPageInner() {
     () => Array.from(new Set(allStaff.map((s) => s.role).filter((r): r is string => !!r && typeof r === 'string'))) as string[],
     [allStaff]
   );
-  // Roles the logged-in user is permitted to hand out via Add/Edit Staff — a fixed, permission-
-  // scoped list, independent of what happens to already exist in the fetched staff page. Also
-  // keeps the staff member being edited selectable even if their role is above the inviter's
-  // own assignable range (e.g. viewing a company_admin's record without downgrading it).
-  const dialogRoleOptions = useMemo(() => {
-    const base = assignableRoles(userRole);
-    const editingRole = editingStaff && typeof editingStaff.role === 'string' ? editingStaff.role : null;
-    return editingRole && !base.includes(editingRole) ? [...base, editingRole] : base;
-  }, [userRole, editingStaff]);
+  // Roles the logged-in user may hand out — the same rule the backend enforces.
+  const dialogRoleOptions = useMemo(() => assignableRoles(userRole), [userRole]);
 
   const filtered = useMemo(() => {
     return allStaff.filter((s) => {
@@ -168,7 +154,7 @@ function StaffPageInner() {
   }
 
   function openCreate() { if (!canManageStaff) return; setEditingStaff(null); setFormOpen(true); }
-  function openEdit(s: Staff) { if (!canManageStaff) return; setEditingStaff(s); setFormOpen(true); }
+  function openEdit(s: Staff) { if (!canManageStaffMember(userRole, s.role)) return; setEditingStaff(s); setFormOpen(true); }
 
   function handleFormSubmit(payload: CreateStaffPayload | UpdateStaffPayload) {
     if (!canManageStaff) return;
@@ -233,7 +219,7 @@ function StaffPageInner() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All roles</SelectItem>
-            {existingRoleValues.map((r) => <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>)}
+            {existingRoleValues.map((r) => <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={status || 'all'} onValueChange={handleStatusChange}>
@@ -317,7 +303,7 @@ function StaffPageInner() {
                           <p className="text-xs text-muted-foreground">{s.phone || '—'}</p>
                         </TableCell>
                         <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{s.department || '—'}</TableCell>
-                        <TableCell className="hidden md:table-cell whitespace-nowrap text-sm capitalize">{typeof s.role === 'string' ? s.role : '—'}</TableCell>
+                        <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{roleLabel(s.role)}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           <StatusBadge status={s.status} className="whitespace-nowrap" />
                         </TableCell>
@@ -335,7 +321,7 @@ function StaffPageInner() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/calendar')}>
                                 <CalendarDays className="mr-2 h-4 w-4" /> View Calendar
                               </DropdownMenuItem>
-                              {canManageStaff && (
+                              {canManageStaffMember(userRole, s.role) && (
                                 <>
                                   <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit(s)}>
                                     <Pencil className="mr-2 h-4 w-4" /> Edit
@@ -380,6 +366,7 @@ function StaffPageInner() {
         isSubmitting={isSubmittingForm}
         submitError={formSubmitError}
         roleOptions={dialogRoleOptions}
+        hospitalOptions={hospitalOptions}
         departmentOptions={departmentOptions}
         onSubmit={handleFormSubmit}
       />
@@ -388,7 +375,7 @@ function StaffPageInner() {
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         title="Delete Staff Member?"
-        description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this staff member'}? This action cannot be undone.`}
+        description={`Remove ${deleteTarget?.name ?? 'this staff member'}? Their login will be disabled and they will be signed out of the web portal and mobile app.`}
         confirmLabel="Delete Staff"
         confirmingLabel="Deleting…"
         destructive

@@ -1,14 +1,8 @@
 export type Status = 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled' | 'confirmed' | 'checked_in' | 'checked_out';
 
-export type UserRole =
-  | 'admin'           // platform owner: sees everything — resellers + companies + all ops
-  | 'super_admin'     // alias for 'admin' accepted from the backend — same access
-  | 'reseller_admin'  // sees companies under their reseller + all ops
-  | 'company_admin'   // sees only their company's ops tabs
-  | 'manager'
-  | 'staff'
-  | 'viewer'
-  | 'reseller';
+// Defined once in constants/roles.ts — the same list the backend and mobile app use.
+export type { UserRole } from '@/constants/roles';
+import type { UserRole } from '@/constants/roles';
 
 export interface User {
   id: string;

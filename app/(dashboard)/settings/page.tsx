@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store';
+import { canManageStaff, roleLabel } from '@/constants/roles';
 import {
   useSettingsProfile,
   useUpdateProfile,
@@ -23,6 +24,8 @@ import {
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
+  // Organisation settings belong to the whole hospital — admins only (the backend enforces this too).
+  const canEditOrg = canManageStaff(user?.role);
 
   // ── Profile ──────────────────────────────────────────────────────────────
   const profileQuery = useSettingsProfile();
@@ -111,13 +114,13 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold sm:text-3xl">Settings</h1>
           <p className="text-muted-foreground">Manage your application settings and preferences</p>
         </div>
-        {user?.role && <Badge variant="outline" className="capitalize">{user.role.replace(/_/g, ' ')}</Badge>}
+        {user?.role && <Badge variant="outline">{roleLabel(user.role)}</Badge>}
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="general"><Settings className="mr-1.5 h-3.5 w-3.5" />General</TabsTrigger>
-          <TabsTrigger value="organization"><Building2 className="mr-1.5 h-3.5 w-3.5" />Organization</TabsTrigger>
+          {canEditOrg && <TabsTrigger value="organization"><Building2 className="mr-1.5 h-3.5 w-3.5" />Organization</TabsTrigger>}
           <TabsTrigger value="notifications"><Bell className="mr-1.5 h-3.5 w-3.5" />Notifications</TabsTrigger>
           <TabsTrigger value="security"><Shield className="mr-1.5 h-3.5 w-3.5" />Security</TabsTrigger>
         </TabsList>
@@ -161,7 +164,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
-                  <Input id="role" value={user?.role?.replace(/_/g, ' ') ?? ''} disabled className="capitalize" />
+                  <Input id="role" value={user?.role ? roleLabel(user.role) : ''} disabled />
                 </div>
               </div>
               <Button onClick={handleProfileSave} loading={updateProfile.isPending} disabled={!profile.name.trim()}>
