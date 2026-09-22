@@ -196,7 +196,12 @@ export interface Hospitality {
   id: string;
   guestId: string;
   guestName: string;
-  type: 'Hotel' | 'Transport' | 'Meal' | 'Airport Pickup' | 'Special Request';
+  /**
+   * Free-form: the options come from the tenant's industry (requestTypes), so a
+   * hospital raises "Ward Service" where a hotel raises "Airport Pickup". The
+   * API accepts any string and never validated this union.
+   */
+  type: string;
   description: string;
   details?: string;
   status: Status;

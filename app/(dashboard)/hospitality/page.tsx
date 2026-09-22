@@ -35,7 +35,8 @@ import { useActionParam } from '@/hooks/useActionParam';
 import type { Guest, Hospitality, Status } from '@/types';
 import { useTerminology } from '@/hooks';
 
-const TYPES: Hospitality['type'][] = ['Hotel', 'Transport', 'Meal', 'Airport Pickup', 'Special Request'];
+// The kinds of request a tenant can raise come from its industry: a hospital
+// was being offered "Hotel" and "Airport Pickup". Hotels keep the same list.
 // The backend's update_hospitality_status doesn't validate status server-side, but the rest of
 // this app only ever uses these four values for booking-style records (see mock data / StatusBadge
 // color map) — sticking to them keeps status colors and meaning consistent app-wide.
@@ -62,6 +63,7 @@ export default function HospitalityPage() {
 
 function HospitalityPageInner() {
   const t = useTerminology();
+  const TYPES = t.requestTypes;
   const router = useRouter();
   const [status, setStatus] = useState('');
   const [type, setType] = useState('');
