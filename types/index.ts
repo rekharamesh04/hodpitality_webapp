@@ -57,7 +57,14 @@ export interface Guest {
   email: string;
   phone: string;
   address?: string;
-  category: 'VIP' | 'Speaker' | 'Delegate' | 'Staff' | 'Press' | 'regular' | 'standard';
+  /**
+   * Free-form: the options come from the tenant's industry (constants/industry.ts),
+   * so a hospital stores "Inpatient" where a hotel stores "VIP". It was a closed
+   * union of the old fixed vocabulary, which every industry value had to be cast
+   * through — the type claimed a guarantee the data had stopped honouring.
+   * Readers must tolerate a value from another industry or an import.
+   */
+  category: string;
   status: Status;
   checkedIn: boolean;
   checkInTime?: string;
@@ -313,7 +320,11 @@ export interface Report {
 
 // ============ Hospitality Spa / Appointment types ============
 
-export type MembershipTier = 'Founding' | 'Signature' | 'Standard';
+/**
+ * Free-form for the same reason as Guest.category: the tiers come from the
+ * tenant's industry, so an airline stores "Platinum" and a bank "Private".
+ */
+export type MembershipTier = string;
 export type AppointmentStatus = 'scheduled' | 'checked_in' | 'completed' | 'cancelled' | 'no_show';
 
 export interface Customer {

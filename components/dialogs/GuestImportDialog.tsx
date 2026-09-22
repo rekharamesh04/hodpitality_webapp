@@ -88,7 +88,7 @@ function prepareRows(text: string, existingEmails: Set<string>, categories: read
     fields.forEach((field, col) => {
       const value = cells[col]?.trim();
       if (!field || !value) return;
-      if (field === 'category') row.category = (categoryByLower.get(value.toLowerCase()) ?? value) as Guest['category'];
+      if (field === 'category') row.category = categoryByLower.get(value.toLowerCase()) ?? value;
       else row[field] = value;
     });
     const name = row.name ?? '';

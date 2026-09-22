@@ -56,6 +56,20 @@ describe('the registry', () => {
     expect(pack.person.many).not.toBe(pack.account.many);
   });
 
+  it('declares priority values that exist in its own vocabulary', () => {
+    // A priority value absent from categories and tiers could never match.
+    for (const slug of INDUSTRY_SLUGS) {
+      const pack = INDUSTRIES[slug];
+      const available = new Set(
+        [...pack.categories, ...pack.tiers].map((v) => v.toLowerCase()),
+      );
+      expect(pack.priority.length, `${slug} has no priority values`).toBeGreaterThan(0);
+      for (const value of pack.priority) {
+        expect(available, `${slug}: '${value}' matches nothing`).toContain(value.toLowerCase());
+      }
+    }
+  });
+
   it('offers every module on the default industry', () => {
     // An unclassified tenant must not silently lose a page it already used.
     const all = new Set(INDUSTRY_SLUGS.flatMap((s) => [...INDUSTRIES[s].modules]));

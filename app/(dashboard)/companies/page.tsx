@@ -40,7 +40,8 @@ import { useAuthStore } from '@/store';
 import { getInitials, formatDate, isValidEmail, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateCompanyPayload, UpdateCompanyPayload } from '@/services/company.service';
 import type { Company } from '@/types';
-import { INDUSTRY_OPTIONS, industryLabel, normalizeIndustry, type IndustrySlug } from '@/constants/industry';
+import { industryLabel, normalizeIndustry, type IndustrySlug } from '@/constants/industry';
+import { useIndustries } from '@/hooks';
 
 function getCompanyId(c: Company): string {
   return c.id ?? (c.PK ? c.PK.replace('COMPANY#', '') : '') ?? '';
@@ -102,6 +103,7 @@ function CompaniesPageInner({
 }: { isAdmin: boolean; isResellerAdmin: boolean; isCompanyAdmin: boolean }) {
   const canCreate = isAdmin || isResellerAdmin;
   const canSetIndustry = isAdmin || isResellerAdmin;
+  const { options: industryOptions } = useIndustries();
   const canDelete = isAdmin || isResellerAdmin;
   const canInviteAdmin = isAdmin || isResellerAdmin;
 
@@ -413,7 +415,7 @@ function CompaniesPageInner({
                   <Select value={form.industry} onValueChange={(v) => updateField('industry', v as IndustrySlug)}>
                     <SelectTrigger id="company-industry"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {INDUSTRY_OPTIONS.map((o) => (
+                      {industryOptions.map((o) => (
                         <SelectItem key={o.slug} value={o.slug}>{o.label}</SelectItem>
                       ))}
                     </SelectContent>

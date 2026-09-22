@@ -44,6 +44,8 @@ export interface IndustryPack {
   assistant: string;
   categories: readonly string[];
   tiers: readonly string[];
+  /** Category or tier values meaning "this person needs special attention". */
+  priority: readonly string[];
   modules: readonly IndustryModule[];
   /** The service menu a tenant starts with, before it saves its own. */
   services: readonly IndustryService[];
@@ -70,6 +72,7 @@ export const INDUSTRIES = {
     assistant: 'Nurse',
     categories: ['Inpatient', 'Outpatient', 'Emergency', 'Day Care', 'regular'],
     tiers: ['Priority', 'Standard'],
+    priority: ['Emergency', 'Priority'],
     modules: ['appointments', 'events', 'hospitality', 'prescriptions', 'payments', 'registrations'],
     services: [
       { id: 'svc-consultation', name: 'Consultation', duration: 30, category: 'clinic' },
@@ -89,6 +92,7 @@ export const INDUSTRIES = {
     assistant: 'Attendant',
     categories: ['VIP', 'Corporate', 'Leisure', 'Group', 'regular'],
     tiers: ['Founding', 'Signature', 'Standard'],
+    priority: ['VIP', 'Founding', 'Signature'],
     modules: ['appointments', 'events', 'hospitality', 'payments', 'registrations'],
     services: [
       { id: 'svc-check-in', name: 'Guest Check-in', duration: 15, category: 'front-desk' },
@@ -109,6 +113,7 @@ export const INDUSTRIES = {
     assistant: 'Assistant',
     categories: ['Full-time', 'Part-time', 'Exchange', 'Alumni', 'regular'],
     tiers: ['Scholarship', 'Standard'],
+    priority: ['Scholarship'],
     modules: ['appointments', 'events', 'payments', 'registrations'],
     services: [
       { id: 'svc-enrolment', name: 'Enrolment', duration: 30, category: 'admin' },
@@ -128,6 +133,7 @@ export const INDUSTRIES = {
     assistant: 'Assistant',
     categories: ['Premium', 'Standard', 'Trial', 'Day Pass', 'regular'],
     tiers: ['Founding', 'Premium', 'Standard'],
+    priority: ['Premium', 'Founding'],
     modules: ['appointments', 'events', 'payments', 'registrations'],
     services: [
       { id: 'svc-induction', name: 'Gym Induction', duration: 45, category: 'onboarding' },
@@ -147,6 +153,7 @@ export const INDUSTRIES = {
     assistant: 'Associate',
     categories: ['Retainer', 'Project', 'Consultation', 'regular'],
     tiers: ['Key Account', 'Standard'],
+    priority: ['Retainer', 'Key Account'],
     modules: ['appointments', 'payments', 'registrations'],
     services: [
       { id: 'svc-consultation', name: 'Consultation', duration: 45, category: 'advisory' },
@@ -165,6 +172,7 @@ export const INDUSTRIES = {
     assistant: 'Associate',
     categories: ['Loyalty', 'Wholesale', 'Walk-in', 'regular'],
     tiers: ['Gold', 'Silver', 'Standard'],
+    priority: ['Loyalty', 'Gold'],
     modules: ['appointments', 'payments'],
     services: [
       { id: 'svc-personal-shopping', name: 'Personal Shopping', duration: 45, category: 'retail' },
@@ -184,6 +192,7 @@ export const INDUSTRIES = {
     assistant: 'Coordinator',
     categories: ['Owner', 'Tenant', 'Prospect', 'regular'],
     tiers: ['Priority', 'Standard'],
+    priority: ['Owner', 'Priority'],
     modules: ['appointments', 'payments', 'registrations'],
     services: [
       { id: 'svc-viewing', name: 'Property Viewing', duration: 30, category: 'lettings' },
@@ -203,6 +212,7 @@ export const INDUSTRIES = {
     assistant: 'Clerk',
     categories: ['Resident', 'Non-resident', 'Business', 'regular'],
     tiers: ['Priority', 'Standard'],
+    priority: ['Priority'],
     modules: ['appointments', 'registrations'],
     services: [
       { id: 'svc-application', name: 'Application Appointment', duration: 30, category: 'counter' },
@@ -221,6 +231,7 @@ export const INDUSTRIES = {
     assistant: 'Crew',
     categories: ['VIP', 'Speaker', 'Delegate', 'Press', 'Exhibitor', 'regular'],
     tiers: ['Founding', 'Signature', 'Standard'],
+    priority: ['VIP', 'Speaker', 'Founding', 'Signature'],
     modules: ['appointments', 'events', 'payments', 'registrations'],
     services: [
       { id: 'svc-check-in', name: 'Attendee Check-in', duration: 10, category: 'front-desk' },
@@ -240,6 +251,7 @@ export const INDUSTRIES = {
     assistant: 'Attendant',
     categories: ['First', 'Business', 'Economy', 'Crew', 'regular'],
     tiers: ['Platinum', 'Gold', 'Standard'],
+    priority: ['First', 'Platinum'],
     modules: ['payments', 'registrations'],
     services: [
       { id: 'svc-boarding', name: 'Boarding', duration: 15, category: 'gate' },
@@ -258,6 +270,7 @@ export const INDUSTRIES = {
     assistant: 'Coordinator',
     categories: ['Visitor', 'Contractor', 'Interview', 'Vendor', 'regular'],
     tiers: ['Priority', 'Standard'],
+    priority: ['Priority'],
     modules: ['appointments', 'events', 'registrations'],
     services: [
       { id: 'svc-visitor-check-in', name: 'Visitor Check-in', duration: 10, category: 'front-desk' },
@@ -277,6 +290,7 @@ export const INDUSTRIES = {
     assistant: 'Teller',
     categories: ['Priority', 'Business', 'Retail', 'regular'],
     tiers: ['Private', 'Priority', 'Standard'],
+    priority: ['Priority', 'Private'],
     modules: ['appointments', 'payments', 'registrations'],
     services: [
       { id: 'svc-account-opening', name: 'Account Opening', duration: 45, category: 'branch' },
@@ -296,6 +310,7 @@ export const INDUSTRIES = {
     assistant: 'Operator',
     categories: ['Employee', 'Contractor', 'Vendor', 'Auditor', 'regular'],
     tiers: ['Permanent', 'Temporary'],
+    priority: ['Auditor'],
     modules: ['events', 'registrations'],
     services: [
       { id: 'svc-site-induction', name: 'Site Induction', duration: 45, category: 'safety' },
@@ -314,6 +329,7 @@ export const INDUSTRIES = {
     assistant: 'Assistant',
     categories: ['Member', 'Walk-in', 'Package', 'regular'],
     tiers: ['Founding', 'Signature', 'Standard'],
+    priority: ['Member', 'Founding', 'Signature'],
     modules: ['appointments', 'hospitality', 'payments'],
     services: [
       { id: 'svc-consultation', name: 'Consultation', duration: 20, category: 'wellness' },
@@ -333,6 +349,7 @@ export const INDUSTRIES = {
     assistant: 'Volunteer',
     categories: ['Member', 'Volunteer', 'Visitor', 'regular'],
     tiers: ['Patron', 'Standard'],
+    priority: ['Patron'],
     modules: ['events', 'registrations'],
     services: [
       { id: 'svc-membership', name: 'Membership Sign-up', duration: 20, category: 'admin' },
@@ -351,6 +368,7 @@ export const INDUSTRIES = {
     assistant: 'Assistant',
     categories: ['VIP', 'Standard', 'regular'],
     tiers: ['Founding', 'Signature', 'Standard'],
+    priority: ['VIP', 'Founding', 'Signature'],
     modules: ['appointments', 'events', 'hospitality', 'prescriptions', 'payments', 'registrations'],
     services: [
       { id: 'svc-check-in', name: 'Visitor Check-in', duration: 15, category: 'front-desk' },

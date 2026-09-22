@@ -59,7 +59,7 @@ function toPayload(form: FormState, isEditing: boolean): CreateGuestPayload {
     phone: form.phone.trim(),
     address: form.address.trim(),
   };
-  if (form.category)                  payload.category = form.category as Guest['category'];
+  if (form.category)                  payload.category = form.category;
   if (isEditing || form.notes.trim()) payload.notes = form.notes.trim();
   return payload;
 }

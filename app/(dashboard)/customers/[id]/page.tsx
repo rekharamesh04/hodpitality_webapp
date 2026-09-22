@@ -173,7 +173,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
               <StatChip icon={Wallet} label="Balance" value={customer.balance !== undefined ? formatCurrency(customer.balance) : '—'} />
               <StatChip icon={Repeat} label="Visits" value={customer.visits !== undefined ? String(customer.visits) : '—'} />
               <StatChip icon={CalendarClock} label="Next Appointment" value={customer.nextAppointment ? formatDate(customer.nextAppointment, 'MMM dd, yyyy') : '—'} />
-              <StatChip icon={Clock} label="Customer Since" value={createdAt ? formatDate(createdAt) : '—'} />
+              <StatChip icon={Clock} label={`${t.account.one} Since`} value={createdAt ? formatDate(createdAt) : '—'} />
             </div>
           </CardContent>
         </Card>
