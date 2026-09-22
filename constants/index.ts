@@ -187,6 +187,8 @@ export const ANIMATION = {
   SLOW: 0.35,
 } as const;
 
+export * from './industry';
+export * from './badge-tone';
 export * from './navigation';
 export * from './customer';
 export * from './appointment';

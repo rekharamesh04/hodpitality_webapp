@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
 import { isValidEmail, isValidPhone } from '@/lib/utils';
-import { CUSTOMER_TIERS, PREFERRED_CONTACT_OPTIONS } from '@/constants';
+import { customerTierOptions, PREFERRED_CONTACT_OPTIONS } from '@/constants';
+import { useTerminology } from '@/hooks';
 import type { Customer, CreateCustomerPayload, UpdateCustomerPayload } from '@/services/customer.service';
 
 interface FormState {
@@ -101,6 +102,8 @@ interface CustomerFormDialogProps {
 export function CustomerFormDialog({
   open, onOpenChange, customer, isSubmitting, submitError, onSubmit,
 }: CustomerFormDialogProps) {
+  const t = useTerminology();
+  const industry = t.slug;
   const isEditing = !!customer;
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -136,7 +139,7 @@ export function CustomerFormDialog({
     <Dialog open={open} onOpenChange={(v) => !isSubmitting && onOpenChange(v)}>
       <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
+          <DialogTitle>{isEditing ? `Edit ${t.account.one}` : `Add ${t.account.one}`}</DialogTitle>
           <DialogDescription>
             {isEditing ? 'Update this customer’s information.' : 'Add a new customer record.'}
           </DialogDescription>
@@ -210,7 +213,7 @@ export function CustomerFormDialog({
               <Select value={form.tier || undefined} onValueChange={(v) => update('tier', v)}>
                 <SelectTrigger id="cust-tier"><SelectValue placeholder="Select tier" /></SelectTrigger>
                 <SelectContent>
-                  {CUSTOMER_TIERS.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {customerTierOptions(industry, form.tier).map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -251,7 +254,7 @@ export function CustomerFormDialog({
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting}>
-              {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Create Customer'}
+              {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : `Create ${t.account.one}`}
             </Button>
           </DialogFooter>
         </form>

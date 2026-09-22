@@ -33,6 +33,7 @@ import {
 import { cn, formatDate, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { CreateEventPayload, UpdateEventPayload } from '@/services/event.service';
 import type { Event } from '@/types';
+import { useTerminology } from '@/hooks';
 
 function getEventId(e: Event): string {
   return e.id ?? (e.PK ? e.PK.replace('EVENT#', '') : '') ?? '';
@@ -57,6 +58,7 @@ export default function EventsPage() {
 }
 
 function EventsPageInner() {
+  const t = useTerminology();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -389,6 +391,7 @@ function EventsPageInner() {
 }
 
 function EventsPageSkeleton() {
+  const t = useTerminology();
   return (
     <div className="space-y-6">
       <div>

@@ -35,6 +35,7 @@ import { useCompanies } from '@/hooks/useCompanies';
 import {
   assignableRoles, canManageStaff as canRoleManageStaff, canManageStaffMember, roleLabel,
 } from '@/constants/roles';
+import { useIndustry } from '@/hooks';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
 import type { Staff } from '@/types';
 
@@ -56,6 +57,7 @@ export default function StaffPage() {
 }
 
 function StaffPageInner() {
+  const industry = useIndustry();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -219,7 +221,7 @@ function StaffPageInner() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All roles</SelectItem>
-            {existingRoleValues.map((r) => <SelectItem key={r} value={r}>{roleLabel(r)}</SelectItem>)}
+            {existingRoleValues.map((r) => <SelectItem key={r} value={r}>{roleLabel(r, industry)}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={status || 'all'} onValueChange={handleStatusChange}>
@@ -303,7 +305,7 @@ function StaffPageInner() {
                           <p className="text-xs text-muted-foreground">{s.phone || '—'}</p>
                         </TableCell>
                         <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{s.department || '—'}</TableCell>
-                        <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{roleLabel(s.role)}</TableCell>
+                        <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{roleLabel(s.role, industry)}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           <StatusBadge status={s.status} className="whitespace-nowrap" />
                         </TableCell>

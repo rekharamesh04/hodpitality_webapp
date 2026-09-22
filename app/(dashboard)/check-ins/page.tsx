@@ -41,6 +41,7 @@ import { useActionParam } from '@/hooks/useActionParam';
 import { CHECKIN_METHOD_LABELS } from '@/constants';
 import { cn, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { CheckIn, Guest, Appointment } from '@/types';
+import { useTerminology } from '@/hooks';
 
 type CheckMode = 'quick' | 'qr' | 'face' | null;
 
@@ -80,6 +81,7 @@ export default function CheckInsPage() {
 }
 
 function CheckInsPageInner() {
+  const t = useTerminology();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -288,7 +290,7 @@ function CheckInsPageInner() {
       {/* Filters */}
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <SearchInput
-          placeholder="Search guest name, email or phone…"
+          placeholder={`Search ${t.person.one.toLowerCase()} name, email or phone…`}
           defaultValue={search}
           onSearch={handleSearch}
           className="max-w-sm"
@@ -355,7 +357,7 @@ function CheckInsPageInner() {
                 <EmptyState
                   icon={UserCheck}
                   title="No check-ins yet"
-                  description="Guest check-ins will show up here as they happen."
+                  description={`${t.person.one} check-ins will show up here as they happen.`}
                   action={{ label: 'Check In', onClick: () => setCheckMode('quick') }}
                 />
               )}
@@ -365,7 +367,7 @@ function CheckInsPageInner() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Guest</TableHead>
+                    <TableHead>{t.person.one}</TableHead>
                     <TableHead className="hidden md:table-cell">Event</TableHead>
                     <TableHead className="hidden lg:table-cell">Appointment</TableHead>
                     <TableHead>Method</TableHead>
@@ -498,7 +500,7 @@ function CheckInsPageInner() {
           <DialogHeader><DialogTitle>Quick Check-in</DialogTitle></DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1">
-              <Label>Guest</Label>
+              <Label>{t.person.one}</Label>
               <GuestCombobox selected={selectedGuest} onSelectGuest={setSelectedGuest} disabled={quickCheckIn.isPending} />
             </div>
           </div>
@@ -541,7 +543,7 @@ function CheckInsPageInner() {
         open={checkMode === 'face'}
         onOpenChange={(v) => !v && setCheckMode(null)}
         title="Facial Recognition Check-in"
-        description="Capture a clear front-facing photo to identify the guest."
+        description={`Capture a clear front-facing photo to identify the ${t.person.one.toLowerCase()}.`}
         submitLabel="Check In"
         isSubmitting={facialCheckIn.isPending}
         onSubmit={handleFaceCheckIn}

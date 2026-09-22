@@ -1,13 +1,42 @@
-/** The application's existing customer tier vocabulary (see lib/mock-data.ts and the legacy customer profile view). */
-export const CUSTOMER_TIERS = ['Founding', 'Signature', 'Standard'] as const;
+/**
+ * The tier vocabulary for person records.
+ *
+ * These used to be one fixed list — Founding, Signature, Standard — taken from
+ * the spa customer profile. The options now come from the tenant's industry
+ * (see ./industry), so an airline offers Platinum and Gold while a spa still
+ * offers Founding and Signature.
+ *
+ * The stored value is unchanged by any of this: a row keeps its tier when the
+ * tenant is reclassified, so every reader here tolerates a value that is in no
+ * current list.
+ */
+import { badgeToneClass } from './badge-tone';
+import { industryPack } from './industry';
 
-export type CustomerTierValue = (typeof CUSTOMER_TIERS)[number];
+/** The tiers offered when creating or editing a record in this industry. */
+export function customerTiers(industry: unknown): readonly string[] {
+  return industryPack(industry).tiers;
+}
 
-export const TIER_BADGE_CLASSES: Record<string, string> = {
-  Founding:  'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800',
-  Signature: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800',
-  Standard:  'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700',
-};
+/** Badge classes for a stored tier. Unknown values render neutral. */
+export function tierBadgeClass(tier: unknown, industry: unknown): string {
+  return badgeToneClass(tier, customerTiers(industry));
+}
 
-/** The application's existing preferred-contact vocabulary (see the spa Customer profile type). */
+/**
+ * The tiers a record may be assigned, with any value the record already holds
+ * folded in, so a legacy tier does not vanish from the picker and get dropped
+ * on the next save.
+ */
+export function customerTierOptions(industry: unknown, current?: unknown): readonly string[] {
+  const options = customerTiers(industry);
+  if (typeof current !== 'string' || !current.trim()) return options;
+  const exists = options.some((o) => o.toLowerCase() === current.trim().toLowerCase());
+  return exists ? options : [...options, current.trim()];
+}
+
+/**
+ * How someone prefers to be contacted. Not industry vocabulary — a phone call
+ * is a phone call in every industry — so this stays a fixed list.
+ */
 export const PREFERRED_CONTACT_OPTIONS = ['Email', 'SMS', 'Call'] as const;

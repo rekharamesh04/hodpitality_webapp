@@ -6,6 +6,7 @@ import { MobileNavDrawer, MobileTabBar } from '@/components/layout/MobileNav';
 import { CommandPalette } from '@/components/common/CommandPalette';
 import { Loading } from '@/components/common/Loading';
 import { useAuthStore } from '@/store';
+import { useSyncIdentity } from '@/hooks';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -16,6 +17,9 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthStore();
+  // Picks up a reclassification made while this session was open, so the
+  // vocabulary does not stay stale until the next sign-in.
+  useSyncIdentity();
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {

@@ -26,7 +26,8 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/common/SkeletonLoader';
 import { Badge } from '@/components/ui/badge';
 import { cn, formatDate, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
-import { GUEST_CATEGORY_BADGE_CLASSES } from '@/constants';
+import { guestCategoryBadgeClass } from '@/constants';
+import { useTerminology } from '@/hooks';
 import {
   useRegistrations, useConfirmRegistration, useDeleteRegistration,
 } from '@/hooks/useRegistrations';
@@ -46,6 +47,8 @@ export default function RegistrationsPage() {
 }
 
 function RegistrationsPageInner() {
+  const t = useTerminology();
+  const industry = t.slug;
   const router = useRouter();
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<Registration | null>(null);
@@ -142,7 +145,7 @@ function RegistrationsPageInner() {
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <SearchInput
           key={searchResetKey}
-          placeholder="Search guest, email or event…"
+          placeholder={`Search ${t.person.one.toLowerCase()}, email or event…`}
           defaultValue={search}
           onSearch={(v) => { setSearch(v); setPage(1); }}
           className="w-full sm:max-w-xs"
@@ -201,7 +204,7 @@ function RegistrationsPageInner() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="hidden lg:table-cell">Registration ID</TableHead>
-                    <TableHead>Guest</TableHead>
+                    <TableHead>{t.person.one}</TableHead>
                     <TableHead className="hidden sm:table-cell">Event</TableHead>
                     <TableHead className="hidden md:table-cell">Category</TableHead>
                     <TableHead className="hidden md:table-cell">Registered</TableHead>
@@ -222,7 +225,7 @@ function RegistrationsPageInner() {
                       <TableCell className="hidden sm:table-cell truncate max-w-[140px]">{reg.event}</TableCell>
                       <TableCell className="hidden md:table-cell">
                         {reg.category ? (
-                          <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold', GUEST_CATEGORY_BADGE_CLASSES[reg.category] ?? GUEST_CATEGORY_BADGE_CLASSES.regular)}>
+                          <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold', guestCategoryBadgeClass(reg.category, industry))}>
                             {reg.category}
                           </span>
                         ) : (

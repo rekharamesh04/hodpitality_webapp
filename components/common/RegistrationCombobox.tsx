@@ -10,6 +10,7 @@ import {
 import { useRegistrations } from '@/hooks/useRegistrations';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { Registration } from '@/types';
+import { useTerminology } from '@/hooks';
 
 interface RegistrationComboboxProps {
   selected: Registration | null;
@@ -20,6 +21,7 @@ interface RegistrationComboboxProps {
 }
 
 export function RegistrationCombobox({ selected, onSelect, disabled, unpaidOnly = true }: RegistrationComboboxProps) {
+  const t = useTerminology();
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { data, isLoading } = useRegistrations({});
@@ -62,7 +64,7 @@ export function RegistrationCombobox({ selected, onSelect, disabled, unpaidOnly 
       </PopoverTrigger>
       <PopoverContent className="w-[--radix-popover-trigger-width] min-w-[320px] p-0" align="start">
         <Command shouldFilter={false}>
-          <CommandInput placeholder="Search guest, email or event…" value={search} onValueChange={setSearch} />
+          <CommandInput placeholder={`Search ${t.person.one.toLowerCase()}, email or event…`} value={search} onValueChange={setSearch} />
           <CommandList>
             {isLoading ? (
               <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">

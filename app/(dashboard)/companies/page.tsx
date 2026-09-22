@@ -40,6 +40,7 @@ import { useAuthStore } from '@/store';
 import { getInitials, formatDate, isValidEmail, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateCompanyPayload, UpdateCompanyPayload } from '@/services/company.service';
 import type { Company } from '@/types';
+import { INDUSTRY_OPTIONS, industryLabel, normalizeIndustry, type IndustrySlug } from '@/constants/industry';
 
 function getCompanyId(c: Company): string {
   return c.id ?? (c.PK ? c.PK.replace('COMPANY#', '') : '') ?? '';
@@ -49,12 +50,18 @@ interface FormState {
   name: string;
   email: string;
   resellerId: string;
+  industry: IndustrySlug;
 }
 function emptyForm(): FormState {
-  return { name: '', email: '', resellerId: '' };
+  return { name: '', email: '', resellerId: '', industry: 'other' };
 }
 function toFormState(c: Company): FormState {
-  return { name: c.name ?? '', email: c.email ?? '', resellerId: c.reseller_id ?? '' };
+  return {
+    name: c.name ?? '',
+    email: c.email ?? '',
+    resellerId: c.reseller_id ?? '',
+    industry: normalizeIndustry(c.industry),
+  };
 }
 type FieldErrors = Partial<Record<'name' | 'email', string>>;
 function validate(form: FormState): FieldErrors {
@@ -94,6 +101,7 @@ function CompaniesPageInner({
   isAdmin, isResellerAdmin, isCompanyAdmin,
 }: { isAdmin: boolean; isResellerAdmin: boolean; isCompanyAdmin: boolean }) {
   const canCreate = isAdmin || isResellerAdmin;
+  const canSetIndustry = isAdmin || isResellerAdmin;
   const canDelete = isAdmin || isResellerAdmin;
   const canInviteAdmin = isAdmin || isResellerAdmin;
 
@@ -170,9 +178,12 @@ function CompaniesPageInner({
     }
     if (editing) {
       const payload: UpdateCompanyPayload = { name: form.name.trim(), email: form.email.trim() || undefined };
+      // A company_admin cannot reclassify its own tenant, and the backend
+      // refuses the attempt, so the field is only sent by someone who may set it.
+      if (canSetIndustry && form.industry !== normalizeIndustry(editing.industry)) payload.industry = form.industry;
       updateMutation.mutate({ id: getCompanyId(editing), data: payload }, { onSuccess: () => setFormOpen(false) });
     } else {
-      const payload: CreateCompanyPayload = { name: form.name.trim() };
+      const payload: CreateCompanyPayload = { name: form.name.trim(), industry: form.industry };
       if (form.email.trim()) payload.email = form.email.trim();
       if (isAdmin && form.resellerId) payload.reseller_id = form.resellerId;
       createMutation.mutate(payload, { onSuccess: () => setFormOpen(false) });
@@ -269,6 +280,7 @@ function CompaniesPageInner({
                   <TableRow>
                     <TableHead>Company</TableHead>
                     <TableHead className="hidden sm:table-cell">Email</TableHead>
+                    <TableHead className="hidden lg:table-cell">Industry</TableHead>
                     {isAdmin && <TableHead className="hidden md:table-cell">Reseller</TableHead>}
                     {hasStatusData && <TableHead>Status</TableHead>}
                     <TableHead className="hidden md:table-cell">Created</TableHead>
@@ -292,6 +304,7 @@ function CompaniesPageInner({
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell text-sm truncate max-w-[200px]">{c.email || '—'}</TableCell>
+                        <TableCell className="hidden lg:table-cell text-sm truncate max-w-[180px]">{industryLabel(c.industry)}</TableCell>
                         {isAdmin && (
                           <TableCell className="hidden md:table-cell text-sm truncate max-w-[160px]">{resellerName}</TableCell>
                         )}
@@ -394,6 +407,23 @@ function CompaniesPageInner({
                   <p id="company-email-hint" className="text-xs text-muted-foreground">Sends a company admin invite to this address.</p>
                 )}
               </div>
+              {canSetIndustry && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="company-industry">Industry</Label>
+                  <Select value={form.industry} onValueChange={(v) => updateField('industry', v as IndustrySlug)}>
+                    <SelectTrigger id="company-industry"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {INDUSTRY_OPTIONS.map((o) => (
+                        <SelectItem key={o.slug} value={o.slug}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Decides what this company&rsquo;s staff see people, visits and places called.
+                    {editing ? ' Changing it renames labels only — no records are altered.' : ''}
+                  </p>
+                </div>
+              )}
               {!editing && isAdmin && (
                 <div className="space-y-1.5">
                   <Label htmlFor="company-reseller">Assign to Reseller</Label>
@@ -428,6 +458,7 @@ function CompaniesPageInner({
           {viewing && (
             <div className="mt-6 space-y-5">
               <DetailRow icon={Mail} label="Email" value={viewing.email} />
+              <DetailRow icon={Briefcase} label="Industry" value={industryLabel(viewing.industry)} />
               {isAdmin && (
                 <DetailRow
                   icon={Building2}
@@ -475,7 +506,7 @@ function CompaniesPageInner({
                 type="email"
                 value={inviteForm.email}
                 onChange={(e) => setInviteForm((f) => ({ ...f, email: e.target.value }))}
-                placeholder="admin@hospital.example"
+                placeholder="admin@company.example"
               />
             </div>
             <p className="text-xs text-muted-foreground">

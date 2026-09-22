@@ -2,6 +2,7 @@ import api from '@/lib/axios';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { Company } from '@/types';
+import type { IndustrySlug } from '@/constants/industry';
 
 export interface CreateCompanyPayload {
   name: string;
@@ -10,9 +11,19 @@ export interface CreateCompanyPayload {
   /** Super-admin-only: assigns the new company to a specific reseller. Reseller users never
    * send this — the backend derives it from the authenticated caller's own tenant. */
   reseller_id?: string;
+  /**
+   * Decides the vocabulary this tenant's staff see. Omitted means the backend's
+   * neutral default; an unknown slug is refused with a 400 rather than defaulted,
+   * so a typo cannot silently mislabel a whole tenant.
+   */
+  industry?: IndustrySlug;
 }
 
-export type UpdateCompanyPayload = Pick<Partial<CreateCompanyPayload>, 'name' | 'email'>;
+/**
+ * `industry` is accepted here but the backend refuses it from a `company_admin`
+ * — reclassifying a tenant is the account manager's call, not the tenant's.
+ */
+export type UpdateCompanyPayload = Pick<Partial<CreateCompanyPayload>, 'name' | 'email' | 'industry'>;
 
 export const companyService = {
   /**

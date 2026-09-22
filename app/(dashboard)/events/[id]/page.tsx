@@ -26,6 +26,7 @@ import { usePayments } from '@/hooks/usePayments';
 import { Badge } from '@/components/ui/badge';
 import { getInitials, formatDate, formatCurrency, formatCheckInTimestamp, getFriendlyErrorMessage } from '@/lib/utils';
 import type { UpdateEventPayload } from '@/services/event.service';
+import { useTerminology } from '@/hooks';
 
 function methodLabel(ci: { checkInMethod?: string; method?: string }): string {
   const raw = ci.checkInMethod ?? ci.method ?? '';
@@ -45,6 +46,7 @@ function getCheckInGuestId(ciGuestId?: string): string {
 }
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTerminology();
   const { id } = use(params);
   const router = useRouter();
 
@@ -270,7 +272,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
               ))}
             </div>
           ) : registrations.length === 0 ? (
-            <EmptyState icon={ClipboardList} title="No registrations yet" description="Guests who register for this event will appear here." />
+            <EmptyState icon={ClipboardList} title="No registrations yet" description={`${t.person.many} who register for this event will appear here.`} />
           ) : (
             <div className="space-y-2">
               {registrations.map((reg) => (
@@ -322,7 +324,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
           ) : attendeesError ? (
             <ErrorState title="Unable to load attendees" message="Please try again." />
           ) : eventAttendees.length === 0 ? (
-            <EmptyState icon={UserCheck} title="No check-ins yet" description="Guests who check in to this event will appear here." />
+            <EmptyState icon={UserCheck} title="No check-ins yet" description={`${t.person.many} who check in to this event will appear here.`} />
           ) : (
             <div className="space-y-2">
               {eventAttendees.map((ci) => {

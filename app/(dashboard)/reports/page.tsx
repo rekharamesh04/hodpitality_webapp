@@ -21,6 +21,7 @@ import { useActionParam } from '@/hooks/useActionParam';
 import { useDashboardStats, useRevenueTrendChart } from '@/hooks/useReports';
 import { exportToCSV, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { DashboardStats } from '@/types';
+import { useTerminology } from '@/hooks';
 
 const METRIC_LABELS: Record<keyof DashboardStats, string> = {
   todayCheckIns: "Today's Check-ins",
@@ -48,6 +49,7 @@ export default function ReportsPage() {
 }
 
 function ReportsPageInner() {
+  const t = useTerminology();
   const [generateOpen, setGenerateOpen] = useState(false);
   useActionParam({ generate: () => setGenerateOpen(true) });
   const { data: stats, isLoading, isError, error, refetch, isFetching } = useDashboardStats();
@@ -124,7 +126,7 @@ function ReportsPageInner() {
             ) : (
               <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                 <StatsCard title="Today's Check-ins" value={stats!.todayCheckIns} icon={UserCheck} />
-                <StatsCard title="Total Guests" value={stats!.totalGuests} icon={Users} />
+                <StatsCard title={`Total ${t.person.many}`} value={stats!.totalGuests} icon={Users} />
                 <StatsCard title="Total Events" value={stats!.totalEvents} icon={CalendarDays} />
                 <StatsCard title="Venue Occupancy" value={`${stats!.venueOccupancy}%`} icon={Percent} />
               </div>

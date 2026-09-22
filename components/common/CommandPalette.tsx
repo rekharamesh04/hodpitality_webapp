@@ -12,7 +12,8 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { useUIStore } from '@/store';
-import { FLAT_NAV } from '@/constants/navigation';
+import { getFlatNav } from '@/constants/navigation';
+import { useIndustry } from '@/hooks';
 import {
   UserPlus, UserCheck, ClipboardList, CreditCard, Hotel, CalendarPlus, FileText,
 } from 'lucide-react';
@@ -29,6 +30,7 @@ const QUICK_ACTIONS = [
 ];
 
 export function CommandPalette() {
+  const industry = useIndustry();
   const router = useRouter();
   const { commandPaletteOpen, closeCommandPalette } = useUIStore();
   const [search, setSearch] = useState('');
@@ -57,7 +59,7 @@ export function CommandPalette() {
         <CommandEmpty>No results found.</CommandEmpty>
         
         <CommandGroup heading="Navigation">
-          {FLAT_NAV.map((item) => {
+          {getFlatNav(industry).map((item) => {
             const Icon = item.icon;
             return (
               <CommandItem

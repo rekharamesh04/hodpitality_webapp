@@ -11,6 +11,7 @@ import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { cn, formatTimeLabel, addMinutesToTime, getFriendlyErrorMessage, getStatusColor } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
 import type { Appointment } from '@/types';
+import { useTerminology } from '@/hooks';
 
 interface AppointmentListTableProps {
   appointments: Appointment[];
@@ -24,6 +25,7 @@ interface AppointmentListTableProps {
 export function AppointmentListTable({
   appointments, isLoading, isError, error, onRetry, onSelect,
 }: AppointmentListTableProps) {
+  const t = useTerminology();
   if (isLoading) {
     return (
       <div className="p-4">
@@ -60,7 +62,7 @@ export function AppointmentListTable({
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Customer</TableHead>
+          <TableHead>{t.account.one}</TableHead>
           <TableHead>Service</TableHead>
           <TableHead className="hidden sm:table-cell">Staff</TableHead>
           <TableHead className="hidden md:table-cell">Time</TableHead>

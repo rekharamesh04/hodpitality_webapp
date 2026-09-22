@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
 import { isValidEmail, isValidPhone } from '@/lib/utils';
-import { GUEST_CATEGORIES } from '@/constants';
+import { guestCategoryOptions } from '@/constants';
+import { useIndustry, useTerminology } from '@/hooks';
 import type { CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
 import type { Guest } from '@/types';
 
@@ -88,6 +89,8 @@ interface GuestFormDialogProps {
 export function GuestFormDialog({
   open, onOpenChange, guest, isSubmitting, submitError, onSubmit,
 }: GuestFormDialogProps) {
+  const t = useTerminology();
+  const industry = t.slug;
   const isEditing = !!guest;
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -123,9 +126,9 @@ export function GuestFormDialog({
     <Dialog open={open} onOpenChange={(v) => !isSubmitting && onOpenChange(v)}>
       <DialogContent className="sm:max-w-[560px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Edit Guest' : 'Add Guest'}</DialogTitle>
+          <DialogTitle>{isEditing ? `Edit ${t.person.one}` : `Add ${t.person.one}`}</DialogTitle>
           <DialogDescription>
-            {isEditing ? 'Update this guest’s information.' : 'Add a new guest record.'}
+            {isEditing ? `Update this ${t.person.one.toLowerCase()}’s information.` : `Add a new ${t.person.one.toLowerCase()} record.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -197,7 +200,7 @@ export function GuestFormDialog({
               <Select value={form.category || undefined} onValueChange={(v) => update('category', v)}>
                 <SelectTrigger id="guest-category"><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
-                  {GUEST_CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  {guestCategoryOptions(industry, form.category).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

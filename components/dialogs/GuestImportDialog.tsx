@@ -12,7 +12,8 @@ import {
 } from '@/components/ui/table';
 import { useBulkImportGuests } from '@/hooks/use-guests';
 import { guestService } from '@/services/guest.service';
-import { GUEST_CATEGORIES } from '@/constants';
+import { guestCategories } from '@/constants';
+import { useTerminology } from '@/hooks';
 import { exportToCSV, getFriendlyErrorMessage } from '@/lib/utils';
 import type { Guest } from '@/types';
 
@@ -66,7 +67,7 @@ function parseCsv(text: string): string[][] {
  * Validates rows client-side and drops duplicates. Bulk import doesn't check for existing emails
  * (single-guest create does), so re-importing a file would otherwise create duplicate guests.
  */
-function prepareRows(text: string, existingEmails: Set<string>): { rows: ImportRow[]; skipped: SkippedRow[]; headerError?: string } {
+function prepareRows(text: string, existingEmails: Set<string>, categories: readonly string[]): { rows: ImportRow[]; skipped: SkippedRow[]; headerError?: string } {
   const [header, ...body] = parseCsv(text.replace(/^﻿/, ''));
   const fields = (header ?? []).map((h) => HEADER_ALIASES[h.toLowerCase().replace(/[\s_-]/g, '')]);
   const missing = (['name', 'email', 'address'] as const).filter((f) => !fields.includes(f));
@@ -74,7 +75,9 @@ function prepareRows(text: string, existingEmails: Set<string>): { rows: ImportR
     return { rows: [], skipped: [], headerError: `The file's header row is missing: ${missing.join(', ') || 'name, email, address'}. Download the template to see the expected columns.` };
   }
 
-  const categoryByLower = new Map(GUEST_CATEGORIES.map((c) => [c.toLowerCase(), c]));
+  // Matches a spelling in the file to this tenant's vocabulary; an unrecognised
+  // value is kept as typed rather than dropped.
+  const categoryByLower = new Map(categories.map((c) => [c.toLowerCase(), c]));
   const seenInFile = new Set<string>();
   const rows: ImportRow[] = [];
   const skipped: SkippedRow[] = [];
@@ -101,10 +104,10 @@ function prepareRows(text: string, existingEmails: Set<string>): { rows: ImportR
   return { rows, skipped };
 }
 
-function downloadTemplate() {
+function downloadTemplate(categories: readonly string[]) {
   exportToCSV(
-    [{ name: 'Jane Doe', email: 'jane@example.com', phone: '+91 98765 43210', address: '12 MG Road, Bengaluru', category: 'VIP' }],
-    'guest-import-template'
+    [{ name: 'Jane Doe', email: 'jane@example.com', phone: '+91 98765 43210', address: '12 MG Road, Bengaluru', category: categories[0] ?? '' }],
+    'import-template'
   );
 }
 
@@ -114,6 +117,8 @@ interface GuestImportDialogProps {
 }
 
 export function GuestImportDialog({ open, onOpenChange }: GuestImportDialogProps) {
+  const t = useTerminology();
+  const categories = guestCategories(t.slug);
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
   const [rows, setRows] = useState<ImportRow[]>([]);
@@ -156,7 +161,7 @@ export function GuestImportDialog({ open, onOpenChange }: GuestImportDialogProps
       } catch {
         setDupCheckFailed(true);
       }
-      const prepared = prepareRows(text, existing);
+      const prepared = prepareRows(text, existing, categories);
       setRows(prepared.rows);
       setSkipped(prepared.skipped);
       setParseError(
@@ -180,7 +185,7 @@ export function GuestImportDialog({ open, onOpenChange }: GuestImportDialogProps
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[640px]">
         <DialogHeader>
-          <DialogTitle>Import Guests</DialogTitle>
+          <DialogTitle>Import {t.person.many}</DialogTitle>
           <DialogDescription>
             Upload a CSV with columns: name, email, address (required), plus phone and category.
           </DialogDescription>
@@ -251,7 +256,7 @@ export function GuestImportDialog({ open, onOpenChange }: GuestImportDialogProps
               onChange={(e) => handleFile(e.target.files?.[0])}
             />
 
-            <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={downloadTemplate}>
+            <Button type="button" variant="link" size="sm" className="h-auto p-0" onClick={() => downloadTemplate(categories)}>
               <Download className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
               Download CSV template
             </Button>

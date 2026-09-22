@@ -9,7 +9,8 @@ import { ArrowRight, Users, CheckCircle2 } from 'lucide-react';
 import { getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
-import { GUEST_CATEGORY_BADGE_CLASSES } from '@/constants';
+import { guestCategoryBadgeClass } from '@/constants';
+import { useTerminology } from '@/hooks';
 import type { Guest } from '@/types';
 import Link from 'next/link';
 
@@ -38,12 +39,14 @@ function GuestsSkeleton() {
 }
 
 export function RecentGuests({ guests, isLoading, isError, error, onRetry }: RecentGuestsProps) {
+  const t = useTerminology();
+  const industry = t.slug;
   const safeGuests = Array.isArray(guests) ? guests : [];
 
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle>Recent Guests</CardTitle>
+        <CardTitle>Recent {t.person.many}</CardTitle>
         <Link href="/guests">
           <Button variant="ghost" size="sm">
             View all guests
@@ -56,12 +59,12 @@ export function RecentGuests({ guests, isLoading, isError, error, onRetry }: Rec
           <GuestsSkeleton />
         ) : isError ? (
           <ErrorState
-            title="Unable to load guests"
+            title={`Unable to load ${t.person.many.toLowerCase()}`}
             message={getFriendlyErrorMessage(error)}
             onRetry={onRetry}
           />
         ) : safeGuests.length === 0 ? (
-          <EmptyState icon={Users} title="No guests found" description="Registered guests will appear here." />
+          <EmptyState icon={Users} title={`No ${t.person.many.toLowerCase()} found`} description={`Registered ${t.person.many.toLowerCase()} will appear here.`} />
         ) : (
           <div className="space-y-3">
             {safeGuests.slice(0, 5).map((guest) => {
@@ -86,7 +89,7 @@ export function RecentGuests({ guests, isLoading, isError, error, onRetry }: Rec
                   {guest.category && (
                     <Badge
                       variant="outline"
-                      className={`shrink-0 ${GUEST_CATEGORY_BADGE_CLASSES[guest.category] ?? 'bg-gray-100 text-gray-700 border-gray-300'}`}
+                      className={`shrink-0 ${guestCategoryBadgeClass(guest.category, industry)}`}
                     >
                       {guest.category}
                     </Badge>

@@ -13,6 +13,7 @@ import { cn, toLocalDateInput } from '@/lib/utils';
 import { guestService } from '@/services/guest.service';
 import { staffService } from '@/services/staff.service';
 import { calendarService } from '@/services/calendar.service';
+import { useTerminology } from '@/hooks';
 
 interface NewAppointmentDialogProps {
   open: boolean;
@@ -191,12 +192,13 @@ function Step1({
   selectedServiceId: string;
   onSelectService: (id: string) => void;
 }) {
+  const t = useTerminology();
   return (
     <div className="space-y-4 py-2">
       <p className="text-sm text-muted-foreground">Who is coming in, and what for.</p>
 
       <div className="space-y-1.5">
-        <label className="text-sm font-medium">Customer</label>
+        <label className="text-sm font-medium">{t.account.one}</label>
         <select
           className="w-full rounded-md border px-3 py-2 text-sm bg-background"
           value={selectedCustomerId}

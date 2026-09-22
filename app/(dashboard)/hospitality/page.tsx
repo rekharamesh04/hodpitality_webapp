@@ -33,6 +33,7 @@ import {
 } from '@/hooks/useHospitality';
 import { useActionParam } from '@/hooks/useActionParam';
 import type { Guest, Hospitality, Status } from '@/types';
+import { useTerminology } from '@/hooks';
 
 const TYPES: Hospitality['type'][] = ['Hotel', 'Transport', 'Meal', 'Airport Pickup', 'Special Request'];
 // The backend's update_hospitality_status doesn't validate status server-side, but the rest of
@@ -60,6 +61,7 @@ export default function HospitalityPage() {
 }
 
 function HospitalityPageInner() {
+  const t = useTerminology();
   const router = useRouter();
   const [status, setStatus] = useState('');
   const [type, setType] = useState('');
@@ -139,8 +141,8 @@ function HospitalityPageInner() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Hospitality</h1>
-          <p className="text-muted-foreground">Concierge &amp; guest services.</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.place.one} Services</h1>
+          <p className="text-muted-foreground">Concierge &amp; {t.person.one.toLowerCase()} services.</p>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => refetch()}>
@@ -173,7 +175,7 @@ function HospitalityPageInner() {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Crown className="h-4 w-4 text-primary" aria-hidden="true" />
-                <h2 className="text-sm font-semibold">VIP Guests</h2>
+                <h2 className="text-sm font-semibold">VIP {t.person.many}</h2>
                 <span className="text-xs text-muted-foreground">
                   {vips.length} VIP{vips.length === 1 ? '' : 's'}
                   {vipsWithoutBookings > 0 && ` · ${vipsWithoutBookings} without arrangements`}
@@ -256,7 +258,7 @@ function HospitalityPageInner() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Guest</TableHead>
+                    <TableHead>{t.person.one}</TableHead>
                     <TableHead className="hidden sm:table-cell">Service</TableHead>
                     <TableHead className="hidden lg:table-cell">Description</TableHead>
                     <TableHead className="hidden md:table-cell">Scheduled Date</TableHead>

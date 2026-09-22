@@ -16,6 +16,7 @@ import { useCalendar, useCalendarEvents } from '@/hooks/useCalendar';
 import { useAppointments } from '@/hooks/useAppointments';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 import type { Appointment } from '@/types';
+import { useTerminology } from '@/hooks';
 
 type ViewMode = 'day' | 'month';
 
@@ -47,6 +48,7 @@ function formatMonthHeading(monthStr: string): string {
 }
 
 export default function CalendarPage() {
+  const t = useTerminology();
   const [view, setView] = useState<ViewMode>('day');
   const [selectedDate, setSelectedDate] = useState(todayIso());
   const [selectedMonth, setSelectedMonth] = useState(todayIso().slice(0, 7));
@@ -96,7 +98,7 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Appointments</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.visit.many}</h1>
           <p className="text-sm text-muted-foreground">
             {view === 'day' ? formatDayHeading(selectedDate) : formatMonthHeading(selectedMonth)}
             {view === 'day' && typeof totalToday === 'number' && (

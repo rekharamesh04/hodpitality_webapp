@@ -13,6 +13,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store';
 import { canManageStaff, roleLabel } from '@/constants/roles';
+import { useTerminology } from '@/hooks';
 import {
   useSettingsProfile,
   useUpdateProfile,
@@ -22,6 +23,8 @@ import {
 } from '@/hooks/useSettings';
 
 export default function SettingsPage() {
+  const t = useTerminology();
+  const industry = t.slug;
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   // Organisation settings belong to the whole hospital — admins only (the backend enforces this too).
@@ -114,7 +117,7 @@ export default function SettingsPage() {
           <h1 className="text-2xl font-bold sm:text-3xl">Settings</h1>
           <p className="text-muted-foreground">Manage your application settings and preferences</p>
         </div>
-        {user?.role && <Badge variant="outline">{roleLabel(user.role)}</Badge>}
+        {user?.role && <Badge variant="outline">{roleLabel(user.role, industry)}</Badge>}
       </div>
 
       <Tabs defaultValue="general" className="space-y-6">
@@ -164,7 +167,7 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
-                  <Input id="role" value={user?.role ? roleLabel(user.role) : ''} disabled />
+                  <Input id="role" value={user?.role ? roleLabel(user.role, industry) : ''} disabled />
                 </div>
               </div>
               <Button onClick={handleProfileSave} loading={updateProfile.isPending} disabled={!profile.name.trim()}>
@@ -182,6 +185,14 @@ export default function SettingsPage() {
               <CardDescription>Manage your organization information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="org-industry">Industry</Label>
+                <Input id="org-industry" value={t.label} disabled />
+                <p className="text-xs text-muted-foreground">
+                  Decides what this account calls {t.person.many.toLowerCase()}, {t.visit.many.toLowerCase()} and{' '}
+                  {t.place.many.toLowerCase()}. Ask your account manager to change it.
+                </p>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="org-name">Organization Name</Label>
                 <Input

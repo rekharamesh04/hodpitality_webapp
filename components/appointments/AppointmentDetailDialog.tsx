@@ -10,7 +10,8 @@ import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStat
 import { RecordAppointmentPaymentDialog } from '@/components/dialogs/RecordAppointmentPaymentDialog';
 import { cn, formatDate, formatTimeLabel, addMinutesToTime, getRelativeTime, formatCurrency, getStatusColor } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
-import { TIER_BADGE_CLASSES } from '@/constants/customer';
+import { tierBadgeClass } from '@/constants/customer';
+import { useIndustry } from '@/hooks';
 import { debugLog } from '@/utils/debugLog';
 import type { Appointment } from '@/types';
 
@@ -21,6 +22,7 @@ interface AppointmentDetailDialogProps {
 }
 
 export function AppointmentDetailDialog({ appointment, open, onOpenChange }: AppointmentDetailDialogProps) {
+  const industry = useIndustry();
   const [payDialogOpen, setPayDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -51,7 +53,7 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
           <div className="flex flex-wrap items-center gap-2">
             <DialogTitle>{customerLabel}</DialogTitle>
             {a.customerTier && (
-              <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold', TIER_BADGE_CLASSES[a.customerTier] ?? '')}>
+              <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold', tierBadgeClass(a.customerTier, industry))}>
                 {a.customerTier}
               </span>
             )}

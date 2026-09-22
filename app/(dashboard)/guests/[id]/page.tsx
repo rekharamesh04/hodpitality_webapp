@@ -26,7 +26,8 @@ import { useCheckIn } from '@/hooks/useCheckins';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useGuestHospitality } from '@/hooks/useHospitality';
 import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
-import { GUEST_CATEGORY_BADGE_CLASSES } from '@/constants';
+import { guestCategoryBadgeClass } from '@/constants';
+import { useTerminology } from '@/hooks';
 import type { UpdateGuestPayload } from '@/services/guest.service';
 
 function getGuestId(id: string, pk?: string): string {
@@ -34,6 +35,8 @@ function getGuestId(id: string, pk?: string): string {
 }
 
 export default function GuestDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTerminology();
+  const industry = t.slug;
   const { id } = use(params);
   const router = useRouter();
 
@@ -95,7 +98,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
           All guests
         </Button>
         <ErrorState
-          title="Unable to load this guest"
+          title={`Unable to load this ${t.person.one.toLowerCase()}`}
           message={getFriendlyErrorMessage(error, 'This guest could not be found.')}
           onRetry={() => refetch()}
         />
@@ -134,7 +137,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                       <span
                         className={cn(
                           'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                          GUEST_CATEGORY_BADGE_CLASSES[guest.category] ?? 'bg-gray-100 text-gray-700 border-gray-300'
+                          guestCategoryBadgeClass(guest.category, industry)
                         )}
                       >
                         {guest.category}
@@ -168,11 +171,11 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label="Delete guest" onClick={() => setDeleteOpen(true)}>
+                    <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.person.one.toLowerCase()}`} onClick={() => setDeleteOpen(true)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Delete guest</TooltipContent>
+                  <TooltipContent>Delete {t.person.one.toLowerCase()}</TooltipContent>
                 </Tooltip>
               </div>
             </div>
@@ -186,7 +189,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
               />
               <StatChip icon={CalendarDays} label="Registered" value={guest.registrationDate ? formatDate(guest.registrationDate) : '—'} />
               <StatChip icon={CalendarClock} label="Appointments" value={String(relatedAppointments.length)} />
-              <StatChip icon={Clock} label="Guest Since" value={guest.created_at ? formatDate(guest.created_at) : '—'} />
+              <StatChip icon={Clock} label={`${t.person.one} Since`} value={guest.created_at ? formatDate(guest.created_at) : '—'} />
             </div>
           </CardContent>
         </Card>
@@ -328,7 +331,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
         <ConfirmDialog
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
-          title="Delete Guest?"
+          title={`Delete ${t.person.one}?`}
           description={`Are you sure you want to delete ${guest.name || 'this guest'}? This action cannot be undone.`}
           confirmLabel="Delete"
           confirmingLabel="Deleting…"
@@ -342,7 +345,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
           open={faceOpen}
           onOpenChange={setFaceOpen}
           title="Enroll Face"
-          description="Capture a clear front-facing photo to enroll this guest."
+          description={`Capture a clear front-facing photo to enroll this ${t.person.one.toLowerCase()}.`}
           submitLabel="Enroll"
           isSubmitting={enrollFace.isPending}
           onSubmit={handleFaceSubmit}

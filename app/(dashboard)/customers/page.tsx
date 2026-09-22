@@ -26,7 +26,8 @@ import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog';
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@/hooks/useCustomers';
 import { customerService } from '@/services/customer.service';
 import type { Customer, CreateCustomerPayload, UpdateCustomerPayload } from '@/services/customer.service';
-import { CUSTOMER_TIERS, TIER_BADGE_CLASSES } from '@/constants';
+import { customerTiers, tierBadgeClass } from '@/constants';
+import { useIndustry, useTerminology } from '@/hooks';
 import { cn, formatDate, formatCurrency, getInitials, exportToCSV, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 
 function getCustomerId(c: Customer): string {
@@ -48,6 +49,8 @@ export default function CustomersPage() {
 }
 
 function CustomersPageInner() {
+  const t = useTerminology();
+  const industry = useIndustry();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -161,7 +164,7 @@ function CustomersPageInner() {
       if (res.downloadUrl) {
         window.open(res.downloadUrl, '_blank', 'noopener,noreferrer');
       } else if (res.data && res.data.length > 0) {
-        exportToCSV(res.data, `customers-export-${toLocalDateInput()}`);
+        exportToCSV(res.data, `${t.account.many.toLowerCase().replace(/\s+/g, '-')}-export-${toLocalDateInput()}`);
         toast.success('Customer export downloaded');
       } else {
         toast.error('The export returned no data.');
@@ -181,8 +184,8 @@ function CustomersPageInner() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Customers</h1>
-          <p className="text-muted-foreground">Manage customer accounts, tiers and appointments</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.account.many}</h1>
+          <p className="text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} loading={isExporting}>
@@ -198,7 +201,7 @@ function CustomersPageInner() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <SearchInput
-          placeholder="Search customers…"
+          placeholder={`Search ${t.account.many.toLowerCase()}…`}
           defaultValue={search}
           onSearch={handleSearch}
           className="max-w-sm"
@@ -209,7 +212,7 @@ function CustomersPageInner() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All tiers</SelectItem>
-            {CUSTOMER_TIERS.map((t) => (
+            {customerTiers(industry).map((t) => (
               <SelectItem key={t} value={t}>{t}</SelectItem>
             ))}
           </SelectContent>
@@ -225,7 +228,7 @@ function CustomersPageInner() {
           ) : isError ? (
             <div className="p-6">
               <ErrorState
-                title="Unable to load customers"
+                title={`Unable to load ${t.account.many.toLowerCase()}`}
                 message={getFriendlyErrorMessage(error)}
                 onRetry={() => refetch()}
               />
@@ -235,16 +238,16 @@ function CustomersPageInner() {
               {hasActiveFilters ? (
                 <EmptyState
                   icon={Users}
-                  title="No customers found"
+                  title={`No ${t.account.many.toLowerCase()} found`}
                   description="Try changing your search or filters."
                   action={{ label: 'Clear filters', onClick: clearFilters }}
                 />
               ) : (
                 <EmptyState
                   icon={Users}
-                  title="No customers yet"
-                  description="Add your first customer to get started."
-                  action={{ label: 'Add Customer', onClick: openCreate }}
+                  title={`No ${t.account.many.toLowerCase()} yet`}
+                  description={`Add your first ${t.account.one.toLowerCase()} to get started.`}
+                  action={{ label: `Add ${t.account.one}`, onClick: openCreate }}
                 />
               )}
             </div>
@@ -252,7 +255,7 @@ function CustomersPageInner() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Customer</TableHead>
+                  <TableHead>{t.account.one}</TableHead>
                   <TableHead>Contact</TableHead>
                   <TableHead className="hidden md:table-cell">Address</TableHead>
                   <TableHead>Tier</TableHead>
@@ -290,7 +293,7 @@ function CustomersPageInner() {
                           <span
                             className={cn(
                               'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                              TIER_BADGE_CLASSES[c.tier] ?? 'bg-gray-100 text-gray-700 border-gray-300'
+                              tierBadgeClass(c.tier, industry)
                             )}
                           >
                             {c.tier}
@@ -354,7 +357,7 @@ function CustomersPageInner() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
-        title="Delete Customer?"
+        title={`Delete ${t.account.one}?`}
         description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this customer'}? This action cannot be undone.`}
         confirmLabel="Delete"
         confirmingLabel="Deleting…"
@@ -367,11 +370,12 @@ function CustomersPageInner() {
 }
 
 function CustomersPageSkeleton() {
+  const t = useTerminology();
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Customers</h1>
-        <p className="text-muted-foreground">Manage customer accounts, tiers and appointments</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">{t.account.many}</h1>
+        <p className="text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
       </div>
       <Card>
         <CardContent className="p-6">

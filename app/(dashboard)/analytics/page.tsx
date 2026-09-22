@@ -30,6 +30,7 @@ import { useCustomers } from '@/hooks/useCustomers';
 import { useAuthStore } from '@/store';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import type { AnalyticsDistribution, VenueUtilization } from '@/types/analytics';
+import { useTerminology } from '@/hooks';
 
 function distributionOf<T>(items: T[], keyFn: (item: T) => string | undefined | null): AnalyticsDistribution[] {
   const counts = new Map<string, number>();
@@ -83,6 +84,7 @@ export default function AnalyticsPage() {
 }
 
 function AnalyticsPageInner() {
+  const t = useTerminology();
   const stats = useDashboardStats();
   const activity = useDashboardActivity();
   const checkInStats = useCheckInStats();
@@ -192,10 +194,10 @@ function AnalyticsPageInner() {
       <section aria-labelledby="analytics-kpi-heading" className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <h2 id="analytics-kpi-heading" className="sr-only">Key Performance Indicators</h2>
         {stats.isLoading ? <StatsCardSkeleton /> : (
-          <StatsCard title="Total Guests" value={stats.data?.totalGuests ?? '—'} icon={Users} />
+          <StatsCard title={`Total ${t.person.many}`} value={stats.data?.totalGuests ?? '—'} icon={Users} />
         )}
         {customers.isLoading ? <StatsCardSkeleton /> : (
-          <StatsCard title="Customers" value={customers.isError ? '—' : customers.data?.total ?? '—'} icon={Contact} />
+          <StatsCard title={t.account.many} value={customers.isError ? '—' : customers.data?.total ?? '—'} icon={Contact} />
         )}
         {appointments.isLoading ? <StatsCardSkeleton /> : (
           <StatsCard title="Appointments" value={appointments.isError ? '—' : (appointments.data?.length ?? '—')} icon={ClipboardList} />
@@ -255,7 +257,7 @@ function AnalyticsPageInner() {
         {/* Row 2: Guest arrivals by hour (line) + Monthly events (bar) */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard
-            title="Guest Arrivals Time-of-Day"
+            title={`${t.person.one} Arrivals Time-of-Day`}
             description="Peak walk-in traffic by hour"
             isLoading={guestArrivals.isLoading}
             isError={guestArrivals.isError}
@@ -303,7 +305,7 @@ function AnalyticsPageInner() {
             data={appointmentStatusData}
             chart="bar"
           />
-          <ChartCard title="Check-in Method" description="How guests have been checked in" isLoading={checkIns.isLoading} isError={checkIns.isError} error={checkIns.error} onRetry={() => checkIns.refetch()} empty={checkInMethodData.length === 0}>
+          <ChartCard title="Check-in Method" description={`How ${t.person.many.toLowerCase()} have been checked in`} isLoading={checkIns.isLoading} isError={checkIns.isError} error={checkIns.error} onRetry={() => checkIns.refetch()} empty={checkInMethodData.length === 0}>
             {checkInMethodData.length <= 5 ? (
               <PieChartComponent title="" data={checkInMethodData} height={260} />
             ) : (
@@ -370,16 +372,16 @@ function AnalyticsPageInner() {
         <Card>
           <CardHeader>
             <CardTitle>Guest Activity</CardTitle>
-            <CardDescription>Current guest status snapshot</CardDescription>
+            <CardDescription>Current {t.person.one.toLowerCase()} status snapshot</CardDescription>
           </CardHeader>
           <CardContent>
             {stats.isLoading ? (
               <Skeleton className="h-16 w-full" />
             ) : stats.isError ? (
-              <ErrorState title="Unable to load guest activity" message={getFriendlyErrorMessage(stats.error)} onRetry={() => stats.refetch()} />
+              <ErrorState title={`Unable to load ${t.person.one.toLowerCase()} activity`} message={getFriendlyErrorMessage(stats.error)} onRetry={() => stats.refetch()} />
             ) : (
               <div className="grid grid-cols-3 gap-4 text-center">
-                <GuestStat label="Total Guests" value={stats.data?.totalGuests} />
+                <GuestStat label={`Total ${t.person.many}`} value={stats.data?.totalGuests} />
                 <GuestStat label="Arrived" value={stats.data?.guestsArrived} />
                 <GuestStat label="Pending" value={stats.data?.pendingGuests} />
               </div>

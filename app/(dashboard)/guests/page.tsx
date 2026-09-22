@@ -38,7 +38,8 @@ import { useCheckIn } from '@/hooks/useCheckins';
 import { useActionParam } from '@/hooks/useActionParam';
 import { guestService } from '@/services/guest.service';
 import type { CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
-import { GUEST_CATEGORIES, GUEST_CATEGORY_BADGE_CLASSES, QUERY_KEYS } from '@/constants';
+import { guestCategories, guestCategoryBadgeClass, QUERY_KEYS } from '@/constants';
+import { useTerminology } from '@/hooks';
 import {
   cn, formatDate, formatCheckInTimestamp, getInitials, exportToCSV, getFriendlyErrorMessage, toLocalDateInput,
 } from '@/lib/utils';
@@ -48,10 +49,10 @@ function getGuestId(g: Guest): string {
   return g.id ?? (g.PK ? g.PK.replace('GUEST#', '') : '') ?? '';
 }
 
-function formErrorMessage(err: unknown): string | null {
+function formErrorMessage(err: unknown, person: string): string | null {
   if (!err) return null;
   const backendMsg = (err as { backendMessage?: string } | undefined)?.backendMessage;
-  return backendMsg || getFriendlyErrorMessage(err, 'Unable to save guest.');
+  return backendMsg || getFriendlyErrorMessage(err, `Unable to save ${person.toLowerCase()}.`);
 }
 
 export default function GuestsPage() {
@@ -63,6 +64,8 @@ export default function GuestsPage() {
 }
 
 function GuestsPageInner() {
+  const t = useTerminology();
+  const industry = t.slug;
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -230,28 +233,28 @@ function GuestsPageInner() {
       if (res.downloadUrl) {
         window.open(res.downloadUrl, '_blank', 'noopener,noreferrer');
       } else if (res.data && res.data.length > 0) {
-        exportToCSV(res.data, `guests-export-${toLocalDateInput()}`);
-        toast.success('Guest export downloaded');
+        exportToCSV(res.data, `${t.person.many.toLowerCase().replace(/\s+/g, '-')}-export-${toLocalDateInput()}`);
+        toast.success(`${t.person.one} export downloaded`);
       } else {
         toast.error('The export returned no data.');
       }
     } catch (err) {
-      toast.error(getFriendlyErrorMessage(err, 'Failed to export guests.'));
+      toast.error(getFriendlyErrorMessage(err, `Failed to export ${t.person.many.toLowerCase()}.`));
     } finally {
       setIsExporting(false);
     }
   }
 
   const isSubmittingForm = createMutation.isPending || updateMutation.isPending;
-  const formSubmitError = formErrorMessage(createMutation.error ?? updateMutation.error);
+  const formSubmitError = formErrorMessage(createMutation.error ?? updateMutation.error, t.person.one);
   const hasActiveFilters = !!search || !!category;
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Guests</h1>
-          <p className="text-muted-foreground">Visitor, event attendance &amp; check-in management</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.person.many}</h1>
+          <p className="text-muted-foreground">{t.person.one} records, event attendance &amp; check-in management</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => router.push('/registrations')}>
@@ -268,14 +271,14 @@ function GuestsPageInner() {
           </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Add Guest
+            Add {t.person.one}
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <SearchInput
-          placeholder="Search guests…"
+          placeholder={`Search ${t.person.many.toLowerCase()}…`}
           defaultValue={search}
           onSearch={handleSearch}
           className="max-w-sm"
@@ -286,7 +289,7 @@ function GuestsPageInner() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All categories</SelectItem>
-            {GUEST_CATEGORIES.map((c) => (
+            {guestCategories(industry).map((c) => (
               <SelectItem key={c} value={c}>{c}</SelectItem>
             ))}
           </SelectContent>
@@ -296,7 +299,7 @@ function GuestsPageInner() {
       {selectedIds.size > 0 && (
         <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
           <p className="text-sm font-medium">
-            {selectedIds.size} guest{selectedIds.size === 1 ? '' : 's'} selected
+            {selectedIds.size} {selectedIds.size === 1 ? t.person.one.toLowerCase() : t.person.many.toLowerCase()} selected
           </p>
           <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
             <X className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
@@ -318,7 +321,7 @@ function GuestsPageInner() {
           ) : isError ? (
             <div className="p-6">
               <ErrorState
-                title="Unable to load guests"
+                title={`Unable to load ${t.person.many.toLowerCase()}`}
                 message={getFriendlyErrorMessage(error)}
                 onRetry={() => refetch()}
               />
@@ -328,16 +331,16 @@ function GuestsPageInner() {
               {hasActiveFilters ? (
                 <EmptyState
                   icon={Users}
-                  title="No guests found"
+                  title={`No ${t.person.many.toLowerCase()} found`}
                   description="Try changing your search or filters."
                   action={{ label: 'Clear filters', onClick: clearFilters }}
                 />
               ) : (
                 <EmptyState
                   icon={Users}
-                  title="No guests yet"
-                  description="Add your first guest to get started."
-                  action={{ label: 'Add Guest', onClick: openCreate }}
+                  title={`No ${t.person.many.toLowerCase()} yet`}
+                  description={`Add your first ${t.person.one.toLowerCase()} to get started.`}
+                  action={{ label: `Add ${t.person.one}`, onClick: openCreate }}
                 />
               )}
             </div>
@@ -350,10 +353,10 @@ function GuestsPageInner() {
                       <Checkbox
                         checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
                         onCheckedChange={(v) => toggleAll(v === true)}
-                        aria-label="Select all guests on this page"
+                        aria-label={`Select all ${t.person.many.toLowerCase()} on this page`}
                       />
                     </TableHead>
-                    <TableHead>Guest</TableHead>
+                    <TableHead>{t.person.one}</TableHead>
                     <TableHead className="hidden sm:table-cell">Contact</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead className="hidden md:table-cell">Status</TableHead>
@@ -398,7 +401,7 @@ function GuestsPageInner() {
                         </TableCell>
                         <TableCell>
                           {g.category ? (
-                            <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold', GUEST_CATEGORY_BADGE_CLASSES[g.category] ?? GUEST_CATEGORY_BADGE_CLASSES.regular)}>
+                            <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold', guestCategoryBadgeClass(g.category, industry))}>
                               {g.category}
                             </span>
                           ) : (
@@ -485,7 +488,7 @@ function GuestsPageInner() {
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
-        title="Delete Guest?"
+        title={`Delete ${t.person.one}?`}
         description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this guest'}? This action cannot be undone.`}
         confirmLabel="Delete"
         confirmingLabel="Deleting…"
@@ -498,7 +501,7 @@ function GuestsPageInner() {
         open={bulkDeleteOpen}
         onOpenChange={setBulkDeleteOpen}
         title={`Delete ${selectedIds.size} guest${selectedIds.size === 1 ? '' : 's'}?`}
-        description="The selected guests will be permanently removed. This action cannot be undone."
+        description={`The selected ${t.person.many.toLowerCase()} will be permanently removed. This action cannot be undone.`}
         confirmLabel="Delete"
         confirmingLabel="Deleting…"
         destructive
@@ -529,11 +532,12 @@ function GuestsPageInner() {
 }
 
 function GuestsPageSkeleton() {
+  const t = useTerminology();
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Guests</h1>
-        <p className="text-muted-foreground">Visitor, event attendance &amp; check-in management</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">{t.person.many}</h1>
+        <p className="text-muted-foreground">{t.person.one} records, event attendance &amp; check-in management</p>
       </div>
       <Card>
         <CardContent className="p-6">

@@ -38,6 +38,7 @@ import { useActionParam } from '@/hooks/useActionParam';
 import { paymentService } from '@/services/payment.service';
 import { formatDate, formatCurrency, getFriendlyErrorMessage, exportToCSV, toLocalDateInput } from '@/lib/utils';
 import type { Payment, PaymentStatus, PaymentMethodType, Registration } from '@/types';
+import { useTerminology } from '@/hooks';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -411,6 +412,7 @@ export default function PaymentsPage() {
 }
 
 function PaymentsPageInner() {
+  const t = useTerminology();
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventIdFilter = searchParams.get('eventId') || '';
@@ -586,7 +588,7 @@ function PaymentsPageInner() {
       <div className="flex flex-wrap items-center gap-3">
         <SearchInput
           key={searchResetKey}
-          placeholder="Search by guest, ID or transaction…"
+          placeholder={`Search by ${t.person.one.toLowerCase()}, ID or transaction…`}
           defaultValue={search}
           onSearch={setSearch}
           className="w-full sm:max-w-xs"
@@ -664,7 +666,7 @@ function PaymentsPageInner() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="hidden lg:table-cell">Payment ID</TableHead>
-                    <TableHead>Guest</TableHead>
+                    <TableHead>{t.person.one}</TableHead>
                     <TableHead className="hidden sm:table-cell">Type</TableHead>
                     <TableHead className="hidden sm:table-cell">Event / Service</TableHead>
                     <TableHead>Amount</TableHead>

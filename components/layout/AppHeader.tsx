@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications, useMarkNotificationRead } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive, type NavSection } from '@/constants/navigation';
+import { useIndustry } from '@/hooks';
 import { cn, getInitials, getRelativeTime } from '@/lib/utils';
 import { authService } from '@/services/auth.service';
 
@@ -109,6 +110,7 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
 }
 
 export function AppHeader() {
+  const industry = useIndustry();
   const router = useRouter();
   const pathname = usePathname();
   const qc = useQueryClient();
@@ -124,7 +126,7 @@ export function AppHeader() {
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 5);
   const [loggingOut, setLoggingOut] = useState(false);
-  const sections = getVisibleNavSections(user?.role);
+  const sections = getVisibleNavSections(user?.role, industry);
 
   const handleLogout = async () => {
     if (loggingOut) return;

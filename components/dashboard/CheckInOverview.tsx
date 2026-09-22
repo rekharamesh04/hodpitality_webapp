@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import type { CheckIn, CheckInStats } from '@/types';
 import Link from 'next/link';
+import { useTerminology } from '@/hooks';
 
 interface CheckInOverviewProps {
   checkIns: CheckIn[];
@@ -45,6 +46,7 @@ function CheckInSkeleton() {
 }
 
 export function CheckInOverview({ checkIns, stats, isLoading, isError, error, onRetry }: CheckInOverviewProps) {
+  const t = useTerminology();
   const safeCheckIns = Array.isArray(checkIns) ? checkIns : [];
   const recent = [...safeCheckIns]
     .sort((a, b) => {
@@ -92,7 +94,7 @@ export function CheckInOverview({ checkIns, stats, isLoading, isError, error, on
             onRetry={onRetry}
           />
         ) : recent.length === 0 ? (
-          <EmptyState icon={UserCheck} title="No recent check-ins" description="Guest check-ins will show up here as they happen." />
+          <EmptyState icon={UserCheck} title="No recent check-ins" description={`${t.person.one} check-ins will show up here as they happen.`} />
         ) : (
           <div className="space-y-3">
             {recent.map((ci) => {

@@ -23,7 +23,8 @@ import {
   useCustomer, useUpdateCustomer, useDeleteCustomer, useEnrollCustomerFace, useUnenrollCustomerFace,
 } from '@/hooks/useCustomers';
 import { cn, formatCurrency, formatDate, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
-import { TIER_BADGE_CLASSES } from '@/constants';
+import { tierBadgeClass } from '@/constants';
+import { useIndustry, useTerminology } from '@/hooks';
 import type { UpdateCustomerPayload } from '@/services/customer.service';
 
 function getCustomerId(id: string, pk?: string): string {
@@ -31,6 +32,8 @@ function getCustomerId(id: string, pk?: string): string {
 }
 
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTerminology();
+  const industry = useIndustry();
   const { id } = use(params);
   const router = useRouter();
 
@@ -82,8 +85,8 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           All customers
         </Button>
         <ErrorState
-          title="Unable to load this customer"
-          message={getFriendlyErrorMessage(error, 'This customer could not be found.')}
+          title={`Unable to load this ${t.account.one.toLowerCase()}`}
+          message={getFriendlyErrorMessage(error, `This ${t.account.one.toLowerCase()} could not be found.`)}
           onRetry={() => refetch()}
         />
       </div>
@@ -117,12 +120,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 </Avatar>
                 <div className="sm:pb-1">
                   <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                    <h1 className="text-2xl font-bold tracking-tight">{customer.name || 'Unnamed customer'}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{customer.name || `Unnamed ${t.account.one.toLowerCase()}`}</h1>
                     {customer.tier && (
                       <span
                         className={cn(
                           'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                          TIER_BADGE_CLASSES[customer.tier] ?? 'bg-gray-100 text-gray-700 border-gray-300'
+                          tierBadgeClass(customer.tier, industry)
                         )}
                       >
                         <Sparkles className="h-3 w-3" aria-hidden="true" />
@@ -160,7 +163,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Delete customer</TooltipContent>
+                  <TooltipContent>Delete {t.account.one.toLowerCase()}</TooltipContent>
                 </Tooltip>
               </div>
             </div>
@@ -254,7 +257,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         <ConfirmDialog
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
-          title="Delete Customer?"
+          title={`Delete ${t.account.one}?`}
           description={`Are you sure you want to delete ${customer.name || 'this customer'}? This action cannot be undone.`}
           confirmLabel="Delete"
           confirmingLabel="Deleting…"
@@ -268,7 +271,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           open={faceOpen}
           onOpenChange={setFaceOpen}
           title="Enroll Face"
-          description="Capture a clear front-facing photo to enroll this customer."
+          description={`Capture a clear front-facing photo to enroll this ${t.account.one.toLowerCase()}.`}
           submitLabel="Enroll"
           isSubmitting={enrollFace.isPending}
           onSubmit={handleFaceSubmit}

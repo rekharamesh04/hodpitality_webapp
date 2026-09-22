@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive } from '@/constants/navigation';
+import { useIndustry } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/layout/AppHeader';
 
@@ -24,11 +25,12 @@ const TAB_ITEMS = [
 /** Slide-out drawer with the full navigation (below the `lg` breakpoint). */
 export function MobileNavDrawer() {
   const pathname = usePathname();
+  const industry = useIndustry();
   const { user } = useAuthStore();
   const { sidebarMobileOpen: open, closeMobileSidebar: close } = useUIStore();
   const { data: notifications } = useNotifications();
   const unreadCount = (notifications ?? []).filter((n) => !n.read).length;
-  const sections = getVisibleNavSections(user?.role);
+  const sections = getVisibleNavSections(user?.role, industry);
 
   // Close after navigating, and on Escape.
   useEffect(() => { close(); }, [pathname, close]);

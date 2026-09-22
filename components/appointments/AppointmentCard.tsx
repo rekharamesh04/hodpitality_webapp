@@ -3,7 +3,8 @@
 import { Clock, AlertTriangle, User } from 'lucide-react';
 import { cn, formatTimeLabel, addMinutesToTime } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
-import { TIER_BADGE_CLASSES } from '@/constants/customer';
+import { tierBadgeClass } from '@/constants/customer';
+import { useIndustry } from '@/hooks';
 import type { Appointment } from '@/types';
 
 interface AppointmentCardProps {
@@ -14,6 +15,7 @@ interface AppointmentCardProps {
 }
 
 export function AppointmentCard({ appointment: a, onClick, className, showStaff = false }: AppointmentCardProps) {
+  const industry = useIndustry();
   const status = a.status ?? 'scheduled';
   const endTime = a.endTime ?? (a.startTime && a.duration ? addMinutesToTime(a.startTime, a.duration) : undefined);
   const customerLabel = a.customerName ?? a.guestName ?? 'Guest';
@@ -31,7 +33,7 @@ export function AppointmentCard({ appointment: a, onClick, className, showStaff 
       <div className="flex shrink-0 items-center justify-between gap-1">
         <span className="truncate font-semibold leading-tight">{customerLabel}</span>
         {a.customerTier && (
-          <span className={cn('shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-semibold leading-tight', TIER_BADGE_CLASSES[a.customerTier] ?? '')}>
+          <span className={cn('shrink-0 rounded-full border px-1.5 py-0 text-[10px] font-semibold leading-tight', tierBadgeClass(a.customerTier, industry))}>
             {a.customerTier}
           </span>
         )}

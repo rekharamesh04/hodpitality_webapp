@@ -20,6 +20,7 @@ import {
 import { getInitials, formatDate, getFriendlyErrorMessage } from '@/lib/utils';
 import { useAuthStore } from '@/store';
 import { assignableRoles, canManageStaffMember, roleLabel } from '@/constants/roles';
+import { useIndustry } from '@/hooks';
 import type { UpdateStaffPayload } from '@/services/staff.service';
 
 const DAY_LABELS: Record<string, string> = {
@@ -32,6 +33,7 @@ function getStaffId(id: string, pk?: string): string {
 }
 
 export default function StaffDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const industry = useIndustry();
   const { id } = use(params);
   const router = useRouter();
   const { user } = useAuthStore();
@@ -124,7 +126,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                   <h1 className="text-2xl font-bold tracking-tight">{staff.name || 'Unnamed'}</h1>
                   {typeof staff.role === 'string' && staff.role && (
                     <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold">
-                      {roleLabel(staff.role)}
+                      {roleLabel(staff.role, industry)}
                     </span>
                   )}
                   <StatusBadge status={staff.status} />
@@ -165,7 +167,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatChip icon={Building2} label="Department" value={staff.department || '—'} />
-            <StatChip icon={BadgeCheck} label="Role" value={roleLabel(staff.role)} />
+            <StatChip icon={BadgeCheck} label="Role" value={roleLabel(staff.role, industry)} />
             <StatChip icon={CalendarClock} label="Joined" value={staff.joinedDate || staff.createdAt ? formatDate(staff.joinedDate ?? staff.createdAt) : '—'} />
             <StatChip icon={Clock} label="Scheduled Days" value={String(scheduleEntries.length)} />
           </div>
@@ -182,7 +184,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
             <InfoRow icon={Mail} label="Email" value={staff.email} />
             <InfoRow icon={Phone} label="Phone" value={staff.phone} />
             <InfoRow icon={Building2} label="Department" value={staff.department} />
-            <InfoRow icon={BadgeCheck} label="Role" value={staff.role ? roleLabel(staff.role) : undefined} />
+            <InfoRow icon={BadgeCheck} label="Role" value={staff.role ? roleLabel(staff.role, industry) : undefined} />
           </CardContent>
         </Card>
 

@@ -1,3 +1,5 @@
+import type { IndustrySlug } from '@/constants/industry';
+
 export type Status = 'active' | 'inactive' | 'pending' | 'completed' | 'cancelled' | 'confirmed' | 'checked_in' | 'checked_out';
 
 // Defined once in constants/roles.ts — the same list the backend and mobile app use.
@@ -11,6 +13,13 @@ export interface User {
   email: string;
   role: UserRole;
   tenant_id?: string;
+  /**
+   * The tenant's industry, which decides what the product calls people,
+   * visits and places. Resolved by the backend from the company record rather
+   * than carried in the token, so it is absent on a stale cached user — read
+   * it through `useTerminology()`, which defaults safely.
+   */
+  industry?: IndustrySlug;
   avatar?: string;
   phone?: string;
   createdAt?: string;
@@ -460,6 +469,8 @@ export interface Company {
   reseller_id?: string;
   /** Backend-generated (`tenant-{company_id}`) — never sent as an editable field */
   tenant_id?: string;
+  /** Decides the vocabulary every user of this tenant sees. Always present on reads. */
+  industry?: IndustrySlug;
   createdAt?: string;
   updatedAt?: string;
 }

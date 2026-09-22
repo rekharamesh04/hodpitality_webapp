@@ -36,6 +36,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateVenuePayload, UpdateVenuePayload } from '@/services/venue.service';
 import type { Venue, Event } from '@/types';
+import { useTerminology } from '@/hooks';
 
 function getVenueId(v: Venue): string {
   return v.id ?? (v.PK ? v.PK.replace('VENUE#', '') : '') ?? '';
@@ -64,6 +65,7 @@ export default function VenuesPage() {
 }
 
 function VenuesPageInner() {
+  const t = useTerminology();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -203,8 +205,8 @@ function VenuesPageInner() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Venues</h1>
-          <p className="text-muted-foreground">Manage event venues, capacity and occupancy</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.place.many}</h1>
+          <p className="text-muted-foreground">Manage {t.place.many.toLowerCase()}, capacity and occupancy</p>
         </div>
         <Button size="sm" onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -446,11 +448,12 @@ function VenuesPageInner() {
 }
 
 function VenuesPageSkeleton() {
+  const t = useTerminology();
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Venues</h1>
-        <p className="text-muted-foreground">Manage event venues, capacity and occupancy</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">{t.place.many}</h1>
+        <p className="text-muted-foreground">Manage {t.place.many.toLowerCase()}, capacity and occupancy</p>
       </div>
       <Card>
         <CardContent className="p-6">
