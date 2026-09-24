@@ -11,8 +11,6 @@ export interface PopupOptions {
    * queueing a second one behind it — use it for multi-step flows that report progress.
    */
   id?: string;
-  /** Label on the dismiss button. Defaults to "OK". */
-  actionLabel?: string;
   /** Auto-dismiss after this many ms. Omit (or 0) to keep it open until the user closes it. */
   duration?: number;
   /** Run when the popup leaves the screen, however it was dismissed. */

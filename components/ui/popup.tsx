@@ -30,7 +30,6 @@ const VARIANT_STYLES: Record<
  */
 export function PopupHost() {
   const current = usePopupStore((s) => s.queue[0] ?? null);
-  const waiting = usePopupStore((s) => Math.max(s.queue.length - 1, 0));
   const dismiss = usePopupStore((s) => s.dismiss);
 
   const actionRef = React.useRef<HTMLButtonElement>(null);
@@ -105,14 +104,8 @@ export function PopupHost() {
             )}
 
             <Button ref={actionRef} variant={variant.button} className="mt-6 w-full" onClick={close}>
-              {current?.actionLabel ?? (waiting > 0 ? 'Next' : 'OK')}
+              OK
             </Button>
-
-            {waiting > 0 && (
-              <p className="mt-2 text-xs text-muted-foreground">
-                {waiting} more {waiting === 1 ? 'message' : 'messages'}
-              </p>
-            )}
           </div>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>
