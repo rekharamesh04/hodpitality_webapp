@@ -6,6 +6,7 @@ import { authService } from '@/services/auth.service';
 import { useAuthStore } from '@/store';
 import { QUERY_KEYS } from '@/constants';
 import { normalizeIndustry } from '@/constants/industry';
+import { DEV_BYPASS_ENABLED } from '@/lib/dev-session';
 
 /**
  * Keeps the stored user in step with what the server says about them.
@@ -27,7 +28,8 @@ export function useSyncIdentity(): void {
   const { data } = useQuery({
     queryKey: QUERY_KEYS.USER,
     queryFn: () => authService.getMe(),
-    enabled: isAuthenticated,
+    // The bypass supplies the identity itself, and this call would only 401.
+    enabled: isAuthenticated && !DEV_BYPASS_ENABLED,
     // The industry changes rarely, so this is about catching up eventually
     // rather than polling. A refetch on focus is enough.
     staleTime: 5 * 60 * 1000,

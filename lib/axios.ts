@@ -3,6 +3,7 @@ import { STORAGE_KEYS, API_ENDPOINTS } from '@/constants';
 import { getJwtExpiryMs } from './jwt';
 import { useAuthStore } from '@/store/auth-store';
 import { debugLog } from '@/utils/debugLog';
+import { DEV_BYPASS_ENABLED } from '@/lib/dev-session';
 
 // Endpoints that run without a session — a 401 here means "request rejected",
 // not "your session expired", so it must not trigger the global logout redirect
@@ -99,6 +100,11 @@ function scheduleProactiveRefresh(token: string) {
 /** Clears the session everywhere (store + storage + cookie) and sends the user to /login. Idempotent — safe to call even if already logged out or already on /login. */
 function performLogout() {
   if (typeof window === 'undefined') return;
+  // The dev bypass holds a session no backend will ever accept, so every
+  // authenticated call 401s. Tearing the session down on that would bounce the
+  // user to /login on the first request any page happens to make, which is
+  // exactly what the bypass exists to avoid.
+  if (DEV_BYPASS_ENABLED) return;
   cancelScheduledRefresh();
   useAuthStore.getState().logout();
   if (window.location.pathname !== '/login') {
@@ -225,6 +231,12 @@ api.interceptors.response.use(
     // session to refresh or expire — a 401 here just means "this fake token isn't a real
     // Cognito token," not "your session expired."
     if (status !== 401 || isPublicAuthRoute) {
+      return Promise.reject(error);
+    }
+
+    // Nothing to refresh towards while bypassing — fail the request and let the
+    // calling page show its own error state.
+    if (DEV_BYPASS_ENABLED) {
       return Promise.reject(error);
     }
 
