@@ -29,6 +29,7 @@
  * this grants a local UI session and no access to anything.
  */
 import { STORAGE_KEYS } from '@/constants';
+import { isIndustrySlug, type IndustrySlug } from '@/constants/industry';
 import { useAuthStore } from '@/store/auth-store';
 import type { User } from '@/types';
 
@@ -36,18 +37,72 @@ export const DEV_BYPASS_ENABLED =
   process.env.NODE_ENV !== 'production' &&
   process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true';
 
-/** The demo identity. A company_admin so the whole navigation is reachable. */
-const DEV_USER: User = {
-  id: 'dev-local-user',
-  name: 'Dev Pharmacist',
-  email: 'dev@localhost.invalid',
-  role: 'company_admin',
-  tenant_id: 'tenant-dev-local',
-  // Drives every label in the product — see useTerminology(). Pharmacy rather
-  // than healthcare so the demo reads "Pharmacy Admin" and "Pharmacist"
-  // instead of "Hospital Admin" and "Doctor".
-  industry: 'pharmacy',
+/**
+ * Which industry the local session belongs to.
+ *
+ * The whole point of the demo is that one product looks like three: a
+ * pharmacy, a spa and a hotel differ in what they call people and which
+ * modules they are offered. Switching that used to mean editing this file, so
+ * it reads an env var, and `setDevIndustry` lets the running app change it
+ * without a restart — a demo should not need a terminal.
+ */
+const DEV_INDUSTRY_KEY = 'entryflow_dev_industry';
+
+function readDevIndustry(): IndustrySlug {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(DEV_INDUSTRY_KEY);
+      if (isIndustrySlug(stored)) return stored;
+    } catch {
+      // Storage unavailable (private mode) — fall through to the env default.
+    }
+  }
+  const fromEnv = process.env.NEXT_PUBLIC_DEV_BYPASS_INDUSTRY;
+  return isIndustrySlug(fromEnv) ? fromEnv : 'pharmacy';
+}
+
+/** What the demo user is called in each industry, so the name is not jarring. */
+const DEV_NAMES: Partial<Record<IndustrySlug, string>> = {
+  pharmacy: 'Dev Pharmacist',
+  wellness: 'Dev Spa Manager',
+  hospitality: 'Dev Hotel Manager',
+  healthcare: 'Dev Clinician',
 };
+
+/** The demo identity. A company_admin so the whole navigation is reachable. */
+function devUser(industry: IndustrySlug): User {
+  return {
+    id: 'dev-local-user',
+    name: DEV_NAMES[industry] ?? 'Dev Manager',
+    email: 'dev@localhost.invalid',
+    role: 'company_admin',
+    tenant_id: 'tenant-dev-local',
+    // Drives every label in the product — see useTerminology().
+    industry,
+  };
+}
+
+/**
+ * Switch the local session to another industry and reload.
+ *
+ * A reload rather than a store update: the vocabulary is read by every page
+ * through useTerminology, and a hard reload is the one way to be certain no
+ * screen is left holding the previous industry's words mid-demo.
+ */
+export function setDevIndustry(slug: IndustrySlug): void {
+  if (!DEV_BYPASS_ENABLED || typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(DEV_INDUSTRY_KEY, slug);
+  } catch {
+    return;
+  }
+  window.location.reload();
+}
+
+/** The industry the local session is currently pretending to be. */
+export function currentDevIndustry(): IndustrySlug {
+  return readDevIndustry();
+}
 
 function base64Url(value: object): string {
   return btoa(JSON.stringify(value)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -61,13 +116,14 @@ function base64Url(value: object): string {
  * from the removed mock layer and force-logs-out on sight. A base64url header
  * always begins "eyJ", so this is safe by construction rather than by luck.
  */
-function makeDevToken(): string {
+function makeDevToken(industry: IndustrySlug): string {
   const header = base64Url({ alg: 'none', typ: 'JWT' });
+  const user = devUser(industry);
   const payload = base64Url({
-    sub: DEV_USER.id,
-    email: DEV_USER.email,
-    'custom:role': DEV_USER.role,
-    'custom:tenant_id': DEV_USER.tenant_id,
+    sub: user.id,
+    email: user.email,
+    'custom:role': user.role,
+    'custom:tenant_id': user.tenant_id,
     token_use: 'id',
     // Far enough out that a demo is never interrupted by an expiry.
     exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 365,
@@ -97,7 +153,8 @@ export function installDevSession(pathname: string): string | null {
       'Unset NEXT_PUBLIC_DEV_BYPASS_AUTH to turn this off.',
   );
 
-  useAuthStore.getState().login(DEV_USER, { token: makeDevToken() });
+  const industry = readDevIndustry();
+  useAuthStore.getState().login(devUser(industry), { token: makeDevToken(industry) });
 
   // The login page would otherwise sit there looking signed out.
   return pathname === '/' || pathname.startsWith('/login') ? '/dashboard' : null;

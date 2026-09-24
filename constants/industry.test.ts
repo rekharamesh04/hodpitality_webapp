@@ -243,6 +243,39 @@ describe('navigation', () => {
     expect(hrefs).not.toContain('/pickup');
   });
 
+  it('gives each demo industry a flagship screen the others do not get', () => {
+    // The point of the demo is that one login looks like a different product
+    // from the next, so these three must not converge.
+    const hrefsFor = (slug: string) =>
+      getVisibleNavSections('company_admin', slug).flatMap((s) => s.items.map((i) => i.href));
+
+    const pharmacy = hrefsFor('pharmacy');
+    const spa = hrefsFor('wellness');
+    const hotel = hrefsFor('hospitality');
+
+    expect(pharmacy).toContain('/prescriptions');
+    expect(pharmacy).not.toContain('/treatments');
+    expect(pharmacy).not.toContain('/front-desk');
+
+    expect(spa).toContain('/treatments');
+    expect(spa).not.toContain('/prescriptions');
+    expect(spa).not.toContain('/front-desk');
+
+    expect(hotel).toContain('/front-desk');
+    expect(hotel).not.toContain('/prescriptions');
+    expect(hotel).not.toContain('/treatments');
+  });
+
+  it('labels the treatment board in each industry\u2019s own words', () => {
+    // wellness calls a visit a Treatment, so the nav must read "Treatment Board".
+    const label = (slug: string) =>
+      getVisibleNavSections('company_admin', slug)
+        .flatMap((s) => s.items)
+        .find((i) => i.href === '/treatments')?.label;
+    expect(label('wellness')).toBe('Treatment Board');
+    expect(label('other')).toBe('Visit Board');
+  });
+
   it('names a pharmacy after its own roles rather than a hospital\u2019s', () => {
     expect(industryAdminLabel('pharmacy')).toBe('Pharmacy Admin');
     expect(roleLabel('doctor', 'pharmacy')).toBe('Pharmacist');

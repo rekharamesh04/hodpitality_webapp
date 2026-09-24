@@ -59,6 +59,8 @@ export type IndustryModule =
   | 'events'
   | 'hospitality'
   | 'prescriptions'
+  | 'treatments'
+  | 'frontdesk'
   | 'payments'
   | 'registrations';
 
@@ -118,7 +120,7 @@ export const INDUSTRIES = {
     tiers: ['Founding', 'Signature', 'Standard'],
     priority: ['VIP', 'Founding', 'Signature'],
     requestTypes: ['Hotel', 'Transport', 'Meal', 'Airport Pickup', 'Special Request'],
-    modules: ['appointments', 'events', 'hospitality', 'payments', 'registrations'],
+    modules: ['appointments', 'frontdesk', 'events', 'hospitality', 'payments', 'registrations'],
     services: [
       { id: 'svc-check-in', name: 'Guest Check-in', duration: 15, category: 'front-desk' },
       { id: 'svc-room-service', name: 'Room Service', duration: 20, category: 'hospitality' },
@@ -367,7 +369,7 @@ export const INDUSTRIES = {
     tiers: ['Founding', 'Signature', 'Standard'],
     priority: ['Member', 'Founding', 'Signature'],
     requestTypes: ['Treatment Room', 'Refreshment', 'Locker', 'Special Request'],
-    modules: ['appointments', 'hospitality', 'payments'],
+    modules: ['appointments', 'treatments', 'hospitality', 'payments'],
     services: [
       { id: 'svc-consultation', name: 'Consultation', duration: 20, category: 'wellness' },
       { id: 'svc-treatment', name: 'Treatment', duration: 60, category: 'wellness' },
@@ -408,7 +410,7 @@ export const INDUSTRIES = {
     tiers: ['Founding', 'Signature', 'Standard'],
     priority: ['VIP', 'Founding', 'Signature'],
     requestTypes: ['Room Service', 'Transport', 'Meal', 'Special Request'],
-    modules: ['appointments', 'events', 'hospitality', 'prescriptions', 'payments', 'registrations'],
+    modules: ['appointments', 'events', 'hospitality', 'prescriptions', 'treatments', 'frontdesk', 'payments', 'registrations'],
     services: [
       { id: 'svc-check-in', name: 'Visitor Check-in', duration: 15, category: 'front-desk' },
       { id: 'svc-consultation', name: 'Consultation', duration: 30, category: 'general' },

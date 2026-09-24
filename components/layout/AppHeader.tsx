@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { DevIndustrySwitcher } from '@/components/common/DevIndustrySwitcher';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications, useMarkNotificationRead } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive, type NavSection } from '@/constants/navigation';
@@ -162,6 +163,8 @@ export function AppHeader() {
         </nav>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
+          {/* Renders nothing unless the local demo bypass is on. */}
+          <DevIndustrySwitcher />
           {/* Search — opens the ⌘K command palette */}
           <button
             type="button"
