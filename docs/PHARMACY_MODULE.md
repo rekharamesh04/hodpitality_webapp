@@ -28,21 +28,40 @@ the frontend only.
 | Nav | `constants/navigation.ts` | Two entries gated on `module: 'prescriptions'` |
 | Vocabulary | `constants/industry.ts` | New `pharmacy` pack |
 
-### One thing to action before release
+### The industry wiring, end to end
 
-`constants/industry.ts` now contains a `pharmacy` slug. **The backend allow-lists industry
-slugs and answers 400 to anything it does not hold.** The frontend is safe on its own —
-`normalizeIndustry` folds an unknown stored value onto the default — but the industry picker
-on the company form will offer "Pharmacy" the moment this ships, and saving it would fail.
+`pharmacy` is a real industry in all three codebases, verified by the repo's own
+parity checker:
 
-Add the slug in all three places, as the existing comment in that file requires:
+```
+$ python check_industry_parity.py
+backend=17 industries, web=17, mobile=17; roles=9
+All copies are identical.
+```
 
-1. `INDUSTRIES` in `hospitality_lambda.py`
-2. `constants/industry.ts` (done)
-3. `utils/terminology.ts` in the mobile app
+| Where | File |
+| --- | --- |
+| Backend | `app/industry.py` — `INDUSTRIES["pharmacy"]` |
+| Web | `constants/industry.ts` |
+| Mobile | `utils/terminology.ts` |
 
-Until then, a pharmacy tenant can run on the `healthcare` industry, which already carries the
-`prescriptions` module — the screens work, the words just say "Hospital" and "Doctor".
+So a reseller can create a company with industry `pharmacy`, and its staff,
+patients and customers inherit that vocabulary: Patients at a **Counter**,
+served by a **Pharmacist** and a **Technician**, in a **Pharmacy**.
+
+**The module gate is real, not cosmetic.** `ROUTE_MODULES` maps both
+`/prescriptions` and `/pickup` to the `prescriptions` module, and
+`reject_industry_module` answers 403 when the caller's industry does not list
+it. Three industries do: `healthcare`, `pharmacy` and `other`.
+
+That gate is **off by default**, behind `ENFORCE_INDUSTRY_MODULES`. Turning it
+on for a wrongly-classified tenant looks exactly like data loss — a retail
+company would stop being able to read events it had already created — so
+classify every tenant first. The same staged reasoning applies to
+`STRICT_TENANT_ISOLATION`; see the tenant-isolation work in the API repo.
+
+Anything hidden in a client's navigation is still only tidiness. The server
+gate is the boundary.
 
 ---
 
