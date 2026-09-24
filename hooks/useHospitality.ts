@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { hospitalityService } from "@/services/hospitality.service";
 import { getFriendlyErrorMessage } from "@/lib/utils";
 import type { TableFilters, Hospitality } from "@/types";
@@ -52,9 +52,9 @@ export function useCreateBooking() {
       hospitalityService.createBooking(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: hospitalityKeys.all });
-      toast.success("Hospitality request created");
+      popup.success("Hospitality request created");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create request")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create request")),
   });
 }
 
@@ -66,9 +66,9 @@ export function useUpdateBookingStatus() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: hospitalityKeys.all });
       qc.invalidateQueries({ queryKey: hospitalityKeys.detail(vars.id) });
-      toast.success("Request status updated");
+      popup.success("Request status updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update request")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update request")),
   });
 }
 
@@ -78,8 +78,8 @@ export function useDeleteBooking() {
     mutationFn: (id: string) => hospitalityService.deleteBooking(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: hospitalityKeys.all });
-      toast.success("Hospitality request deleted");
+      popup.success("Hospitality request deleted");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete request")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete request")),
   });
 }

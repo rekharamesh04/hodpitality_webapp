@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { companyService } from "@/services/company.service";
 import type { CreateCompanyPayload, UpdateCompanyPayload } from "@/services/company.service";
 import { QUERY_KEYS } from "@/constants";
@@ -25,15 +25,15 @@ export function useCreateCompany() {
       qc.invalidateQueries({ queryKey: companyKeys.all });
       const invitationWarning = extractInvitationWarning(data);
       if (invitationWarning) {
-        toast.warning("Company created — admin invitation issue", { description: invitationWarning });
+        popup.warning("Company created — admin invitation issue", { description: invitationWarning });
       } else {
-        toast.success("Company created", variables.email ? { description: `Invite sent to ${variables.email}` } : undefined);
+        popup.success("Company created", variables.email ? { description: `Invite sent to ${variables.email}` } : undefined);
       }
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "A company with this email already exists.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create company"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "A company with this email already exists.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create company"));
     },
   });
 }
@@ -45,9 +45,9 @@ export function useUpdateCompany() {
       companyService.updateCompany(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: companyKeys.all });
-      toast.success("Company updated");
+      popup.success("Company updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update company")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update company")),
   });
 }
 
@@ -57,12 +57,12 @@ export function useDeleteCompany() {
     mutationFn: (id: string) => companyService.deleteCompany(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: companyKeys.all });
-      toast.success("Company deleted");
+      popup.success("Company deleted");
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "This company can't be deleted — it still has active data attached.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete company"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "This company can't be deleted — it still has active data attached.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete company"));
     },
   });
 }

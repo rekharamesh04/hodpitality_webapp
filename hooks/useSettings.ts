@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { settingsService } from "@/services/settings.service";
 import { QUERY_KEYS } from "@/constants";
 import { getFriendlyErrorMessage } from "@/lib/utils";
@@ -18,9 +18,9 @@ export function useUpdateProfile() {
     mutationFn: (input: Partial<User>) => settingsService.updateProfile(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.SETTINGS });
-      toast.success("Profile updated");
+      popup.success("Profile updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update profile")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update profile")),
   });
 }
 
@@ -31,9 +31,9 @@ export function useUpdateOrganisation() {
       settingsService.updateOrganisation(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.SETTINGS });
-      toast.success("Organisation settings saved");
+      popup.success("Organisation settings saved");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to save organisation settings")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to save organisation settings")),
   });
 }
 
@@ -44,9 +44,9 @@ export function useUpdateNotificationPrefs() {
       settingsService.updateNotificationPreferences(prefs),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.SETTINGS });
-      toast.success("Notification preferences saved");
+      popup.success("Notification preferences saved");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to save preferences")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to save preferences")),
   });
 }
 
@@ -54,7 +54,7 @@ export function useChangePassword() {
   return useMutation({
     mutationFn: (payload: { currentPassword: string; newPassword: string }) =>
       settingsService.changePassword(payload),
-    onSuccess: () => toast.success("Password changed successfully"),
-    onError:   (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to change password")),
+    onSuccess: () => popup.success("Password changed successfully"),
+    onError:   (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to change password")),
   });
 }

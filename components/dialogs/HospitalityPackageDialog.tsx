@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import { popup } from '@/lib/popup';
 import { Hotel, Car, Utensils, Plane, Star } from 'lucide-react';
 
 interface HospitalityPackageDialogProps {
@@ -66,7 +66,6 @@ export function HospitalityPackageDialog({
   guestName 
 }: HospitalityPackageDialogProps) {
   const { createHospitalityPackage, loading } = useWorkflow();
-  const { toast } = useToast();
   
   const [selectedPackage, setSelectedPackage] = useState<'standard' | 'speaker' | 'vip'>('standard');
 
@@ -77,16 +76,13 @@ export function HospitalityPackageDialog({
 
     if (result.success) {
       const packageInfo = packageOptions[selectedPackage];
-      toast({
-        title: 'Hospitality Package Created!',
+      popup.success('Hospitality Package Created!', {
         description: `${packageInfo.name} has been created for ${guestName} with ${result.data?.length} services.`,
       });
       onOpenChange(false);
     } else {
-      toast({
-        title: 'Package Creation Failed',
+      popup.error('Package Creation Failed', {
         description: result.error || 'Failed to create hospitality package',
-        variant: 'destructive',
       });
     }
   };

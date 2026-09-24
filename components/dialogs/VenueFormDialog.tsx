@@ -12,7 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { AlertCircle, ImagePlus, X, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import { uploadService } from '@/services/upload.service';
 import type { CreateVenuePayload, UpdateVenuePayload } from '@/services/venue.service';
 import type { Venue } from '@/types';
@@ -106,7 +106,7 @@ export function VenueFormDialog({
       setUploadState('success');
     } catch {
       setUploadState('error');
-      toast.error('Image upload failed. Please try again.');
+      popup.error('Image upload failed. Please try again.');
     }
   }
 

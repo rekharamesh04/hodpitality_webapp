@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
+import { popup } from '@/lib/popup';
 import { Plus, Trash2 } from 'lucide-react';
 import { eventService } from '@/services/event.service';
 import type { Event } from '@/types';
@@ -44,7 +44,6 @@ interface HospitalityRequest {
 
 export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegistrationDialogProps) {
   const { completeRegistration, loading } = useWorkflow();
-  const { toast } = useToast();
   const qc = useQueryClient();
   const [events, setEvents] = useState<Event[]>([]);
   
@@ -108,8 +107,7 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
       qc.invalidateQueries({ queryKey: QUERY_KEYS.HOSPITALITY });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.PAYMENT_STATS });
-      toast({
-        title: 'Registration Complete!',
+      popup.success('Registration Complete!', {
         description: `${formData.guestName} has been successfully registered with ${hospitalityRequests.length} hospitality services.`,
       });
       onOpenChange(false);
@@ -118,10 +116,8 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
       setHospitalityRequests([]);
       setIncludePayment(false);
     } else {
-      toast({
-        title: 'Registration Failed',
+      popup.error('Registration Failed', {
         description: result.error || 'Failed to complete registration',
-        variant: 'destructive',
       });
     }
   };

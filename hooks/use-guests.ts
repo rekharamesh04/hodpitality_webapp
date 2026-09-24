@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import { guestService } from '@/services/guest.service';
 import type { GuestFilters, CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
 import { QUERY_KEYS } from '@/constants';
@@ -43,16 +43,16 @@ export function useCreateGuest(options?: { onDuplicate?: (conflict: NonNullable<
     mutationFn: (input: CreateGuestPayload) => guestService.createGuest(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: guestKeys.all });
-      toast.success('Guest created');
+      popup.success('Guest created');
     },
     onError: (err: any) => {
       const conflict = getDuplicatePersonConflict(err);
       if (conflict) {
-        toast.error(conflict.message, { description: 'Opening the existing record instead.' });
+        popup.error(conflict.message, { description: 'Opening the existing record instead.' });
         options?.onDuplicate?.(conflict);
         return;
       }
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to create guest'));
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to create guest'));
     },
   });
 }
@@ -64,15 +64,15 @@ export function useUpdateGuest() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: guestKeys.all });
       qc.invalidateQueries({ queryKey: guestKeys.detail(vars.id) });
-      toast.success('Guest updated');
+      popup.success('Guest updated');
     },
     onError: (err: any) => {
       const conflict = getDuplicatePersonConflict(err);
       if (conflict) {
-        toast.error(conflict.message);
+        popup.error(conflict.message);
         return;
       }
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to update guest'));
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to update guest'));
     },
   });
 }
@@ -83,9 +83,9 @@ export function useDeleteGuest() {
     mutationFn: (id: string) => guestService.deleteGuest(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: guestKeys.all });
-      toast.success('Guest removed');
+      popup.success('Guest removed');
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove guest')),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove guest')),
   });
 }
 
@@ -106,7 +106,7 @@ export function useEnrollFace() {
       guestService.enrollFace(guestId, image),
     onSuccess: (result, { guestId, image }) => {
       if (result?.success === false) {
-        toast.error(result.message ?? 'Face enrollment failed');
+        popup.error(result.message ?? 'Face enrollment failed');
         return;
       }
       const patch = { face_photo_url: image, avatar: image, face_enrolled: true };
@@ -120,9 +120,9 @@ export function useEnrollFace() {
           data: old.data.map((g) => (resolveGuestId(g) === guestId ? { ...g, ...patch } : g)),
         };
       });
-      toast.success('Face enrolled successfully');
+      popup.success('Face enrolled successfully');
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? err?.response?.data?.error ?? 'Face enrollment failed'),
+    onError: (err: any) => popup.error(err?.backendMessage ?? err?.response?.data?.error ?? 'Face enrollment failed'),
   });
 }
 
@@ -142,9 +142,9 @@ export function useUnenrollFace() {
           data: old.data.map((g) => (resolveGuestId(g) === guestId ? { ...g, ...patch } : g)),
         };
       });
-      toast.success('Face removed');
+      popup.success('Face removed');
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove face')),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove face')),
   });
 }
 
@@ -160,14 +160,14 @@ export function useBulkDeleteGuests() {
       const deleted = Array.isArray(data?.deleted) ? data.deleted.length : ids.length;
       const skipped = ids.length - deleted;
       if (deleted === 0) {
-        toast.error('No guests were deleted — they may already be gone or you may not have access to them.');
+        popup.error('No guests were deleted — they may already be gone or you may not have access to them.');
       } else if (skipped > 0) {
-        toast.warning(`${deleted} of ${ids.length} guests deleted. ${skipped} could not be deleted (already removed or not accessible).`);
+        popup.warning(`${deleted} of ${ids.length} guests deleted. ${skipped} could not be deleted (already removed or not accessible).`);
       } else {
-        toast.success(`${deleted} guest${deleted === 1 ? '' : 's'} deleted`);
+        popup.success(`${deleted} guest${deleted === 1 ? '' : 's'} deleted`);
       }
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove guests')),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove guests')),
   });
 }
 
@@ -179,9 +179,9 @@ export function useBulkImportGuests() {
       qc.invalidateQueries({ queryKey: guestKeys.all });
       const failed = result?.errors?.length ?? 0;
       const imported = result?.imported ?? 0;
-      if (failed > 0) toast.warning(`Imported ${imported} guest${imported === 1 ? '' : 's'} — ${failed} row${failed === 1 ? '' : 's'} failed`);
-      else toast.success(`Imported ${imported} guest${imported === 1 ? '' : 's'}`);
+      if (failed > 0) popup.warning(`Imported ${imported} guest${imported === 1 ? '' : 's'} — ${failed} row${failed === 1 ? '' : 's'} failed`);
+      else popup.success(`Imported ${imported} guest${imported === 1 ? '' : 's'}`);
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to import guests')),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to import guests')),
   });
 }

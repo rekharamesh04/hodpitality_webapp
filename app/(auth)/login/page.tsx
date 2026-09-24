@@ -17,7 +17,7 @@ import { useAuthStore } from '@/store';
 import { authService } from '@/services/auth.service';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { isKnownRole } from '@/constants/roles';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -70,7 +70,7 @@ export default function LoginPage() {
 
       if (result.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
         if (!result.Session) {
-          toast.error('Unexpected response from server. Please try again.');
+          popup.error('Unexpected response from server. Please try again.');
           return;
         }
         setChallenge({ session: result.Session, email: result.email ?? data.email });
@@ -78,7 +78,7 @@ export default function LoginPage() {
       }
 
       if (!result.token) {
-        toast.error('Login failed: no session token received.');
+        popup.error('Login failed: no session token received.');
         return;
       }
 
@@ -102,14 +102,14 @@ export default function LoginPage() {
           '   Fix: Go to AWS Console → Cognito → User Pool → App clients and verify the client ID.\n' +
           '   Then update the Lambda environment variable (e.g. COGNITO_CLIENT_ID) with the correct value.'
         );
-        toast.error('Backend misconfiguration: Cognito User Pool Client not found. Contact your administrator.');
+        popup.error('Backend misconfiguration: Cognito User Pool Client not found. Contact your administrator.');
       } else if (status === 401) {
-        toast.error('Invalid email or password.');
+        popup.error('Invalid email or password.');
       } else if (status === 500) {
         console.error('[LOGIN] ── Backend 500 error. Raw message:', rawError);
-        toast.error(backendMsg || 'Server error. Please try again later or contact support.');
+        popup.error(backendMsg || 'Server error. Please try again later or contact support.');
       } else {
-        toast.error(backendMsg || 'Login failed. Please try again.');
+        popup.error(backendMsg || 'Login failed. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -127,16 +127,16 @@ export default function LoginPage() {
       });
       if (!result.token) {
         console.warn('[CHALLENGE] No token in response — cannot complete login');
-        toast.error('Password set, but no token received. Please log in again.');
+        popup.error('Password set, but no token received. Please log in again.');
         setChallenge(null);
         return;
       }
-      toast.success('Password set! Logging you in…');
+      popup.success('Password set! Logging you in…');
       completeLogin(result);
     } catch (err: any) {
       console.error('[CHALLENGE] HTTP status:', err?.response?.status, err?.response?.data);
       const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message ?? 'Unknown error';
-      toast.error(`Failed to set password: ${msg}`);
+      popup.error(`Failed to set password: ${msg}`);
     } finally {
       setIsLoading(false);
     }
@@ -146,7 +146,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await authService.register({ name: data.name, email: data.email, password: data.password });
-      toast.success('Account created! Please sign in.');
+      popup.success('Account created! Please sign in.');
       loginForm.setValue('email', data.email);
       registerForm.reset();
       setMode('login');
@@ -155,7 +155,7 @@ export default function LoginPage() {
       const body = err?.response?.data;
       console.error('[REGISTER] caught error — status:', status, 'body:', body);
       const msg = body?.error ?? body?.message ?? err?.message ?? 'Unknown error';
-      toast.error(`Registration failed (${status ?? 'no status'}): ${msg}`);
+      popup.error(`Registration failed (${status ?? 'no status'}): ${msg}`);
     } finally {
       setIsLoading(false);
     }
@@ -192,7 +192,7 @@ export default function LoginPage() {
           '   but the User Pool Client ID it\'s configured with does not exist.\n' +
           '   Fix: AWS Console → Cognito → User Pool → App clients → copy correct client ID → update Lambda env var.'
         );
-        toast.error('Backend misconfiguration: Cognito User Pool Client not found. Contact your administrator.');
+        popup.error('Backend misconfiguration: Cognito User Pool Client not found. Contact your administrator.');
       } else if (isSessionIssueFailed) {
         console.error(
           '[GOOGLE-LOGIN] ── DIAGNOSIS: Google token was verified OK, but the Lambda failed to create a Cognito session.\n' +
@@ -202,20 +202,20 @@ export default function LoginPage() {
           '   3. The Lambda\'s IAM role lacks cognito-idp:AdminInitiateAuth permission\n' +
           '   Check the Lambda\'s CloudWatch logs for the full stack trace.'
         );
-        toast.error('Google sign-in failed. Please try again, or sign in with your email and password.');
+        popup.error('Google sign-in failed. Please try again, or sign in with your email and password.');
       } else if (status === 501) {
         console.error('[GOOGLE-LOGIN] ── Diagnosis: GOOGLE_CLIENT_ID is not set on the Lambda. Ask your backend admin to add it.');
-        toast.error('Google sign-in is not enabled yet. Please sign in with your email and password.');
+        popup.error('Google sign-in is not enabled yet. Please sign in with your email and password.');
       } else if (status === 403) {
         console.error('[GOOGLE-LOGIN] ── Diagnosis: This Google email is NOT registered as a staff member in Cognito.',
           'Ask an administrator to invite this email from the Staff page before signing in with Google.');
-        toast.error(backendMsg || 'This Google account is not registered. Ask your administrator to invite you first.');
+        popup.error(backendMsg || 'This Google account is not registered. Ask your administrator to invite you first.');
       } else if (status === 401) {
         console.error('[GOOGLE-LOGIN] ── Diagnosis: Lambda could not verify the Google token. Check that GOOGLE_CLIENT_ID on Lambda matches NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local.');
-        toast.error(backendMsg ?? 'Google token verification failed. Please try again.');
+        popup.error(backendMsg ?? 'Google token verification failed. Please try again.');
       } else {
         console.error('[GOOGLE-LOGIN] ── Unhandled error. Status:', status, 'Message:', rawError);
-        toast.error(backendMsg ?? getFriendlyErrorMessage(err, 'Google sign-in failed.'));
+        popup.error(backendMsg ?? getFriendlyErrorMessage(err, 'Google sign-in failed.'));
       }
     } finally {
       setIsLoading(false);
@@ -228,7 +228,7 @@ export default function LoginPage() {
     // through would land them on a dashboard where nothing loads.
     if (!isKnownRole(result.user.role)) {
       console.warn('[COMPLETE-LOGIN] ── BLOCKED: unrecognised role', result.user.role);
-      toast.error(
+      popup.error(
         (result.user.role as string) === 'patient'
           ? 'This portal is for staff only.'
           : 'Your account has no valid role. Ask your administrator to set your role.'
@@ -242,7 +242,7 @@ export default function LoginPage() {
       updatedAt: result.user.updatedAt ?? new Date().toISOString(),
     };
     login(user, { token: result.token, refreshToken: result.refreshToken, accessToken: result.accessToken });
-    toast.success('Login successful!');
+    popup.success('Login successful!');
     window.location.href = '/dashboard';
   }
 

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { venueService } from "@/services/venue.service";
 import type { VenueFilters, CreateVenuePayload, UpdateVenuePayload } from "@/services/venue.service";
 import { QUERY_KEYS } from "@/constants";
@@ -33,9 +33,9 @@ export function useCreateVenue() {
     mutationFn: (input: CreateVenuePayload) => venueService.createVenue(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: venueKeys.all });
-      toast.success("Venue created");
+      popup.success("Venue created");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create venue")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create venue")),
   });
 }
 
@@ -47,9 +47,9 @@ export function useUpdateVenue() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: venueKeys.all });
       qc.invalidateQueries({ queryKey: venueKeys.detail(vars.id) });
-      toast.success("Venue updated");
+      popup.success("Venue updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update venue")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update venue")),
   });
 }
 
@@ -59,12 +59,12 @@ export function useDeleteVenue() {
     mutationFn: (id: string) => venueService.deleteVenue(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: venueKeys.all });
-      toast.success("Venue deleted");
+      popup.success("Venue deleted");
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "This venue can't be deleted while it has upcoming events or bookings.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete venue"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "This venue can't be deleted while it has upcoming events or bookings.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete venue"));
     },
   });
 }
@@ -77,8 +77,8 @@ export function useUpdateVenueOccupancy() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: venueKeys.all });
       qc.invalidateQueries({ queryKey: venueKeys.detail(vars.id) });
-      toast.success("Occupancy updated");
+      popup.success("Occupancy updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update occupancy")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update occupancy")),
   });
 }

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import { registrationService } from '@/services/registration.service';
 import { QUERY_KEYS } from '@/constants';
 import { paymentKeys } from '@/hooks/usePayments';
@@ -18,9 +18,9 @@ export function useCreateRegistration() {
     mutationFn: (input: Partial<Registration>) => registrationService.createRegistration(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.REGISTRATIONS });
-      toast.success('Registration created');
+      popup.success('Registration created');
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? 'Failed to create registration'),
+    onError: (err: any) => popup.error(err?.backendMessage ?? 'Failed to create registration'),
   });
 }
 
@@ -31,9 +31,9 @@ export function useUpdateRegistration() {
       registrationService.updateRegistration(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.REGISTRATIONS });
-      toast.success('Registration updated');
+      popup.success('Registration updated');
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? 'Failed to update registration'),
+    onError: (err: any) => popup.error(err?.backendMessage ?? 'Failed to update registration'),
   });
 }
 
@@ -43,9 +43,9 @@ export function useDeleteRegistration() {
     mutationFn: (id: string) => registrationService.deleteRegistration(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.REGISTRATIONS });
-      toast.success('Registration removed');
+      popup.success('Registration removed');
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? 'Failed to remove registration'),
+    onError: (err: any) => popup.error(err?.backendMessage ?? 'Failed to remove registration'),
   });
 }
 
@@ -55,9 +55,9 @@ export function useConfirmRegistration() {
     mutationFn: (id: string) => registrationService.confirmRegistration(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.REGISTRATIONS });
-      toast.success('Registration confirmed');
+      popup.success('Registration confirmed');
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? 'Failed to confirm registration'),
+    onError: (err: any) => popup.error(err?.backendMessage ?? 'Failed to confirm registration'),
   });
 }
 
@@ -95,8 +95,8 @@ export function useUpdateRegistrationPayment() {
       // The backend patch syncs a Payment record on every call to this endpoint too.
       qc.invalidateQueries({ queryKey: paymentKeys.all });
       qc.invalidateQueries({ queryKey: paymentKeys.stats });
-      toast.success('Payment status updated');
+      popup.success('Payment status updated');
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? 'Failed to update payment status'),
+    onError: (err: any) => popup.error(err?.backendMessage ?? 'Failed to update payment status'),
   });
 }

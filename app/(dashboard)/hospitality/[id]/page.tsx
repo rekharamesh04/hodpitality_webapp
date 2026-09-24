@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import {
   ArrowLeft, Trash2, Hotel, MapPin, Building2, DollarSign, Calendar, FileText,
 } from 'lucide-react';
@@ -34,7 +34,7 @@ export default function HospitalityDetailPage({ params }: { params: Promise<{ id
   function handleDelete() {
     deleteMutation.mutate(id, {
       onSuccess: () => {
-        toast.success('Hospitality request deleted');
+        popup.success('Hospitality request deleted');
         router.push('/hospitality');
       },
     });

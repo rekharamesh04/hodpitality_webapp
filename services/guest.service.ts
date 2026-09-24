@@ -48,7 +48,7 @@ function buildParams(filters: GuestFilters): URLSearchParams {
   return p;
 }
 
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 
 export const guestService = {
   async getGuests(filters: GuestFilters = {}): Promise<GuestListResponse> {
@@ -106,16 +106,16 @@ export const guestService = {
    */
   async enrollFace(guestId: string, imageDataUrl: string): Promise<FaceEnrollResult> {
     console.log('[GUEST-FACE] Step 1: Starting face enrollment for guest:', guestId);
-    toast.info('📸 Step 1/3: Uploading photo to S3…');
+    popup.info('📸 Step 1/3: Uploading photo to S3…', { id: 'guest-face-enroll' });
 
     let s3Key: string;
     try {
       s3Key = await uploadService.uploadImageDataUrl(imageDataUrl, 'face_enroll_guest');
       console.log('[GUEST-FACE] Step 2: S3 upload complete. s3_key:', s3Key);
-      toast.info('✅ Step 2/3: Photo uploaded to S3. Calling face enroll API…');
+      popup.info('✅ Step 2/3: Photo uploaded to S3. Calling face enroll API…', { id: 'guest-face-enroll' });
     } catch (err: any) {
       console.error('[GUEST-FACE] S3 upload FAILED:', err?.message);
-      toast.error(`❌ S3 upload failed: ${err?.message || 'Unknown error'}`);
+      popup.error(`❌ S3 upload failed: ${err?.message || 'Unknown error'}`, { id: 'guest-face-enroll' });
       throw err;
     }
 
@@ -124,13 +124,13 @@ export const guestService = {
       console.log('[GUEST-FACE] Step 3: Calling POST', endpoint, '{ s3_key:', s3Key, '}');
       const { data } = await api.post(endpoint, { s3_key: s3Key });
       console.log('[GUEST-FACE] Step 4: API response ✅', JSON.stringify(data));
-      toast.success('✅ Step 3/3: Face enroll API responded successfully!');
+      popup.success('✅ Step 3/3: Face enroll API responded successfully!', { id: 'guest-face-enroll' });
       return data;
     } catch (err: any) {
       const status = err?.response?.status;
       const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message;
       console.error('[GUEST-FACE] Face enroll API FAILED — status:', status, 'error:', msg);
-      toast.error(`❌ Face enroll API failed (${status}): ${msg}`);
+      popup.error(`❌ Face enroll API failed (${status}): ${msg}`, { id: 'guest-face-enroll' });
       throw err;
     }
   },
@@ -138,16 +138,16 @@ export const guestService = {
   async unenrollFace(guestId: string): Promise<void> {
     const endpoint = `${API_ENDPOINTS.GUESTS}/${guestId}/face`;
     console.log('[GUEST-FACE] Unenrolling face — DELETE', endpoint);
-    toast.info('🗑️ Calling DELETE face API…');
+    popup.info('🗑️ Calling DELETE face API…', { id: 'guest-face-unenroll' });
     try {
       await api.delete(endpoint);
       console.log('[GUEST-FACE] Unenroll success ✅');
-      toast.success('✅ Face unenrolled via API');
+      popup.success('✅ Face unenrolled via API', { id: 'guest-face-unenroll' });
     } catch (err: any) {
       const status = err?.response?.status;
       const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message;
       console.error('[GUEST-FACE] Unenroll FAILED — status:', status, 'error:', msg);
-      toast.error(`❌ Face unenroll failed (${status}): ${msg}`);
+      popup.error(`❌ Face unenroll failed (${status}): ${msg}`, { id: 'guest-face-unenroll' });
       throw err;
     }
   },

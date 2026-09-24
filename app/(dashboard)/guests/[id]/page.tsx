@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import {
   ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
   StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays, Hotel,
@@ -63,7 +63,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
   function handleDelete() {
     deleteMutation.mutate(id, {
       onSuccess: () => {
-        toast.success('Guest deleted');
+        popup.success('Guest deleted');
         router.push('/guests');
       },
     });

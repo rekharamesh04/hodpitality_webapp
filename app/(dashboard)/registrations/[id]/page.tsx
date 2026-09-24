@@ -2,7 +2,7 @@
 
 import { use, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import {
   ArrowLeft, Pencil, Trash2, Check, CreditCard, Mail, Phone, Calendar, Tag, FileText, CalendarClock,
 } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function RegistrationDetailPage({ params }: { params: Promise<{ i
   function handleDelete() {
     deleteReg.mutate(id, {
       onSuccess: () => {
-        toast.success('Registration deleted');
+        popup.success('Registration deleted');
         router.push('/registrations');
       },
     });

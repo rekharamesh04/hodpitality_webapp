@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { authService } from '@/services/auth.service';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 
 const forgotPasswordSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -39,10 +39,10 @@ export default function ForgotPasswordPage() {
       await authService.forgotPassword(data.email);
       // Persist email so verify-otp and reset-password can use it
       sessionStorage.setItem('reset_email', data.email);
-      toast.success('OTP sent to your email!');
+      popup.success('OTP sent to your email!');
       router.push('/verify-otp');
     } catch {
-      toast.error('Failed to send OTP. Please try again.');
+      popup.error('Failed to send OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }

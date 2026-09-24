@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { staffService } from "@/services/staff.service";
 import type { StaffFilters, CreateStaffPayload, UpdateStaffPayload } from "@/services/staff.service";
 import { QUERY_KEYS } from "@/constants";
@@ -37,15 +37,15 @@ export function useCreateStaff() {
       qc.invalidateQueries({ queryKey: reportKeys.dashboard });
       const invitationWarning = extractInvitationWarning(data);
       if (invitationWarning) {
-        toast.warning("Staff member added — invitation issue", { description: invitationWarning });
+        popup.warning("Staff member added — invitation issue", { description: invitationWarning });
       } else {
-        toast.success("Staff member added", { description: `Invite sent to ${variables.email}` });
+        popup.success("Staff member added", { description: `Invite sent to ${variables.email}` });
       }
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "A staff member with this email already exists.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to add staff member"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "A staff member with this email already exists.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to add staff member"));
     },
   });
 }
@@ -59,9 +59,9 @@ export function useUpdateStaff() {
       qc.invalidateQueries({ queryKey: staffKeys.all });
       qc.invalidateQueries({ queryKey: staffKeys.detail(vars.id) });
       qc.invalidateQueries({ queryKey: reportKeys.dashboard });
-      toast.success("Staff member updated");
+      popup.success("Staff member updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update staff member")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update staff member")),
   });
 }
 
@@ -72,12 +72,12 @@ export function useDeleteStaff() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: staffKeys.all });
       qc.invalidateQueries({ queryKey: reportKeys.dashboard });
-      toast.success("Staff member removed");
+      popup.success("Staff member removed");
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "This staff member can't be removed — they may have upcoming appointments.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to remove staff member"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "This staff member can't be removed — they may have upcoming appointments.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to remove staff member"));
     },
   });
 }
@@ -90,8 +90,8 @@ export function useUpdateStaffSchedule() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: staffKeys.all });
       qc.invalidateQueries({ queryKey: staffKeys.detail(vars.id) });
-      toast.success("Schedule updated");
+      popup.success("Schedule updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update schedule")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update schedule")),
   });
 }

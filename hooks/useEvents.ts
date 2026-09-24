@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { eventService } from "@/services/event.service";
 import type { EventFilters, CreateEventPayload, UpdateEventPayload } from "@/services/event.service";
 import { QUERY_KEYS } from "@/constants";
@@ -54,9 +54,9 @@ export function useCreateEvent() {
       // so this also covers the Dashboard's upcoming-events query — no separate invalidation needed.
       qc.invalidateQueries({ queryKey: eventKeys.all });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CALENDAR });
-      toast.success("Event created");
+      popup.success("Event created");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create event")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create event")),
   });
 }
 
@@ -69,9 +69,9 @@ export function useUpdateEvent() {
       qc.invalidateQueries({ queryKey: eventKeys.all });
       qc.invalidateQueries({ queryKey: eventKeys.detail(vars.id) });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CALENDAR });
-      toast.success("Event updated");
+      popup.success("Event updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update event")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update event")),
   });
 }
 
@@ -82,12 +82,12 @@ export function useDeleteEvent() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: eventKeys.all });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CALENDAR });
-      toast.success("Event deleted");
+      popup.success("Event deleted");
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "This event can't be deleted — it may have existing registrations or check-ins.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete event"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "This event can't be deleted — it may have existing registrations or check-ins.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete event"));
     },
   });
 }

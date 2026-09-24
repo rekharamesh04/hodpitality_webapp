@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { resellerService } from "@/services/reseller.service";
 import type { CreateResellerPayload, UpdateResellerPayload } from "@/services/reseller.service";
 import { QUERY_KEYS } from "@/constants";
@@ -25,15 +25,15 @@ export function useCreateReseller() {
       qc.invalidateQueries({ queryKey: resellerKeys.all });
       const invitationWarning = extractInvitationWarning(data);
       if (invitationWarning) {
-        toast.warning("Reseller created — invitation issue", { description: invitationWarning });
+        popup.warning("Reseller created — invitation issue", { description: invitationWarning });
       } else {
-        toast.success("Reseller created", variables.email ? { description: `Invite sent to ${variables.email}` } : undefined);
+        popup.success("Reseller created", variables.email ? { description: `Invite sent to ${variables.email}` } : undefined);
       }
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "A reseller with this email already exists.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create reseller"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "A reseller with this email already exists.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create reseller"));
     },
   });
 }
@@ -45,9 +45,9 @@ export function useUpdateReseller() {
       resellerService.updateReseller(id, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: resellerKeys.all });
-      toast.success("Reseller updated");
+      popup.success("Reseller updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update reseller")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update reseller")),
   });
 }
 
@@ -57,12 +57,12 @@ export function useDeleteReseller() {
     mutationFn: (id: string) => resellerService.deleteReseller(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: resellerKeys.all });
-      toast.success("Reseller deleted");
+      popup.success("Reseller deleted");
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "This reseller can't be deleted — it still has companies attached.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete reseller"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "This reseller can't be deleted — it still has companies attached.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete reseller"));
     },
   });
 }

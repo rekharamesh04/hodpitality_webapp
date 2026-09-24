@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import { Plus, Download, MoreHorizontal, Eye, Pencil, Trash2, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -165,12 +165,12 @@ function CustomersPageInner() {
         window.open(res.downloadUrl, '_blank', 'noopener,noreferrer');
       } else if (res.data && res.data.length > 0) {
         exportToCSV(res.data, `${t.account.many.toLowerCase().replace(/\s+/g, '-')}-export-${toLocalDateInput()}`);
-        toast.success('Customer export downloaded');
+        popup.success('Customer export downloaded');
       } else {
-        toast.error('The export returned no data.');
+        popup.error('The export returned no data.');
       }
     } catch (err) {
-      toast.error(getFriendlyErrorMessage(err, 'Failed to export customers.'));
+      popup.error(getFriendlyErrorMessage(err, 'Failed to export customers.'));
     } finally {
       setIsExporting(false);
     }

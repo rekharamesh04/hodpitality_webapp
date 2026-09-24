@@ -57,7 +57,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   }
 
   function handleDelete() {
-    // useDeleteStaff already shows the success / error toast.
+    // useDeleteStaff already shows the success / error popup.
     deleteMutation.mutate(id, { onSuccess: () => router.push('/staff') });
   }
 

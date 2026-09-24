@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { paymentService } from "@/services/payment.service";
 import type {
   PaymentFilters, CreatePaymentPayload, UpdatePaymentPayload, RefundPaymentPayload,
@@ -53,9 +53,9 @@ export function useCreatePayment() {
     mutationFn: (input: CreatePaymentPayload) => paymentService.createPayment(input),
     onSuccess: () => {
       invalidatePaymentSurfaces(qc);
-      toast.success("Payment recorded");
+      popup.success("Payment recorded");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to record payment")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to record payment")),
   });
 }
 
@@ -66,9 +66,9 @@ export function useUpdatePayment() {
       paymentService.updatePayment(id, data),
     onSuccess: (_data, vars) => {
       invalidatePaymentSurfaces(qc, vars.id);
-      toast.success("Payment updated");
+      popup.success("Payment updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update payment")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update payment")),
   });
 }
 
@@ -79,12 +79,12 @@ export function useUpdatePaymentStatus() {
       paymentService.updatePaymentStatus(id, status),
     onSuccess: (_data, vars) => {
       invalidatePaymentSurfaces(qc, vars.id);
-      toast.success("Payment status updated");
+      popup.success("Payment status updated");
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return toast.error(err?.backendMessage ?? "That status change isn't allowed from the payment's current status.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update payment status"));
+      if (status === 409) return popup.error(err?.backendMessage ?? "That status change isn't allowed from the payment's current status.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update payment status"));
     },
   });
 }
@@ -96,13 +96,13 @@ export function useRefundPayment() {
       paymentService.refundPayment(id, data),
     onSuccess: (_data, vars) => {
       invalidatePaymentSurfaces(qc, vars.id);
-      toast.success("Refund recorded");
+      popup.success("Refund recorded");
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 400) return toast.error(err?.backendMessage ?? "Refund amount exceeds what's left to refund.");
-      if (status === 409) return toast.error(err?.backendMessage ?? "This payment can't be refunded from its current status.");
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to record refund"));
+      if (status === 400) return popup.error(err?.backendMessage ?? "Refund amount exceeds what's left to refund.");
+      if (status === 409) return popup.error(err?.backendMessage ?? "This payment can't be refunded from its current status.");
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to record refund"));
     },
   });
 }

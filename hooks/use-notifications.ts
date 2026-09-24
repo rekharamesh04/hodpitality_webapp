@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { notificationService } from "@/services/notification.service";
 import { QUERY_KEYS } from "@/constants";
 
@@ -22,7 +22,7 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (id: string) => notificationService.markRead(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: notificationKeys.all }),
-    onError:   () => toast.error("Failed to mark as read"),
+    onError:   () => popup.error("Failed to mark as read"),
   });
 }
 
@@ -32,9 +32,9 @@ export function useMarkAllNotificationsRead() {
     mutationFn: notificationService.markAllRead,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: notificationKeys.all });
-      toast.success("All notifications marked as read");
+      popup.success("All notifications marked as read");
     },
-    onError: () => toast.error("Failed to mark all as read"),
+    onError: () => popup.error("Failed to mark all as read"),
   });
 }
 
@@ -44,8 +44,8 @@ export function useDeleteAllNotifications() {
     mutationFn: notificationService.deleteAll,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: notificationKeys.all });
-      toast.success("Inbox cleared");
+      popup.success("Inbox cleared");
     },
-    onError: () => toast.error("Failed to clear notifications"),
+    onError: () => popup.error("Failed to clear notifications"),
   });
 }

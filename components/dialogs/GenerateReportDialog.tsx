@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -77,7 +77,7 @@ export function GenerateReportDialog({ open, onOpenChange }: GenerateReportDialo
         return;
       }
       exportToCSV(rows, `${report.value}-report-${toLocalDateInput()}`);
-      toast.success(`${report.label} report downloaded`);
+      popup.success(`${report.label} report downloaded`);
       onOpenChange(false);
     } catch (err) {
       setError(getFriendlyErrorMessage(err, 'Unable to generate this report.'));

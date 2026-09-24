@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useToast } from '@/hooks/use-toast';
+import { popup } from '@/lib/popup';
 import { QrCode, UserCheck } from 'lucide-react';
 
 interface QuickCheckInDialogProps {
@@ -26,7 +26,6 @@ interface QuickCheckInDialogProps {
 
 export function QuickCheckInDialog({ open, onOpenChange, guestId }: QuickCheckInDialogProps) {
   const { processCheckIn, loading } = useWorkflow();
-  const { toast } = useToast();
   
   const [method, setMethod] = useState<'QR' | 'Manual'>('Manual');
   const [qrCode, setQrCode] = useState('');
@@ -45,17 +44,14 @@ export function QuickCheckInDialog({ open, onOpenChange, guestId }: QuickCheckIn
     });
 
     if (result.success) {
-      toast({
-        title: 'Check-in Successful',
+      popup.success('Check-in Successful', {
         description: `${result.data?.guest.name} has been checked in${printBadge && result.data?.badgePrinted ? ' and badge printed' : ''}`,
       });
       onOpenChange(false);
       setQrCode('');
     } else {
-      toast({
-        title: 'Check-in Failed',
+      popup.error('Check-in Failed', {
         description: result.error || 'Failed to check in guest',
-        variant: 'destructive',
       });
     }
   };

@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { checkInService } from "@/services/checkin.service";
 import type { CheckInFilters } from "@/services/checkin.service";
 import { QUERY_KEYS } from "@/constants";
@@ -75,16 +75,16 @@ export function useCheckIn() {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
-      toast.success("Guest checked in successfully!");
+      popup.success("Guest checked in successfully!");
     },
     onError: (err: any) => {
       if (isAlreadyCheckedIn(err)) {
         // Refresh so the row the backend already holds is what the user sees.
         qc.invalidateQueries({ queryKey: checkInKeys.all });
-        toast.info(checkInErrorMessage(err, "Already checked in"), { description: alreadyCheckedInDetail(err) });
+        popup.info(checkInErrorMessage(err, "Already checked in"), { description: alreadyCheckedInDetail(err) });
         return;
       }
-      toast.error(checkInErrorMessage(err, "Check-in failed"));
+      popup.error(checkInErrorMessage(err, "Check-in failed"));
     },
   });
 }
@@ -98,15 +98,15 @@ export function useQrCheckIn() {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
-      toast.success("QR check-in successful!");
+      popup.success("QR check-in successful!");
     },
     onError: (err: any) => {
       if (isAlreadyCheckedIn(err)) {
         qc.invalidateQueries({ queryKey: checkInKeys.all });
-        toast.info(checkInErrorMessage(err, "Already checked in"), { description: alreadyCheckedInDetail(err) });
+        popup.info(checkInErrorMessage(err, "Already checked in"), { description: alreadyCheckedInDetail(err) });
         return;
       }
-      toast.error(checkInErrorMessage(err, "QR check-in failed"));
+      popup.error(checkInErrorMessage(err, "QR check-in failed"));
     },
   });
 }
@@ -134,15 +134,15 @@ export function useFacialCheckIn() {
       const confidence = typeof result.matchConfidence === "number"
         ? ` (${result.matchConfidence.toFixed(1)}% match)`
         : "";
-      toast.success(`Checked in ${result.guestName ?? "guest"}${confidence}`);
+      popup.success(`Checked in ${result.guestName ?? "guest"}${confidence}`);
     },
     onError: (err: any) => {
       if (isAlreadyCheckedIn(err)) {
         qc.invalidateQueries({ queryKey: checkInKeys.all });
-        toast.info(facialErrorMessage(err), { description: alreadyCheckedInDetail(err) });
+        popup.info(facialErrorMessage(err), { description: alreadyCheckedInDetail(err) });
         return;
       }
-      toast.error(facialErrorMessage(err));
+      popup.error(facialErrorMessage(err));
     },
   });
 }
@@ -153,8 +153,8 @@ export function usePrintBadge() {
     mutationFn: (checkInId: string) => checkInService.printBadge(checkInId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
-      toast.success("Badge marked as printed");
+      popup.success("Badge marked as printed");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to print badge")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to print badge")),
   });
 }

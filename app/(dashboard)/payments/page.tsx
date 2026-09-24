@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import {
   CreditCard, TrendingUp, Clock, RefreshCw, DollarSign,
   MoreHorizontal, SlidersHorizontal, X, Plus, Download, ClipboardList,
@@ -435,7 +435,7 @@ function PaymentsPageInner() {
     try {
       const rows = await paymentService.exportPayments();
       if (rows.length === 0) {
-        toast.error('There are no payments to export.');
+        popup.error('There are no payments to export.');
         return;
       }
       exportToCSV(
@@ -456,9 +456,9 @@ function PaymentsPageInner() {
         })),
         `payments-export-${toLocalDateInput()}`
       );
-      toast.success(`Exported ${rows.length} payment${rows.length === 1 ? '' : 's'}`);
+      popup.success(`Exported ${rows.length} payment${rows.length === 1 ? '' : 's'}`);
     } catch (err) {
-      toast.error(getFriendlyErrorMessage(err, 'Failed to export payments.'));
+      popup.error(getFriendlyErrorMessage(err, 'Failed to export payments.'));
     } finally {
       setIsExporting(false);
     }

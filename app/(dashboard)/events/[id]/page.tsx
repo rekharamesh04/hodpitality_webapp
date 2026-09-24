@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import {
   ArrowLeft, Pencil, Trash2, MapPin, Users, CalendarClock, CalendarDays,
   UserCheck, ClipboardList, Building2, Info, Printer,
@@ -72,7 +72,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
   function handleDelete() {
     deleteMutation.mutate(id, {
       onSuccess: () => {
-        toast.success('Event deleted');
+        popup.success('Event deleted');
         router.push('/events');
       },
     });

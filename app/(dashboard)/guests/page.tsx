@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Download, Upload, MoreHorizontal, Eye, Pencil, Trash2, Users, ScanFace, UserCheck, ClipboardList, X,
@@ -234,12 +234,12 @@ function GuestsPageInner() {
         window.open(res.downloadUrl, '_blank', 'noopener,noreferrer');
       } else if (res.data && res.data.length > 0) {
         exportToCSV(res.data, `${t.person.many.toLowerCase().replace(/\s+/g, '-')}-export-${toLocalDateInput()}`);
-        toast.success(`${t.person.one} export downloaded`);
+        popup.success(`${t.person.one} export downloaded`);
       } else {
-        toast.error('The export returned no data.');
+        popup.error('The export returned no data.');
       }
     } catch (err) {
-      toast.error(getFriendlyErrorMessage(err, `Failed to export ${t.person.many.toLowerCase()}.`));
+      popup.error(getFriendlyErrorMessage(err, `Failed to export ${t.person.many.toLowerCase()}.`));
     } finally {
       setIsExporting(false);
     }

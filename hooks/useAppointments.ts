@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { appointmentService } from "@/services/appointment.service";
 import type { AppointmentFilters, CreateAppointmentPayload, AppointmentStatusValue, UpdateAppointmentPaymentPayload } from "@/services/appointment.service";
 import { QUERY_KEYS } from "@/constants";
@@ -26,17 +26,17 @@ export function useCreateAppointment() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CALENDAR });
-      toast.success("Appointment created");
+      popup.success("Appointment created");
     },
     onError: (err: any) => {
       if (err?.response?.status === 409) {
-        toast.error(
+        popup.error(
           err?.backendMessage ??
           "This staff member is already booked at that time. Please choose another time or staff member."
         );
         return;
       }
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create appointment"));
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create appointment"));
     },
   });
 }
@@ -49,10 +49,10 @@ export function useUpdateAppointmentStatus() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CALENDAR });
-      toast.success("Appointment updated");
+      popup.success("Appointment updated");
     },
     onError: (err: any) => {
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update appointment"));
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update appointment"));
     },
   });
 }
@@ -68,10 +68,10 @@ export function useUpdateAppointmentPayment() {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CALENDAR });
       qc.invalidateQueries({ queryKey: paymentKeys.all });
       qc.invalidateQueries({ queryKey: paymentKeys.stats });
-      toast.success("Payment recorded");
+      popup.success("Payment recorded");
     },
     onError: (err: any) => {
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to record payment"));
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to record payment"));
     },
   });
 }

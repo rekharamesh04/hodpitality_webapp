@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 
 export default function VerifyOTPPage() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function VerifyOTPPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (otp.length !== 6) {
-      toast.error('Please enter a valid 6-digit OTP');
+      popup.error('Please enter a valid 6-digit OTP');
       return;
     }
 
@@ -29,10 +29,10 @@ export default function VerifyOTPPage() {
       await authService.verifyOtp(otp);
       // Persist OTP for reset-password step
       sessionStorage.setItem('reset_otp', otp);
-      toast.success('OTP verified successfully!');
+      popup.success('OTP verified successfully!');
       router.push('/reset-password');
     } catch {
-      toast.error('Invalid OTP. Please try again.');
+      popup.error('Invalid OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -41,7 +41,7 @@ export default function VerifyOTPPage() {
   const handleResend = async () => {
     const email = sessionStorage.getItem('reset_email');
     if (!email) {
-      toast.error('Your session expired — please restart the password reset.');
+      popup.error('Your session expired — please restart the password reset.');
       router.push('/forgot-password');
       return;
     }
@@ -49,9 +49,9 @@ export default function VerifyOTPPage() {
     try {
       const { authService } = await import('@/services/auth.service');
       await authService.forgotPassword(email);
-      toast.success('A new code has been sent to your email');
+      popup.success('A new code has been sent to your email');
     } catch {
-      toast.error('Failed to resend the code. Please try again.');
+      popup.error('Failed to resend the code. Please try again.');
     } finally {
       setIsResending(false);
     }

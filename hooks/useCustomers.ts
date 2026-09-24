@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { popup } from '@/lib/popup';
 import { customerService } from "@/services/customer.service";
 import type { CustomerFilters, CreateCustomerPayload, UpdateCustomerPayload, Customer } from "@/services/customer.service";
 import { QUERY_KEYS } from "@/constants";
@@ -35,16 +35,16 @@ export function useCreateCustomer(options?: { onDuplicate?: (conflict: NonNullab
     mutationFn: (input: CreateCustomerPayload) => customerService.createCustomer(input),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: customerKeys.all });
-      toast.success("Customer created");
+      popup.success("Customer created");
     },
     onError: (err: any) => {
       const conflict = getDuplicatePersonConflict(err);
       if (conflict) {
-        toast.error(conflict.message, { description: "Opening the existing record instead." });
+        popup.error(conflict.message, { description: "Opening the existing record instead." });
         options?.onDuplicate?.(conflict);
         return;
       }
-      toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create customer"));
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to create customer"));
     },
   });
 }
@@ -57,9 +57,9 @@ export function useUpdateCustomer() {
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: customerKeys.all });
       qc.invalidateQueries({ queryKey: customerKeys.detail(vars.id) });
-      toast.success("Customer updated");
+      popup.success("Customer updated");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update customer")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to update customer")),
   });
 }
 
@@ -69,9 +69,9 @@ export function useDeleteCustomer() {
     mutationFn: (id: string) => customerService.deleteCustomer(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: customerKeys.all });
-      toast.success("Customer deleted");
+      popup.success("Customer deleted");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete customer")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete customer")),
   });
 }
 
@@ -92,7 +92,7 @@ export function useEnrollCustomerFace() {
       customerService.enrollFace(customerId, image),
     onSuccess: (result, { customerId, image }) => {
       if (result?.success === false) {
-        toast.error(result.message ?? "Face enrollment failed");
+        popup.error(result.message ?? "Face enrollment failed");
         return;
       }
       const patch = { face_photo_url: image, face_enrolled: true };
@@ -106,9 +106,9 @@ export function useEnrollCustomerFace() {
           data: old.data.map((c) => (resolveCustomerId(c) === customerId ? { ...c, ...patch } : c)),
         };
       });
-      toast.success("Face enrolled successfully");
+      popup.success("Face enrolled successfully");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? err?.response?.data?.error ?? "Face enrollment failed"),
+    onError: (err: any) => popup.error(err?.backendMessage ?? err?.response?.data?.error ?? "Face enrollment failed"),
   });
 }
 
@@ -128,9 +128,9 @@ export function useUnenrollCustomerFace() {
           data: old.data.map((c) => (resolveCustomerId(c) === customerId ? { ...c, ...patch } : c)),
         };
       });
-      toast.success("Face removed");
+      popup.success("Face removed");
     },
-    onError: (err: any) => toast.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to remove face")),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to remove face")),
   });
 }
 

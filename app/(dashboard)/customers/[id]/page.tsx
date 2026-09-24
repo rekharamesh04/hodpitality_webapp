@@ -2,7 +2,7 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 import {
   ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
   Wallet, CalendarClock, MessageSquare, AlertTriangle, Clock,
@@ -54,7 +54,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   function handleDelete() {
     deleteMutation.mutate(id, {
       onSuccess: () => {
-        toast.success('Customer deleted');
+        popup.success('Customer deleted');
         router.push('/customers');
       },
     });

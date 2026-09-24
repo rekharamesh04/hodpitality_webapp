@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { toast } from 'sonner';
+import { popup } from '@/lib/popup';
 
 const resetPasswordSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
@@ -44,10 +44,10 @@ export default function ResetPasswordPage() {
       await authService.resetPassword(email, otp, data.password);
       sessionStorage.removeItem('reset_email');
       sessionStorage.removeItem('reset_otp');
-      toast.success('Password reset successfully!');
+      popup.success('Password reset successfully!');
       router.push('/login');
     } catch {
-      toast.error('Failed to reset password. Please try again.');
+      popup.error('Failed to reset password. Please try again.');
     } finally {
       setIsLoading(false);
     }
