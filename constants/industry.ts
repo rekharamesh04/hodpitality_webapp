@@ -84,6 +84,38 @@ export const INDUSTRIES = {
       { id: 'svc-vaccination', name: 'Vaccination', duration: 15, category: 'clinic' },
     ],
   },
+  /**
+   * NOT YET ACCEPTED BY THE BACKEND.
+   *
+   * `hospitality_lambda.py` allow-lists industry slugs and answers 400 to any
+   * it does not hold, so this entry is inert until the same slug is added
+   * there: a company saved as `pharmacy` from the industry picker would be
+   * rejected. The frontend side is safe on its own — `normalizeIndustry`
+   * folds an unknown stored value onto the default — but the picker option is
+   * live the moment this ships. Add the slug backend-side (and to the mobile
+   * app's utils/terminology.ts) before exposing it. See docs/PHARMACY_MODULE.md.
+   */
+  pharmacy: {
+    label: 'Pharmacy',
+    person: { one: 'Patient', many: 'Patients' },
+    account: { one: 'Patient Account', many: 'Patient Accounts' },
+    visit: { one: 'Appointment', many: 'Appointments' },
+    place: { one: 'Counter', many: 'Counters' },
+    org: 'Pharmacy',
+    practitioner: 'Pharmacist',
+    assistant: 'Technician',
+    categories: ['Specialty', 'Long-term care', 'Compounding', 'Retail', 'regular'],
+    tiers: ['Priority', 'Standard'],
+    priority: ['Specialty', 'Priority'],
+    requestTypes: ['Delivery', 'Compounding', 'Immunization', 'Medication Sync', 'Special Request'],
+    modules: ['appointments', 'prescriptions', 'payments', 'registrations'],
+    services: [
+      { id: 'svc-consultation', name: 'Pharmacist Consultation', duration: 20, category: 'clinical' },
+      { id: 'svc-immunization', name: 'Immunization', duration: 15, category: 'clinical' },
+      { id: 'svc-mtm', name: 'Medication Therapy Review', duration: 45, category: 'clinical' },
+      { id: 'svc-pickup', name: 'Prescription Pickup', duration: 10, category: 'counter' },
+    ],
+  },
   hospitality: {
     label: 'Hospitality',
     person: { one: 'Guest', many: 'Guests' },

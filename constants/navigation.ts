@@ -16,6 +16,8 @@ import {
   ClipboardList,
   Hotel,
   CreditCard,
+  Pill,
+  PackageCheck,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_INDUSTRY, industryPack, type IndustryModule } from "./industry";
@@ -78,6 +80,8 @@ export function getNavSections(industry?: unknown): NavSection[] {
       items: [
         { label: "Check-ins", href: "/check-ins", icon: CheckCircle2, description: "Front-desk arrivals, QR and face scan" },
         { label: "Registrations", href: "/registrations", icon: ClipboardList, description: "Sign-ups and confirmations", module: "registrations" },
+        { label: "Prescriptions", href: "/prescriptions", icon: Pill, description: "Intake, clinical review and filling queues", module: "prescriptions" },
+        { label: "Pickup", href: "/pickup", icon: PackageCheck, description: "Identity verification and release at the counter", module: "prescriptions" },
         { label: "Payments", href: "/payments", icon: CreditCard, description: "Revenue, refunds and statuses", module: "payments" },
         { label: t.visit.many, href: "/calendar", icon: CalendarDays, description: `${t.visit.many} and staff schedule`, module: "appointments" },
         { label: `${t.place.one} Services`, href: "/hospitality", icon: Hotel, description: `${t.place.one} service and VIP care`, module: "hospitality" },

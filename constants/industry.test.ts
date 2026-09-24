@@ -228,4 +228,24 @@ describe('navigation', () => {
     expect(industryHasModule('healthcare', 'prescriptions')).toBe(true);
     expect(industryAdminLabel('retail')).toBe('Store Admin');
   });
+
+  it('offers the pharmacy pages to the industries that hold the module', () => {
+    for (const slug of ['pharmacy', 'healthcare'] as const) {
+      const hrefs = getVisibleNavSections('company_admin', slug).flatMap((s) => s.items.map((i) => i.href));
+      expect(hrefs, slug).toContain('/prescriptions');
+      expect(hrefs, slug).toContain('/pickup');
+    }
+  });
+
+  it('hides the pharmacy pages from an industry without the module', () => {
+    const hrefs = getVisibleNavSections('company_admin', 'retail').flatMap((s) => s.items.map((i) => i.href));
+    expect(hrefs).not.toContain('/prescriptions');
+    expect(hrefs).not.toContain('/pickup');
+  });
+
+  it('names a pharmacy after its own roles rather than a hospital\u2019s', () => {
+    expect(industryAdminLabel('pharmacy')).toBe('Pharmacy Admin');
+    expect(roleLabel('doctor', 'pharmacy')).toBe('Pharmacist');
+    expect(roleLabel('nurse', 'pharmacy')).toBe('Technician');
+  });
 });
