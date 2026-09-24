@@ -17,3 +17,4 @@ export * from './useCalendar';
 export * from './useSettings';
 export * from './useResellers';
 export * from './useCompanies';
+export * from './usePrescriptions';

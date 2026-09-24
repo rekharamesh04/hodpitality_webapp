@@ -1,10 +1,10 @@
 /**
  * A signed-out-proof local session, for demoing without a Cognito account.
  *
- * The pharmacy screens render lib/mock/pharmacy.ts and call no API, so the
- * only thing standing between them and a demo is the login gate. This opens
- * that gate locally — it does not fake any data, and every other screen still
- * talks to the real backend and still fails without a real session.
+ * Every screen now talks to the real backend, so this opens the login gate
+ * and nothing else: it fakes an identity, never data. A screen that needs the
+ * API still needs a real session, and will show its error state without one.
+ * That makes this useful for walking the UI, not for demoing live data.
  *
  * TWO GUARDS, BOTH REQUIRED
  * -------------------------

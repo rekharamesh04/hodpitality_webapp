@@ -1,31 +1,30 @@
 import { cn } from '@/lib/utils';
-import { PRESCRIPTION_STATUS_CLASSES, PRESCRIPTION_STATUS_LABELS } from '@/constants/prescription';
-import type { PrescriptionStatus } from '@/types/prescription';
+import { statusClass, statusLabel } from '@/constants/prescription';
 
 /**
- * A prescription's queue, as a badge.
+ * A prescription's status.
  *
- * Deliberately not the shared `<StatusBadge>`: that one de-underscores and
- * capitalises whatever string it is handed, which would render
- * `clinical_review` as "Clinical review" rather than the words a pharmacy
- * actually uses ("Pharmacist review").
+ * Takes `unknown` rather than a closed union on purpose: the API writes
+ * `active` on create but accepts anything on update, so a row can hold a value
+ * this build has never heard of. An unknown value renders neutral and
+ * de-underscored instead of vanishing.
  */
 export function PrescriptionStatusBadge({
   status,
   className,
 }: {
-  status: PrescriptionStatus;
+  status?: unknown;
   className?: string;
 }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium',
-        PRESCRIPTION_STATUS_CLASSES[status],
+        'inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium capitalize',
+        statusClass(status),
         className,
       )}
     >
-      {PRESCRIPTION_STATUS_LABELS[status]}
+      {statusLabel(status)}
     </span>
   );
 }

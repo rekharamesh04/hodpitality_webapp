@@ -1,72 +1,123 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
-  ConciergeBell, LogIn, LogOut, BedDouble, AlertTriangle, Crown, Plus, RefreshCw,
-  Sparkles, KeyRound, Clock, CreditCard,
+  LogIn, LogOut, BedDouble, AlertTriangle, Plus, RefreshCw, KeyRound, CalendarDays, Crown,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { popup } from '@/lib/popup';
-import { cn, formatCurrency, getInitials } from '@/lib/utils';
+import { EmptyState } from '@/components/common/EmptyState';
+import { ErrorState } from '@/components/common/ErrorState';
+import { TableSkeleton } from '@/components/common/SkeletonLoader';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
+import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/useAppointments';
+import { useVenues } from '@/hooks/useVenues';
 import { useTerminology } from '@/hooks';
-import {
-  ROOMS, ROOM_STATE_CLASS, ROOM_STATE_LABEL, STAYS,
-  arrivalsAtRisk, readyRoomsFor, staysIn,
-  type RoomState, type Stay,
-} from '@/lib/mock/hotel';
+import { cn, formatCurrency, getFriendlyErrorMessage, getInitials, toLocalDateInput } from '@/lib/utils';
+import type { Appointment, Venue } from '@/types';
 
 /**
  * The front desk board.
  *
- * A desk works in three piles — who is arriving, who is here, who is leaving —
- * and the question that decides the day is whether a clean room of the right
- * type exists for each arrival. That pairing is the point of this screen: an
- * arrivals list that does not know about housekeeping is a list that cannot
- * tell you which check-in is about to go wrong.
+ * A desk works in three piles — arriving, here, leaving — but the question
+ * that decides the day is whether a room is free for each arrival. An
+ * arrivals list that does not know about room state cannot tell you which
+ * check-in is about to go wrong, so the two are shown together and the
+ * mismatch is called out at the top.
  *
- * Static for now, like the pharmacy and spa screens: it renders
- * lib/mock/hotel.ts and calls no API. The `frontdesk` module gates it.
+ * Built from records that already exist: a stay IS an appointment (the
+ * hospitality industry already calls a visit a Booking and routes it through
+ * /appointments), and a room IS a venue. Nothing new to deploy, and both are
+ * tenant-scoped already.
+ *
+ * What a venue does NOT carry is housekeeping state — there is no
+ * clean/dirty flag in the API — so occupancy here is derived from whether a
+ * booking is actually in the room today, and nothing is invented beyond that.
  */
+
+type Pile = 'arriving' | 'in_house' | 'departing';
+
+function pileOf(a: Appointment): Pile | null {
+  switch ((a.status ?? '').toLowerCase()) {
+    case 'scheduled': case 'confirmed': case 'pending': return 'arriving';
+    case 'arrived': case 'in-progress': case 'in_progress': return 'in_house';
+    case 'completed': return 'departing';
+    default: return null; // cancelled / no-show never reach the desk
+  }
+}
 
 export default function FrontDeskPage() {
   const t = useTerminology();
-  const [selected, setSelected] = useState<Stay | null>(null);
-  const [floor, setFloor] = useState<number | null>(null);
+  const router = useRouter();
 
-  const arrivals = staysIn('arriving');
-  const inHouse = staysIn('in_house');
-  const departures = [...staysIn('departing'), ...staysIn('departed')];
-  const atRisk = arrivalsAtRisk();
+  const [date, setDate] = useState(toLocalDateInput());
+  const [floorFilter, setFloorFilter] = useState<string>('');
+  const [selected, setSelected] = useState<Appointment | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
 
-  const roomsReady = ROOMS.filter((r) => r.state === 'ready').length;
-  const openRequests = STAYS.reduce((n, s) => n + s.openRequests.length, 0);
-  const outstanding = STAYS.reduce((sum, s) => sum + s.balance, 0);
+  const { data: appointments, isLoading, isError, error, refetch, isFetching } = useAppointments({ date });
+  const { data: venues, isLoading: venuesLoading } = useVenues();
+  const updateStatus = useUpdateAppointmentStatus();
+
+  const rows = useMemo(() => appointments ?? [], [appointments]);
+  const arriving = rows.filter((a) => pileOf(a) === 'arriving');
+  const inHouse = rows.filter((a) => pileOf(a) === 'in_house');
+  const departing = rows.filter((a) => pileOf(a) === 'departing');
+
+  /** Which rooms are actually in use today, from the bookings themselves. */
+  const occupiedRooms = useMemo(
+    () => new Set(inHouse.map((a) => (a.room || '').trim()).filter(Boolean)),
+    [inHouse],
+  );
+
+  const roomList: Venue[] = useMemo(() => venues ?? [], [venues]);
+
+  const locations = useMemo(
+    () => Array.from(new Set(roomList.map((v) => v.location).filter((l): l is string => !!l))).sort(),
+    [roomList],
+  );
 
   const visibleRooms = useMemo(
-    () => (floor === null ? ROOMS : ROOMS.filter((r) => r.floor === floor)),
-    [floor],
+    () => (floorFilter ? roomList.filter((v) => v.location === floorFilter) : roomList),
+    [roomList, floorFilter],
   );
-  const floors = useMemo(() => Array.from(new Set(ROOMS.map((r) => r.floor))).sort(), []);
 
-  function notWired(what: string) {
-    popup.info(`${what} is not wired up yet`, {
-      description: 'This board is a static prototype — it renders local data and calls no API.',
-    });
-  }
+  const freeRooms = roomList.filter(
+    (v) => (v.status ?? 'active') === 'active' && !occupiedRooms.has(v.name ?? ''),
+  );
+
+  /** Arrivals with no free room left — the check-in that is about to fail. */
+  const atRisk = arriving.length > freeRooms.length
+    ? arriving.slice(freeRooms.length)
+    : [];
+
+  const outstanding = rows.reduce(
+    (sum, a) => sum + (a.paymentStatus === 'paid' ? 0 : Number(a.amount ?? 0)),
+    0,
+  );
 
   const STATS = [
-    { label: 'Arrivals',            value: arrivals.length,   tone: 'text-primary' },
-    { label: 'Departures',          value: staysIn('departing').length, tone: 'text-amber-700 dark:text-amber-400' },
-    { label: 'In house',            value: inHouse.length,    tone: 'text-foreground' },
-    { label: `${t.place.many} ready`, value: roomsReady,      tone: 'text-green-700 dark:text-green-400' },
-    { label: 'Open requests',       value: openRequests,      tone: 'text-cyan-700 dark:text-cyan-400' },
-    { label: 'Outstanding',         value: formatCurrency(outstanding), tone: 'text-foreground' },
+    { label: 'Arriving', value: arriving.length, tone: 'text-primary' },
+    { label: 'In house', value: inHouse.length, tone: 'text-foreground' },
+    { label: 'Departing', value: departing.length, tone: 'text-amber-700 dark:text-amber-400' },
+    { label: `${t.place.many} free`, value: freeRooms.length, tone: 'text-green-700 dark:text-green-400' },
+    { label: `${t.place.many} total`, value: roomList.length, tone: 'text-foreground' },
+    { label: 'Outstanding', value: formatCurrency(outstanding), tone: 'text-foreground' },
   ];
+
+  function checkIn(a: Appointment) {
+    updateStatus.mutate({ id: a.id, status: 'arrived' });
+  }
+  function checkOut(a: Appointment) {
+    updateStatus.mutate({ id: a.id, status: 'completed' });
+  }
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -76,18 +127,22 @@ export default function FrontDeskPage() {
           <div>
             <h1 className="text-2xl font-bold sm:text-3xl">Front Desk</h1>
             <p className="text-muted-foreground">
-              Today&rsquo;s arrivals, departures and {t.place.one.toLowerCase()} readiness
+              Arrivals, departures and {t.place.one.toLowerCase()} availability
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="outline" onClick={() => notWired('Refresh')} aria-label="Refresh">
-              <RefreshCw className="h-4 w-4" />
+            <Input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full sm:w-[170px]"
+              aria-label="Board date"
+            />
+            <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh">
+              <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
             </Button>
-            <Button size="sm" variant="outline" onClick={() => notWired('Walk-in booking')}>
-              <Plus className="mr-2 h-4 w-4" /> Walk-in
-            </Button>
-            <Button size="sm" onClick={() => notWired('Check-in')}>
-              <LogIn className="mr-2 h-4 w-4" /> Check in
+            <Button size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" /> New {t.visit.one.toLowerCase()}
             </Button>
           </div>
         </div>
@@ -98,125 +153,143 @@ export default function FrontDeskPage() {
             <Card key={s.label}>
               <CardContent className="px-4 pb-3 pt-4">
                 <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
-                <p className={cn('mt-1 text-2xl font-bold tabular-nums', s.tone)}>{s.value}</p>
+                <p className={cn('mt-1 text-2xl font-bold tabular-nums', s.tone)}>
+                  {isLoading || venuesLoading ? '—' : s.value}
+                </p>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* The thing that ruins a check-in */}
+        {/* The check-in about to fail */}
         {atRisk.length > 0 && (
           <div className="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-950/20">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true" />
             <div>
               <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
-                {atRisk.length} arrival{atRisk.length === 1 ? '' : 's'} with no clean {t.place.one.toLowerCase()} of the booked type
+                {arriving.length} arrivals but only {freeRooms.length} {t.place.many.toLowerCase()} free
               </p>
               <p className="text-xs text-amber-900/80 dark:text-amber-400/80">
-                {atRisk.map((s) => `${s.guestName} (${s.roomType}, ${s.time})`).join(' · ')} — chase housekeeping or move the booking.
+                {atRisk.map((a) => a.customerName || a.guestName).filter(Boolean).join(' · ')} may have nowhere to go.
               </p>
             </div>
           </div>
         )}
 
-        {/* Three piles */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <StayColumn
-            title="Arriving"
-            icon={LogIn}
-            tone="text-primary"
-            stays={arrivals}
-            emptyText="No more arrivals today."
-            onSelect={setSelected}
-            selectedId={selected?.id}
-            roomHint={(s) => {
-              const ready = readyRoomsFor(s.roomType);
-              return ready.length
-                ? { text: `${ready.length} ${s.roomType.toLowerCase()} ready`, ok: true }
-                : { text: `No ${s.roomType.toLowerCase()} ready`, ok: false };
-            }}
+        {isError ? (
+          <ErrorState
+            title={`Unable to load ${t.visit.many.toLowerCase()}`}
+            message={getFriendlyErrorMessage(error)}
+            onRetry={() => refetch()}
           />
-          <StayColumn
-            title="In house"
-            icon={BedDouble}
-            tone="text-foreground"
-            stays={inHouse}
-            emptyText={`No ${t.person.many.toLowerCase()} in house.`}
-            onSelect={setSelected}
-            selectedId={selected?.id}
-          />
-          <StayColumn
-            title="Departing"
-            icon={LogOut}
-            tone="text-amber-700 dark:text-amber-400"
-            stays={departures}
-            emptyText="No departures today."
-            onSelect={setSelected}
-            selectedId={selected?.id}
-          />
-        </div>
-
-        {/* Housekeeping */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <CardTitle className="text-base">{t.place.many}</CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  An arrival can only be let in when a {t.place.one.toLowerCase()} of its type is clean.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <Button size="sm" variant={floor === null ? 'default' : 'outline'} onClick={() => setFloor(null)}>
-                  All floors
-                </Button>
-                {floors.map((f) => (
-                  <Button key={f} size="sm" variant={floor === f ? 'default' : 'outline'} onClick={() => setFloor(f)}>
-                    Floor {f}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
-              {visibleRooms.map((r) => (
-                <Tooltip key={r.number}>
-                  <TooltipTrigger asChild>
-                    <button
-                      type="button"
-                      onClick={() => notWired(`Updating ${t.place.one.toLowerCase()} ${r.number}`)}
-                      className={cn(
-                        'rounded-lg border p-3 text-left transition-all hover:shadow-sm',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                        ROOM_STATE_CLASS[r.state],
-                      )}
-                    >
-                      <p className="text-sm font-bold tabular-nums">{r.number}</p>
-                      <p className="truncate text-[11px] opacity-90">{r.type}</p>
-                      <p className="mt-1 truncate text-[10px] font-medium opacity-80">
-                        {ROOM_STATE_LABEL[r.state]}
-                      </p>
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {r.type} · floor {r.floor} · {ROOM_STATE_LABEL[r.state]}
-                    {r.note ? ` — ${r.note}` : ''}
-                  </TooltipContent>
-                </Tooltip>
-              ))}
+        ) : (
+          <>
+            {/* Three piles */}
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+              <Pile
+                title="Arriving" icon={LogIn} tone="text-primary"
+                rows={arriving} loading={isLoading}
+                emptyText="No arrivals on this date."
+                onSelect={setSelected} selectedId={selected?.id}
+                t={t}
+              />
+              <Pile
+                title="In house" icon={BedDouble} tone="text-foreground"
+                rows={inHouse} loading={isLoading}
+                emptyText={`No ${t.person.many.toLowerCase()} in house.`}
+                onSelect={setSelected} selectedId={selected?.id}
+                t={t}
+              />
+              <Pile
+                title="Departing" icon={LogOut} tone="text-amber-700 dark:text-amber-400"
+                rows={departing} loading={isLoading}
+                emptyText="No departures on this date."
+                onSelect={setSelected} selectedId={selected?.id}
+                t={t}
+              />
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-muted-foreground">
-              {(Object.keys(ROOM_STATE_LABEL) as RoomState[]).map((k) => (
-                <span key={k} className="inline-flex items-center gap-1.5">
-                  <span className={cn('h-2.5 w-2.5 rounded-sm border', ROOM_STATE_CLASS[k])} aria-hidden="true" />
-                  {ROOM_STATE_LABEL[k]}
-                </span>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+            {/* Rooms */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <CardTitle className="text-base">{t.place.many}</CardTitle>
+                    <p className="text-xs text-muted-foreground">
+                      In use is derived from today&rsquo;s bookings — the API stores no housekeeping state.
+                    </p>
+                  </div>
+                  {locations.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      <Button size="sm" variant={!floorFilter ? 'default' : 'outline'} onClick={() => setFloorFilter('')}>
+                        All
+                      </Button>
+                      {locations.map((l) => (
+                        <Button
+                          key={l}
+                          size="sm"
+                          variant={floorFilter === l ? 'default' : 'outline'}
+                          onClick={() => setFloorFilter(floorFilter === l ? '' : l)}
+                        >
+                          {l}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {venuesLoading ? (
+                  <TableSkeleton rows={3} />
+                ) : visibleRooms.length === 0 ? (
+                  <EmptyState
+                    icon={BedDouble}
+                    title={`No ${t.place.many.toLowerCase()} yet`}
+                    description={`Add ${t.place.many.toLowerCase()} so arrivals can be assigned to one.`}
+                    action={{ label: `Manage ${t.place.many.toLowerCase()}`, onClick: () => router.push('/venues') }}
+                  />
+                ) : (
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-6">
+                    {visibleRooms.map((v) => {
+                      const inUse = occupiedRooms.has(v.name ?? '');
+                      const offline = (v.status ?? 'active') !== 'active';
+                      return (
+                        <Tooltip key={v.id}>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              onClick={() => router.push('/venues')}
+                              className={cn(
+                                'rounded-lg border p-3 text-left transition-all hover:shadow-sm',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                                offline
+                                  ? 'border-red-300 bg-red-100 text-red-800 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400'
+                                  : inUse
+                                  ? 'border-blue-300 bg-blue-100 text-blue-800 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-400'
+                                  : 'border-green-300 bg-green-100 text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400',
+                              )}
+                            >
+                              <p className="truncate text-sm font-bold">{v.name}</p>
+                              <p className="truncate text-[11px] opacity-90">{v.type ?? '—'}</p>
+                              <p className="mt-1 truncate text-[10px] font-medium opacity-80">
+                                {offline ? 'Unavailable' : inUse ? 'In use' : 'Free'}
+                              </p>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {v.name} · {v.type ?? '—'}
+                            {v.location ? ` · ${v.location}` : ''} ·{' '}
+                            {offline ? 'unavailable' : inUse ? 'in use today' : 'free'}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         {/* Detail */}
         {selected && (
@@ -225,101 +298,71 @@ export default function FrontDeskPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <CardTitle className="flex flex-wrap items-center gap-2 text-base">
-                    {selected.guestName}
-                    {selected.tier && selected.tier !== 'Standard' && (
+                    {selected.customerName || selected.guestName}
+                    {selected.customerTier && selected.customerTier !== 'Standard' && (
                       <Badge variant="warning" className="gap-1">
-                        <Crown className="h-3 w-3" /> {selected.tier}
+                        <Crown className="h-3 w-3" /> {selected.customerTier}
                       </Badge>
                     )}
+                    <StatusBadge status={selected.status} />
                   </CardTitle>
                   <p className="mt-0.5 text-sm text-muted-foreground">
-                    {selected.roomType} · {selected.nights} night{selected.nights === 1 ? '' : 's'} ·{' '}
-                    {selected.adults} adult{selected.adults === 1 ? '' : 's'}
-                    {selected.roomNumber ? ` · ${t.place.one} ${selected.roomNumber}` : ''}
+                    {selected.service || selected.serviceName || t.visit.one} · {selected.startTime}
+                    {selected.room ? ` · ${t.place.one} ${selected.room}` : ` · no ${t.place.one.toLowerCase()} assigned`}
                   </p>
                 </div>
                 <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>Close</Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {selected.flag && (
-                <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                  <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                  <div>
-                    <p className="text-sm font-semibold">Say this at the desk</p>
-                    <p className="text-xs text-muted-foreground">{selected.flag}</p>
-                  </div>
-                </div>
-              )}
-
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                <Field label={selected.state === 'departing' ? 'Check out by' : 'Expected'} value={selected.eta ?? selected.time} />
-                <Field label={`${t.place.one} type`} value={selected.roomType} />
-                <Field label="Balance" value={formatCurrency(selected.balance)} />
-                <Field
-                  label="Availability"
-                  value={
-                    selected.state === 'arriving'
-                      ? `${readyRoomsFor(selected.roomType).length} ready`
-                      : '—'
-                  }
-                />
+                <Field label="Time" value={selected.startTime ?? '—'} />
+                <Field label={t.place.one} value={selected.room || 'Unassigned'} />
+                <Field label="Amount" value={formatCurrency(Number(selected.amount ?? 0))} />
+                <Field label="Payment" value={selected.paymentStatus ?? '—'} />
               </div>
 
-              {selected.openRequests.length > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Open requests</p>
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {selected.openRequests.map((r) => (
-                      <Badge key={r} variant="outline" className="gap-1">
-                        <ConciergeBell className="h-3 w-3" /> {r}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {selected.notes && <p className="rounded bg-muted px-3 py-2 text-sm">{selected.notes}</p>}
 
               <Separator />
 
               <div className="flex flex-wrap gap-2">
-                {selected.state === 'arriving' && (
-                  <Button size="sm" onClick={() => notWired('Check-in')}>
-                    <KeyRound className="mr-2 h-4 w-4" /> Check in &amp; assign {t.place.one.toLowerCase()}
+                {pileOf(selected) === 'arriving' && (
+                  <Button size="sm" onClick={() => checkIn(selected)} loading={updateStatus.isPending}>
+                    <KeyRound className="mr-2 h-4 w-4" /> Check in
                   </Button>
                 )}
-                {selected.state === 'departing' && (
-                  <Button size="sm" onClick={() => notWired('Check-out')}>
+                {pileOf(selected) === 'in_house' && (
+                  <Button size="sm" onClick={() => checkOut(selected)} loading={updateStatus.isPending}>
                     <LogOut className="mr-2 h-4 w-4" /> Check out
                   </Button>
                 )}
-                {selected.balance > 0 && (
-                  <Button size="sm" variant="outline" onClick={() => notWired('Taking payment')}>
-                    <CreditCard className="mr-2 h-4 w-4" /> Settle {formatCurrency(selected.balance)}
-                  </Button>
-                )}
-                <Button size="sm" variant="outline" onClick={() => notWired('Late checkout')}>
-                  <Clock className="mr-2 h-4 w-4" /> Late checkout
+                <Button size="sm" variant="outline" onClick={() => router.push('/calendar')}>
+                  <CalendarDays className="mr-2 h-4 w-4" /> Manage in the calendar
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
+
+        <CreateAppointmentDialog open={createOpen} onOpenChange={setCreateOpen} />
       </div>
     </TooltipProvider>
   );
 }
 
-function StayColumn({
-  title, icon: Icon, tone, stays, emptyText, onSelect, selectedId, roomHint,
+function Pile({
+  title, icon: Icon, tone, rows, loading, emptyText, onSelect, selectedId, t,
 }: {
   title: string;
   icon: typeof LogIn;
   tone: string;
-  stays: Stay[];
+  rows: Appointment[];
+  loading: boolean;
   emptyText: string;
-  onSelect: (s: Stay) => void;
+  onSelect: (a: Appointment) => void;
   selectedId?: string;
-  roomHint?: (s: Stay) => { text: string; ok: boolean };
+  t: ReturnType<typeof useTerminology>;
 }) {
   return (
     <Card>
@@ -327,60 +370,44 @@ function StayColumn({
         <CardTitle className="flex items-center gap-2 text-base">
           <Icon className={cn('h-4 w-4', tone)} aria-hidden="true" />
           {title}
-          <span className="ml-auto text-sm font-normal text-muted-foreground tabular-nums">{stays.length}</span>
+          <span className="ml-auto text-sm font-normal tabular-nums text-muted-foreground">{rows.length}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {stays.length === 0 ? (
+        {loading ? (
+          <TableSkeleton rows={3} />
+        ) : rows.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">{emptyText}</p>
         ) : (
-          stays.map((s) => {
-            const hint = roomHint?.(s);
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => onSelect(s)}
-                className={cn(
-                  'flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent',
-                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  selectedId === s.id && 'border-primary bg-primary/5',
-                  s.state === 'departed' && 'opacity-60',
-                )}
-              >
-                <Avatar className="h-9 w-9 shrink-0">
-                  <AvatarFallback className="bg-primary/10 text-xs text-primary">
-                    {getInitials(s.guestName)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <p className="truncate text-sm font-semibold">{s.guestName}</p>
-                    {s.tier && s.tier !== 'Standard' && (
-                      <Crown className="h-3 w-3 shrink-0 text-amber-500" aria-label={s.tier} />
-                    )}
-                  </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {s.roomNumber ? `Room ${s.roomNumber}` : s.roomType} · {s.time}
-                    {s.openRequests.length > 0 && ` · ${s.openRequests.length} request${s.openRequests.length === 1 ? '' : 's'}`}
-                  </p>
-                  {hint && (
-                    <p className={cn(
-                      'mt-1 truncate text-[11px] font-medium',
-                      hint.ok ? 'text-green-700 dark:text-green-400' : 'text-amber-700 dark:text-amber-400',
-                    )}>
-                      {hint.text}
-                    </p>
-                  )}
-                </div>
-                {s.balance > 0 && (
-                  <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
-                    {formatCurrency(s.balance)}
-                  </span>
-                )}
-              </button>
-            );
-          })
+          rows.map((a) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => onSelect(a)}
+              className={cn(
+                'flex w-full items-start gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                selectedId === a.id && 'border-primary bg-primary/5',
+              )}
+            >
+              <Avatar className="h-9 w-9 shrink-0">
+                <AvatarFallback className="bg-primary/10 text-xs text-primary">
+                  {getInitials(a.customerName || a.guestName || '?')}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{a.customerName || a.guestName}</p>
+                <p className="truncate text-xs text-muted-foreground">
+                  {a.room ? `${t.place.one} ${a.room}` : `No ${t.place.one.toLowerCase()}`} · {a.startTime}
+                </p>
+              </div>
+              {a.paymentStatus && a.paymentStatus !== 'paid' && Number(a.amount ?? 0) > 0 && (
+                <span className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
+                  {formatCurrency(Number(a.amount))}
+                </span>
+              )}
+            </button>
+          ))
         )}
       </CardContent>
     </Card>
@@ -391,7 +418,7 @@ function Field({ label, value }: { label: string; value: string }) {
   return (
     <div>
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-sm font-medium">{value}</p>
+      <p className="mt-0.5 text-sm font-medium capitalize">{value}</p>
     </div>
   );
 }

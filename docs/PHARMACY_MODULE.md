@@ -1,9 +1,17 @@
 # Pharmacy module — what the screens need from the backend
 
-**Status:** the UI in this repo is a static prototype. Three routes exist and render
-`lib/mock/pharmacy.ts`; no pharmacy endpoint is called anywhere. This document is the
-contract the prototype was built against, so the API can be written without guessing at
-shapes and the screens can be wired without rework.
+**Status:** the screens are wired to the real API. `/prescriptions`,
+`/prescriptions/{id}` and `/pickup` read and write through the five prescription endpoints
+that already exist; there are no mock files left in the repo.
+
+An earlier version of this document said no prescriptions API existed. That was wrong —
+it was written before the backend was to hand, and stated as fact rather than checked.
+The endpoints are listed in §5.1 and have been there all along.
+
+What does *not* exist is the dispensing half. The record the API stores is a **clinical**
+prescription — a practitioner writing medicines for a patient — with no fill, claim,
+will-call bin or pickup on it. The screens therefore show what the record holds and
+nothing more. The rest of this document is the design for that missing half.
 
 **Audience:** the backend team building `prescriptions` in `hospitality_lambda.py`, and the
 frontend engineer who replaces the mock with real hooks.

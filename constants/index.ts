@@ -108,6 +108,7 @@ export const API_ENDPOINTS = {
   NOTIFICATIONS: '/notifications',
   HOSPITALITY: '/hospitality',
   REGISTRATIONS: '/registrations',
+  PRESCRIPTIONS: '/prescriptions',
   SERVICES: '/services',
 } as const;
 
@@ -145,6 +146,8 @@ export const QUERY_KEYS = {
   PAYMENTS: ['payments'],
   PAYMENT_DETAIL: (id: string) => ['payments', id],
   PAYMENT_STATS: ['payments', 'stats'],
+  PRESCRIPTIONS: ['prescriptions'],
+  PRESCRIPTION_DETAIL: (id: string) => ['prescriptions', id],
 } as const;
 
 // Local Storage Keys

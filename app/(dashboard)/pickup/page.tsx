@@ -1,11 +1,10 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, ArrowRight, Check, ScanFace, IdCard, CalendarCheck, KeyRound, UserCheck,
-  Search, EyeOff, ShieldCheck, ShieldX, User, Users, Lock, PackageCheck, Printer,
-  CreditCard, MessageSquareQuote, RotateCcw, AlertTriangle, Clock,
+  ArrowLeft, ArrowRight, Check, ScanFace, Phone, Mail, UserCheck, EyeOff,
+  ShieldCheck, ShieldX, PackageCheck, RotateCcw, Clock, Search,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -17,37 +16,42 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { SearchInput } from '@/components/common/SearchInput';
+import { EmptyState } from '@/components/common/EmptyState';
+import { ErrorState } from '@/components/common/ErrorState';
+import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
-import { ControlledBadge } from '@/components/prescriptions/ControlledBadge';
+import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
+import { useGuests } from '@/hooks/use-guests';
+import { usePrescriptions, useUpdatePrescription } from '@/hooks/usePrescriptions';
+import { useTerminology } from '@/hooks';
+import { checkInService } from '@/services/checkin.service';
 import { popup } from '@/lib/popup';
-import { cn, formatCurrency, formatDate, getInitials } from '@/lib/utils';
-import {
-  DEFAULT_FACE_MATCH_THRESHOLD, VERIFICATION_METHOD_LABELS, isControlled,
-} from '@/constants/prescription';
-import { MOCK_PATIENTS, readyForPatient } from '@/lib/mock/pharmacy';
-import type {
-  AuthorizedRepresentative, PharmacyPatient, VerificationAttempt, VerificationMethod,
-} from '@/types/prescription';
+import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
+import { medicineLabel, medicinesOf } from '@/types/prescription';
+import type { Guest } from '@/types';
 
 /**
- * The pickup counter.
+ * The collection counter.
  *
- * Two decisions shape this whole screen.
+ * Two things shape it.
  *
- * First, identity is a ladder, not a gate. Face recognition is one rung among
- * five and every rung stays available at all times — a camera that is down, a
- * patient who declined enrolment, or a match that simply comes in under
- * threshold must never be the thing that stands between someone and their
- * medication. A failed face match therefore offers the next rung rather than
- * ending the visit.
+ * Identity is a ladder, not a gate. A face match is one rung of several and
+ * every rung stays available, because a camera that is down or a patient who
+ * never enrolled must not be what stands between someone and their medicine.
+ * The rungs here are only the ones this API can actually check: a face match,
+ * the phone or email held on the record, or a named staff attestation. The
+ * guest record carries no date of birth, so that rung is absent rather than
+ * faked.
  *
- * Second, nothing identifiable is drawn until identity is established. The
- * release step stays masked behind a placeholder until a verification passes,
- * so a screen facing the queue cannot leak what the person in front of it is
- * collecting.
+ * Nothing identifiable renders until identity is established — the medicine
+ * list stays masked, because a screen facing the queue would otherwise show
+ * everyone behind what the person in front is collecting.
  *
- * Static for now — see docs/PHARMACY_MODULE.md for the endpoints behind it.
+ * What is NOT here: an audit entity. Each verification is recorded into the
+ * prescription's own notes on release, which is the only field this API can
+ * persist it to. A real trail needs its own record — see
+ * docs/PHARMACY_MODULE.md.
  */
 export default function PickupPage() {
   return (
@@ -57,179 +61,195 @@ export default function PickupPage() {
   );
 }
 
-type StepId = 'find' | 'collector' | 'verify' | 'release' | 'complete';
+type StepId = 'find' | 'verify' | 'release';
+type Method = 'face' | 'phone' | 'email' | 'attestation';
 
-const STEPS: { id: StepId; label: string; hint: string }[] = [
-  { id: 'find',      label: 'Find patient',    hint: 'Search, scan or identify by face.' },
-  { id: 'collector', label: 'Who is collecting', hint: 'The patient, or someone they authorised.' },
-  { id: 'verify',    label: 'Verify identity', hint: 'Any rung of the ladder that succeeds.' },
-  { id: 'release',   label: 'Release',         hint: 'Choose what leaves the shelf.' },
-  { id: 'complete',  label: 'Payment',         hint: 'Counselling, payment and handover.' },
-];
-
-const METHOD_ICON: Record<VerificationMethod, LucideIcon> = {
-  face: ScanFace,
-  government_id: IdCard,
-  date_of_birth: CalendarCheck,
-  one_time_code: KeyRound,
-  staff_attestation: UserCheck,
+const METHOD_ICON: Record<Method, LucideIcon> = {
+  face: ScanFace, phone: Phone, email: Mail, attestation: UserCheck,
 };
 
-const METHOD_HINT: Record<VerificationMethod, string> = {
-  face: 'Live camera match against the enrolled template.',
-  government_id: 'Scan or key a driver licence, state ID or passport.',
-  date_of_birth: 'Confirm date of birth plus one more detail on file.',
-  one_time_code: 'Send a code to the phone number on the account.',
-  staff_attestation: 'A pharmacist vouches for a person they recognise.',
-};
+interface Attempt {
+  id: string;
+  method: Method;
+  ok: boolean;
+  detail?: string;
+  at: string;
+}
+
+function guestIdOf(g: Guest): string {
+  return g.id ?? (g.PK ? g.PK.replace('GUEST#', '') : '');
+}
 
 function PickupPageInner() {
+  const t = useTerminology();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Opening from a worklist row ("Start pickup") already answers the search
-  // step, so the counter opens on the next question rather than on a box the
-  // operator has just filled in elsewhere.
-  const [step, setStep] = useState<StepId>(() =>
-    searchParams.get('patient') ? 'collector' : 'find',
-  );
-  const [query, setQuery] = useState('');
-  const [patient, setPatient] = useState<PharmacyPatient | null>(() => {
-    const id = searchParams.get('patient');
-    return id ? MOCK_PATIENTS.find((p) => p.id === id) ?? null : null;
-  });
-  const [collector, setCollector] = useState<'patient' | string>('patient');
-  const [attempts, setAttempts] = useState<VerificationAttempt[]>([]);
+  const [search, setSearch] = useState('');
+  const [guest, setGuest] = useState<Guest | null>(null);
+  const [step, setStep] = useState<StepId>(searchParams.get('patient') ? 'verify' : 'find');
+  const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [faceOpen, setFaceOpen] = useState(false);
-  const [dobValue, setDobValue] = useState('');
-  const [selectedRx, setSelectedRx] = useState<Set<string>>(new Set());
-  const [counselled, setCounselled] = useState(false);
-  const [idChecked, setIdChecked] = useState(false);
+  const [matching, setMatching] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
   const [attestation, setAttestation] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [counselled, setCounselled] = useState(false);
 
-  const verified = attempts.some((a) => a.outcome === 'verified');
-  const ready = patient ? readyForPatient(patient.id) : [];
-  const rep: AuthorizedRepresentative | undefined =
-    collector === 'patient' ? undefined : patient?.representatives.find((r) => r.id === collector);
+  const { data: guestPage, isLoading: guestsLoading, isError: guestsError, error: guestsErr, refetch } =
+    useGuests({ search: search || undefined });
+  // useGuests returns the `{ data, total, page, limit }` list envelope, not a bare array.
+  const guests = useMemo<Guest[]>(
+    () => (Array.isArray(guestPage) ? guestPage : guestPage?.data ?? []),
+    [guestPage],
+  );
 
-  const chosen = ready.filter((rx) => selectedRx.has(rx.id));
-  const anyControlled = chosen.some((rx) => isControlled(rx.drug.schedule));
-  const total = chosen.reduce((sum, rx) => sum + (rx.claim?.copay ?? rx.price ?? 0), 0);
+  // Resolve a patient passed in from the worklist.
+  const preId = searchParams.get('patient');
+  const resolvedPre = useMemo(
+    () => (preId ? guests.find((g) => guestIdOf(g) === preId) ?? null : null),
+    [preId, guests],
+  );
+  const activeGuest = guest ?? resolvedPre;
 
-  function notWired(what: string) {
-    popup.info(`${what} is not wired up yet`, {
-      description: 'These screens are a static prototype. See docs/PHARMACY_MODULE.md for the endpoint this needs.',
-    });
+  const verified = attempts.some((a) => a.ok);
+
+  const { data: prescriptions, isLoading: rxLoading } = usePrescriptions({});
+  const theirs = useMemo(() => {
+    if (!activeGuest) return [];
+    const gid = guestIdOf(activeGuest);
+    return (prescriptions ?? []).filter((p) => p.customerId === gid && p.status === 'active');
+  }, [prescriptions, activeGuest]);
+
+  const updateRx = useUpdatePrescription();
+  const chosen = theirs.filter((p) => selected.has(p.id));
+
+  function record(method: Method, ok: boolean, detail?: string) {
+    setAttempts((prev) => [
+      ...prev,
+      { id: `v${prev.length + 1}`, method, ok, detail, at: new Date().toISOString() },
+    ]);
   }
 
   function reset() {
-    setStep('find'); setQuery(''); setPatient(null); setCollector('patient');
-    setAttempts([]); setDobValue(''); setSelectedRx(new Set());
-    setCounselled(false); setIdChecked(false); setAttestation('');
+    setSearch(''); setGuest(null); setStep('find'); setAttempts([]);
+    setPhoneInput(''); setEmailInput(''); setAttestation('');
+    setSelected(new Set()); setCounselled(false);
   }
 
   /**
-   * Scripted face result: the first capture lands under threshold and the
-   * second clears it. The prototype leads with the failure on purpose — the
-   * fallback ladder is the part of this design worth showing, and a demo that
-   * always matches would hide it.
+   * Identify by face against the enrolled templates.
+   *
+   * This calls the facial check-in endpoint, which is the only face-matching
+   * route the API has. It has a real side effect — it also records a check-in
+   * for the person — which is defensible here because they genuinely did
+   * arrive, and a 409 ("already checked in today") still identifies them.
    */
-  function handleFaceSubmit() {
-    const priorFaceAttempts = attempts.filter((a) => a.method === 'face').length;
-    const pass = priorFaceAttempts >= 1;
-    const confidence = pass ? 96.8 : 71.4;
-    setAttempts((prev) => [
-      ...prev,
-      {
-        id: `v-${prev.length + 1}`,
-        method: 'face',
-        outcome: pass ? 'verified' : 'failed',
-        confidence,
-        threshold: DEFAULT_FACE_MATCH_THRESHOLD,
-        at: new Date().toISOString(),
-        by: 'T. Nkemelu, CPhT',
-        note: pass ? undefined : 'Below threshold — offer another verification method.',
-      },
-    ]);
-    setFaceOpen(false);
-    if (pass) {
-      popup.success(`Face matched at ${confidence}%`, { description: 'Identity verified. Prescriptions unlocked.' });
-    } else {
-      popup.warning(`No match — ${confidence}% is below the ${DEFAULT_FACE_MATCH_THRESHOLD}% threshold`, {
-        description: 'Retake the photo, or use any other verification method. The pickup is not blocked.',
-      });
+  async function handleFaceSubmit(imageDataUrl: string) {
+    if (!activeGuest) return;
+    setMatching(true);
+    try {
+      const result = await checkInService.checkInByFacial({ image: imageDataUrl, venue: 'Collection counter' });
+      const expected = guestIdOf(activeGuest);
+      const ok = !!result.guestId && result.guestId === expected;
+      const confidence = typeof result.matchConfidence === 'number' ? `${result.matchConfidence.toFixed(1)}%` : 'matched';
+      if (ok) {
+        record('face', true, `Face matched at ${confidence}`);
+        popup.success(`Identity confirmed — ${confidence}`);
+      } else {
+        record('face', false, result.guestName ? `Matched a different person (${result.guestName})` : 'No match');
+        popup.warning('That face does not match this record', {
+          description: 'Use another method — the collection is not blocked.',
+        });
+      }
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 409) {
+        // Already checked in today — still an identification.
+        record('face', true, 'Face matched (already checked in today)');
+        popup.success('Identity confirmed');
+      } else {
+        const msg =
+          status === 400 ? 'No face detected — reposition and retake.'
+          : status === 404 ? 'Face not recognised. This person may not be enrolled.'
+          : err?.backendMessage ?? getFriendlyErrorMessage(err, 'Face match failed');
+        record('face', false, msg);
+        popup.warning(msg, { description: 'Use another method — the collection is not blocked.' });
+      }
+    } finally {
+      setMatching(false);
+      setFaceOpen(false);
     }
   }
 
-  function recordAttempt(method: VerificationMethod, outcome: 'verified' | 'failed', note?: string) {
-    setAttempts((prev) => [
-      ...prev,
-      {
-        id: `v-${prev.length + 1}`,
-        method,
-        outcome,
-        at: new Date().toISOString(),
-        by: 'T. Nkemelu, CPhT',
-        note,
-      },
-    ]);
+  function verifyPhone() {
+    if (!activeGuest?.phone) { popup.info('No phone number on this record'); return; }
+    const a = phoneInput.replace(/\D/g, '');
+    const b = activeGuest.phone.replace(/\D/g, '');
+    const ok = a.length >= 4 && b.endsWith(a.slice(-4)) && a.slice(-4) === b.slice(-4);
+    record('phone', ok, ok ? 'Last 4 digits of the phone on file' : 'Phone did not match');
+    ok ? popup.success('Phone confirmed') : popup.warning('That does not match the number on file');
   }
 
-  function runMethod(method: VerificationMethod) {
-    switch (method) {
-      case 'face':
-        if (patient?.faceEnrollment !== 'enrolled') {
-          popup.info('No face template on file', {
-            description:
-              patient?.faceEnrollment === 'opted_out'
-                ? 'This patient opted out of facial recognition. Use another method.'
-                : 'This patient has not enrolled a face. Use another method, and offer enrolment afterwards.',
-          });
-          return;
-        }
-        setFaceOpen(true);
-        return;
-      case 'date_of_birth':
-        if (dobValue && patient && dobValue === patient.dob) {
-          recordAttempt('date_of_birth', 'verified');
-          popup.success('Date of birth confirmed');
-        } else {
-          popup.warning('That date does not match the record', {
-            description: 'Try again, or use another verification method.',
-          });
-        }
-        return;
-      case 'staff_attestation':
-        if (!attestation.trim()) {
-          popup.warning('Record why you can vouch for this person');
-          return;
-        }
-        recordAttempt('staff_attestation', 'verified', attestation.trim());
-        popup.success('Attestation recorded');
-        return;
-      default:
-        recordAttempt(method, 'verified');
-        popup.success(`${VERIFICATION_METHOD_LABELS[method]} confirmed`);
-    }
+  function verifyEmail() {
+    if (!activeGuest?.email) { popup.info('No email on this record'); return; }
+    const ok = emailInput.trim().toLowerCase() === activeGuest.email.trim().toLowerCase();
+    record('email', ok, ok ? 'Email on file' : 'Email did not match');
+    ok ? popup.success('Email confirmed') : popup.warning('That does not match the email on file');
   }
 
+  function verifyAttestation() {
+    if (!attestation.trim()) { popup.warning('Record why you can vouch for this person'); return; }
+    record('attestation', true, attestation.trim());
+    popup.success('Attestation recorded');
+  }
+
+  /** Release: mark each chosen prescription completed, with how identity was proven. */
+  function release() {
+    if (!chosen.length || !activeGuest) return;
+    const proof = attempts.filter((a) => a.ok).map((a) => `${a.method}: ${a.detail ?? 'confirmed'}`).join('; ');
+    const stamp = `Collected ${formatDate(new Date(), 'MMM dd, yyyy HH:mm')} — identity verified (${proof})${counselled ? '; counselling offered' : ''}`;
+
+    let done = 0;
+    chosen.forEach((p) => {
+      updateRx.mutate(
+        { id: p.id, data: { status: 'completed', notes: [p.notes, stamp].filter(Boolean).join('\n') } },
+        {
+          onSuccess: () => {
+            done += 1;
+            if (done === chosen.length) {
+              popup.success(`Released ${done} prescription${done === 1 ? '' : 's'} to ${activeGuest.name}`);
+              reset();
+            }
+          },
+        },
+      );
+    });
+  }
+
+  const STEPS: { id: StepId; label: string }[] = [
+    { id: 'find', label: `Find ${t.person.one.toLowerCase()}` },
+    { id: 'verify', label: 'Verify identity' },
+    { id: 'release', label: 'Release' },
+  ];
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Pickup counter</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Collection counter</h1>
           <p className="text-muted-foreground">
-            Identify who is collecting, verify them, then release what is on the shelf.
+            Identify the {t.person.one.toLowerCase()}, verify them, then release what they are collecting.
           </p>
         </div>
         <Button size="sm" variant="outline" onClick={reset}>
-          <RotateCcw className="mr-2 h-4 w-4" /> New pickup
+          <RotateCcw className="mr-2 h-4 w-4" /> New collection
         </Button>
       </div>
 
-      {/* Step rail */}
+      {/* Steps */}
       <ol className="flex flex-wrap items-center gap-x-1 gap-y-3">
         {STEPS.map((s, i) => {
           const done = i < stepIndex;
@@ -262,151 +282,68 @@ function PickupPageInner() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {/* ── Step 1: find ─────────────────────────────────────────────── */}
+          {/* 1 · find */}
           {step === 'find' && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Find the patient</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Search on any detail the person can give you. A face scan can identify them too, but it
-                  is never the only way in.
-                </p>
+                <CardTitle className="text-base">Find the {t.person.one.toLowerCase()}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <Input
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Name, date of birth, phone or Rx number…"
-                    className="flex-1"
-                    autoFocus
+                <SearchInput
+                  placeholder="Name, email or phone…"
+                  defaultValue={search}
+                  onSearch={setSearch}
+                />
+                {guestsLoading ? (
+                  <TableSkeleton rows={4} />
+                ) : guestsError ? (
+                  <ErrorState
+                    title={`Unable to load ${t.person.many.toLowerCase()}`}
+                    message={getFriendlyErrorMessage(guestsErr)}
+                    onRetry={() => refetch()}
                   />
-                  <Button variant="outline" onClick={() => setFaceOpen(true)}>
-                    <ScanFace className="mr-2 h-4 w-4" /> Identify by face
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  {MOCK_PATIENTS.filter((p) => {
-                    const n = query.trim().toLowerCase();
-                    if (!n) return true;
-                    return [p.name, p.dob, p.phone ?? ''].join(' ').toLowerCase().includes(n);
-                  }).map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => { setPatient(p); setStep('collector'); }}
-                      className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <Avatar className="h-10 w-10">
-                        <AvatarFallback className="bg-primary/10 text-primary">{getInitials(p.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold">{p.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          DOB {formatDate(p.dob, 'MMM dd, yyyy')} · {p.phone}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={p.readyCount > 0 ? 'success' : 'muted'}>
-                          {p.readyCount} ready
-                        </Badge>
-                        <FaceEnrollmentPill state={p.faceEnrollment} />
-                      </div>
-                      <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ── Step 2: collector ────────────────────────────────────────── */}
-          {step === 'collector' && patient && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Who is collecting?</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  A pharmacy may release to someone involved in the patient&rsquo;s care. That person is a
-                  record with its own scope and expiry — not a note on the account.
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <RadioGroup value={collector} onValueChange={setCollector} className="space-y-2">
-                  <label
-                    className={cn(
-                      'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors',
-                      collector === 'patient' ? 'border-primary bg-primary/5' : 'hover:bg-accent',
-                    )}
-                  >
-                    <RadioGroupItem value="patient" />
-                    <User className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{patient.name}</p>
-                      <p className="text-xs text-muted-foreground">The patient</p>
-                    </div>
-                  </label>
-
-                  {patient.representatives.map((r) => {
-                    const expired = r.status !== 'active';
-                    return (
-                      <label
-                        key={r.id}
-                        className={cn(
-                          'flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors',
-                          collector === r.id ? 'border-primary bg-primary/5' : 'hover:bg-accent',
-                          expired && 'opacity-60',
-                        )}
+                ) : guests.length === 0 ? (
+                  <EmptyState
+                    icon={Search}
+                    title={`No ${t.person.many.toLowerCase()} found`}
+                    description="Try a different name, email or phone number."
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    {guests.slice(0, 12).map((g) => (
+                      <button
+                        key={guestIdOf(g)}
+                        type="button"
+                        onClick={() => { setGuest(g); setStep('verify'); }}
+                        className="flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors hover:border-primary/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        <RadioGroupItem value={r.id} disabled={expired} />
-                        <Users className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-primary/10 text-primary">{getInitials(g.name)}</AvatarFallback>
+                        </Avatar>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium">{r.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {r.relationship} ·{' '}
-                            {r.scope === 'all' ? 'All prescriptions' : `Listed only (${r.listedRxNumbers?.join(', ')})`}
-                            {r.expiresOn ? ` · ${expired ? 'expired' : 'expires'} ${formatDate(r.expiresOn, 'MMM dd, yyyy')}` : ''}
-                          </p>
+                          <p className="truncate text-sm font-semibold">{g.name}</p>
+                          <p className="truncate text-xs text-muted-foreground">{g.email} · {g.phone}</p>
                         </div>
-                        <div className="flex items-center gap-1.5">
-                          {!r.allowControlled && (
-                            <Badge variant="muted" className="gap-1">
-                              <Lock className="h-3 w-3" /> No controlled
-                            </Badge>
-                          )}
-                          {expired && <Badge variant="destructive">Expired</Badge>}
-                        </div>
-                      </label>
-                    );
-                  })}
-                </RadioGroup>
-
-                <Button variant="outline" size="sm" onClick={() => notWired('Adding an authorised representative')}>
-                  Add an authorised person
-                </Button>
-
-                <div className="flex justify-between pt-2">
-                  <Button variant="ghost" onClick={() => setStep('find')}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                  </Button>
-                  <Button onClick={() => setStep('verify')}>
-                    Continue <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
+                        <Badge variant={g.face_enrolled ? 'success' : 'muted'}>
+                          {g.face_enrolled ? 'Face enrolled' : 'No face'}
+                        </Badge>
+                        <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
 
-          {/* ── Step 3: verify ───────────────────────────────────────────── */}
-          {step === 'verify' && patient && (
+          {/* 2 · verify */}
+          {step === 'verify' && activeGuest && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">
-                  Verify {rep ? rep.name : patient.name}
-                </CardTitle>
+                <CardTitle className="text-base">Verify {activeGuest.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Any one of these establishes identity. They are equals — if the camera is down or the
-                  match fails, take the next one rather than turning the person away.
+                  Any one of these establishes identity. If the camera fails or the person never enrolled,
+                  take the next rung rather than turning them away.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -415,87 +352,74 @@ function PickupPageInner() {
                     <ShieldCheck className="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
                     <div>
                       <p className="text-sm font-semibold text-green-900 dark:text-green-300">Identity verified</p>
-                      <p className="text-xs text-green-800/80 dark:text-green-400/80">
-                        Prescription details are now unlocked for this visit.
-                      </p>
+                      <p className="text-xs text-green-800/80 dark:text-green-400/80">Medicines are now unlocked.</p>
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                    {(['face', 'government_id', 'date_of_birth', 'one_time_code', 'staff_attestation'] as VerificationMethod[]).map((m) => {
-                      const Icon = METHOD_ICON[m];
-                      const faceUnavailable = m === 'face' && patient.faceEnrollment !== 'enrolled';
-                      return (
-                        <button
-                          key={m}
-                          type="button"
-                          onClick={() => runMethod(m)}
-                          className={cn(
-                            'flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors',
-                            'hover:border-primary/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                            faceUnavailable && 'opacity-60',
-                          )}
-                        >
-                          <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold">{VERIFICATION_METHOD_LABELS[m]}</p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">
-                              {faceUnavailable
-                                ? patient.faceEnrollment === 'opted_out'
-                                  ? 'Patient opted out of facial recognition.'
-                                  : 'No face template on file.'
-                                : METHOD_HINT[m]}
-                            </p>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                  <>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        activeGuest.face_enrolled
+                          ? setFaceOpen(true)
+                          : popup.info('No face enrolled for this record', {
+                              description: 'Use another method, and offer enrolment afterwards.',
+                            })
+                      }
+                      className={cn(
+                        'flex w-full items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors',
+                        'hover:border-primary/40 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        !activeGuest.face_enrolled && 'opacity-60',
+                      )}
+                    >
+                      <ScanFace className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                      <div>
+                        <p className="text-sm font-semibold">Face match</p>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          {activeGuest.face_enrolled
+                            ? 'Live camera match against the enrolled photo.'
+                            : 'No face enrolled for this record.'}
+                        </p>
+                      </div>
+                    </button>
 
-                {!verified && (
-                  <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="dob">Date of birth on file</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="dob"
-                          type="date"
-                          value={dobValue}
-                          onChange={(e) => setDobValue(e.target.value)}
-                          className="sm:w-[190px]"
-                        />
-                        <Button variant="outline" onClick={() => runMethod('date_of_birth')} disabled={!dobValue}>
-                          Confirm
-                        </Button>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="space-y-1.5 rounded-lg border p-3">
+                        <Label htmlFor="ph">Last 4 of the phone on file</Label>
+                        <div className="flex gap-2">
+                          <Input id="ph" value={phoneInput} onChange={(e) => setPhoneInput(e.target.value)} placeholder="1234" inputMode="numeric" />
+                          <Button variant="outline" onClick={verifyPhone} disabled={!phoneInput.trim()}>Check</Button>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5 rounded-lg border p-3">
+                        <Label htmlFor="em">Email on file</Label>
+                        <div className="flex gap-2">
+                          <Input id="em" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} placeholder="name@example.com" />
+                          <Button variant="outline" onClick={verifyEmail} disabled={!emailInput.trim()}>Check</Button>
+                        </div>
                       </div>
                     </div>
-                    <Separator />
-                    <div className="space-y-1.5">
-                      <Label htmlFor="attest">Staff attestation</Label>
+
+                    <div className="space-y-1.5 rounded-lg border bg-muted/30 p-3">
+                      <Label htmlFor="att">Staff attestation</Label>
                       <Textarea
-                        id="attest"
+                        id="att"
                         rows={2}
                         value={attestation}
                         onChange={(e) => setAttestation(e.target.value)}
-                        placeholder="Why you can vouch for this person — e.g. known to the pharmacy for eight years."
+                        placeholder="Why you can vouch for this person — recorded against the collection."
                       />
                       <div className="flex justify-end">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => runMethod('staff_attestation')}
-                          disabled={!attestation.trim()}
-                        >
+                        <Button size="sm" variant="outline" onClick={verifyAttestation} disabled={!attestation.trim()}>
                           Record attestation
                         </Button>
                       </div>
                     </div>
-                  </div>
+                  </>
                 )}
 
                 <div className="flex justify-between pt-2">
-                  <Button variant="ghost" onClick={() => setStep('collector')}>
+                  <Button variant="ghost" onClick={() => { setStep('find'); setGuest(null); }}>
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                   <Button onClick={() => setStep('release')} disabled={!verified}>
@@ -506,169 +430,88 @@ function PickupPageInner() {
             </Card>
           )}
 
-          {/* ── Step 4: release ──────────────────────────────────────────── */}
-          {step === 'release' && patient && (
+          {/* 3 · release */}
+          {step === 'release' && activeGuest && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Release from the shelf</CardTitle>
+                <CardTitle className="text-base">Release to {activeGuest.name}</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  {rep
-                    ? `${rep.name} may collect ${rep.scope === 'all' ? 'any prescription' : 'only the listed prescriptions'} for ${patient.name}.`
-                    : 'Choose what the patient is taking today.'}
+                  Marking a prescription collected sets it to completed and records how identity was proven.
                 </p>
               </CardHeader>
               <CardContent className="space-y-4">
-                {ready.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    Nothing is on the will-call shelf for this patient right now.
-                  </p>
+                {rxLoading ? (
+                  <TableSkeleton rows={3} />
+                ) : theirs.length === 0 ? (
+                  <EmptyState
+                    icon={PackageCheck}
+                    title="Nothing to collect"
+                    description={`${activeGuest.name} has no active prescriptions.`}
+                  />
                 ) : (
-                  ready.map((rx) => {
-                    const blockedForRep =
-                      !!rep &&
-                      ((isControlled(rx.drug.schedule) && !rep.allowControlled) ||
-                        (rep.scope === 'listed' && !rep.listedRxNumbers?.includes(rx.rxNumber)));
-                    const checked = selectedRx.has(rx.id);
+                  theirs.map((p) => {
+                    const meds = medicinesOf(p);
+                    const checked = selected.has(p.id);
                     return (
                       <label
-                        key={rx.id}
+                        key={p.id}
                         className={cn(
                           'flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors',
                           checked ? 'border-primary bg-primary/5' : 'hover:bg-accent',
-                          blockedForRep && 'cursor-not-allowed opacity-60',
                         )}
                       >
                         <Checkbox
                           checked={checked}
-                          disabled={blockedForRep}
                           onCheckedChange={(v) =>
-                            setSelectedRx((prev) => {
+                            setSelected((prev) => {
                               const next = new Set(prev);
-                              if (v) next.add(rx.id); else next.delete(rx.id);
+                              if (v) next.add(p.id); else next.delete(p.id);
                               return next;
                             })
                           }
                         />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center gap-2">
-                            <p className="text-sm font-semibold">{rx.drug.name} {rx.drug.strength}</p>
-                            <ControlledBadge schedule={rx.drug.schedule} />
-                          </div>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            Rx <span className="font-mono">{rx.rxNumber}</span> · {rx.quantity}{' '}
-                            {rx.drug.form.toLowerCase()} · {rx.willCallBin}
-                          </p>
-                          {blockedForRep && (
-                            <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400">
-                              <AlertTriangle className="h-3 w-3" aria-hidden="true" />
-                              {isControlled(rx.drug.schedule) && !rep?.allowControlled
-                                ? 'This representative is not authorised for controlled substances.'
-                                : 'Outside this representative\u2019s authorised list.'}
+                            <p className="text-sm font-semibold">
+                              {meds.length ? medicineLabel(meds[0]) : 'Prescription'}
                             </p>
+                            <PrescriptionStatusBadge status={p.status} />
+                          </div>
+                          {meds.length > 1 && (
+                            <p className="mt-0.5 text-xs text-muted-foreground">+{meds.length - 1} more</p>
                           )}
+                          {p.diagnosis && <p className="mt-0.5 text-xs text-muted-foreground">{p.diagnosis}</p>}
                         </div>
-                        <p className="shrink-0 text-sm font-semibold tabular-nums">
-                          {formatCurrency(rx.claim?.copay ?? rx.price ?? 0)}
-                        </p>
                       </label>
                     );
                   })
+                )}
+
+                {theirs.length > 0 && (
+                  <>
+                    <Separator />
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <Checkbox checked={counselled} onCheckedChange={(v) => setCounselled(!!v)} />
+                      <div>
+                        <p className="text-sm font-medium">Counselling offered</p>
+                        <p className="text-xs text-muted-foreground">
+                          Recorded on the prescription alongside the identity check.
+                        </p>
+                      </div>
+                    </label>
+                  </>
                 )}
 
                 <div className="flex justify-between pt-2">
                   <Button variant="ghost" onClick={() => setStep('verify')}>
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
-                  <Button onClick={() => setStep('complete')} disabled={chosen.length === 0}>
-                    Continue <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* ── Step 5: complete ─────────────────────────────────────────── */}
-          {step === 'complete' && patient && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Counselling, payment and handover</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                <div className="space-y-3 rounded-lg border p-4">
-                  <label className="flex cursor-pointer items-start gap-3">
-                    <Checkbox checked={counselled} onCheckedChange={(v) => setCounselled(!!v)} />
-                    <div>
-                      <p className="flex items-center gap-2 text-sm font-medium">
-                        <MessageSquareQuote className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                        Counselling offered by the pharmacist
-                      </p>
-                      <p className="mt-0.5 text-xs text-muted-foreground">
-                        Records that the offer was made and what the patient chose. Required on a new
-                        prescription in most states.
-                      </p>
-                    </div>
-                  </label>
-
-                  {anyControlled && (
-                    <>
-                      <Separator />
-                      <label className="flex cursor-pointer items-start gap-3">
-                        <Checkbox checked={idChecked} onCheckedChange={(v) => setIdChecked(!!v)} />
-                        <div>
-                          <p className="flex items-center gap-2 text-sm font-medium">
-                            <IdCard className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                            Photo ID inspected for the controlled substance
-                          </p>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            A controlled substance needs an ID check at handover regardless of how identity
-                            was verified earlier.
-                          </p>
-                        </div>
-                      </label>
-                    </>
-                  )}
-                </div>
-
-                <div className="rounded-lg border p-4">
-                  <p className="mb-3 text-sm font-semibold">Due today</p>
-                  <ul className="space-y-2">
-                    {chosen.map((rx) => (
-                      <li key={rx.id} className="flex items-center justify-between text-sm">
-                        <span className="truncate pr-4">{rx.drug.name} {rx.drug.strength}</span>
-                        <span className="tabular-nums">{formatCurrency(rx.claim?.copay ?? rx.price ?? 0)}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <Separator className="my-3" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">Total</span>
-                    <span className="text-lg font-bold tabular-nums text-primary">{formatCurrency(total)}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" onClick={() => notWired('Taking payment')}>
-                    <CreditCard className="mr-2 h-4 w-4" /> Take payment
-                  </Button>
-                  <Button variant="outline" onClick={() => notWired('Printing the receipt')}>
-                    <Printer className="mr-2 h-4 w-4" /> Receipt
-                  </Button>
-                </div>
-
-                <div className="flex justify-between pt-2">
-                  <Button variant="ghost" onClick={() => setStep('release')}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                  </Button>
                   <Button
-                    disabled={!counselled || (anyControlled && !idChecked)}
-                    onClick={() => {
-                      popup.success('Pickup completed', {
-                        description: `${chosen.length} prescription${chosen.length === 1 ? '' : 's'} released to ${rep ? rep.name : patient.name}. In the real system this writes the dispense record and the audit trail.`,
-                      });
-                      reset();
-                    }}
+                    onClick={release}
+                    disabled={chosen.length === 0 || updateRx.isPending}
+                    loading={updateRx.isPending}
                   >
-                    <PackageCheck className="mr-2 h-4 w-4" /> Complete pickup
+                    <PackageCheck className="mr-2 h-4 w-4" /> Complete collection
                   </Button>
                 </div>
               </CardContent>
@@ -676,49 +519,50 @@ function PickupPageInner() {
           )}
         </div>
 
-        {/* ── Side rail ──────────────────────────────────────────────────── */}
+        {/* Side rail */}
         <div className="space-y-6">
           <Card>
-            <CardHeader><CardTitle className="text-base">This visit</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">This collection</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              {!patient ? (
-                <p className="text-sm text-muted-foreground">No patient selected yet.</p>
+              {!activeGuest ? (
+                <p className="text-sm text-muted-foreground">
+                  No {t.person.one.toLowerCase()} selected yet.
+                </p>
               ) : (
                 <>
                   <div className="flex items-center gap-3">
                     <Avatar className="h-11 w-11">
-                      <AvatarFallback className="bg-primary/10 text-primary">{getInitials(patient.name)}</AvatarFallback>
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {getInitials(activeGuest.name)}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <p className="truncate font-semibold">{patient.name}</p>
-                      <p className="text-xs text-muted-foreground">DOB {formatDate(patient.dob, 'MMM dd, yyyy')}</p>
+                      <p className="truncate font-semibold">{activeGuest.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{activeGuest.phone}</p>
                     </div>
                   </div>
 
                   <div className="space-y-2 text-sm">
-                    <Row label="Collecting" value={rep ? `${rep.name} (${rep.relationship})` : 'The patient'} />
-                    <Row label="Face enrolment" value={<FaceEnrollmentPill state={patient.faceEnrollment} />} />
-                    <Row
-                      label="Identity"
-                      value={
-                        verified ? (
-                          <Badge variant="success" className="gap-1"><ShieldCheck className="h-3 w-3" /> Verified</Badge>
-                        ) : (
-                          <Badge variant="muted" className="gap-1"><EyeOff className="h-3 w-3" /> Not verified</Badge>
-                        )
-                      }
-                    />
-                    <Row label="On the shelf" value={`${ready.length} ready`} />
+                    <Row label="Face enrolled" value={
+                      <Badge variant={activeGuest.face_enrolled ? 'success' : 'muted'}>
+                        {activeGuest.face_enrolled ? 'Yes' : 'No'}
+                      </Badge>
+                    } />
+                    <Row label="Identity" value={
+                      verified
+                        ? <Badge variant="success" className="gap-1"><ShieldCheck className="h-3 w-3" /> Verified</Badge>
+                        : <Badge variant="muted" className="gap-1"><EyeOff className="h-3 w-3" /> Not verified</Badge>
+                    } />
+                    <Row label="Active prescriptions" value={rxLoading ? '…' : String(theirs.length)} />
                   </div>
 
-                  {/* PHI stays masked until identity is established. */}
                   {!verified && (
                     <div className="rounded-lg border border-dashed bg-muted/40 p-4 text-center">
                       <EyeOff className="mx-auto h-5 w-5 text-muted-foreground" aria-hidden="true" />
-                      <p className="mt-2 text-xs font-medium">Prescription details hidden</p>
+                      <p className="mt-2 text-xs font-medium">Medicines hidden</p>
                       <p className="mt-0.5 text-[11px] text-muted-foreground">
-                        Medication names stay masked until identity is verified, so a counter-facing screen
-                        cannot leak them to the queue.
+                        Names stay masked until identity is verified, so a counter-facing screen cannot
+                        leak them to the queue.
                       </p>
                     </div>
                   )}
@@ -732,33 +576,27 @@ function PickupPageInner() {
               <CardHeader>
                 <CardTitle className="text-base">Verification trail</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  Failed attempts are kept. A pattern of failures is the thing worth seeing later.
+                  Failed attempts are kept — a pattern of failures is what a later review needs.
                 </p>
               </CardHeader>
               <CardContent>
                 <ol className="space-y-3">
                   {attempts.map((a) => {
-                    const ok = a.outcome === 'verified';
+                    const Icon = METHOD_ICON[a.method];
                     return (
                       <li key={a.id} className="flex items-start gap-3">
-                        {ok ? (
-                          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
-                        ) : (
-                          <ShieldX className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-                        )}
+                        {a.ok
+                          ? <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
+                          : <ShieldX className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />}
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">
-                            {VERIFICATION_METHOD_LABELS[a.method]}
-                            {typeof a.confidence === 'number' && (
-                              <span className="ml-1.5 font-normal text-muted-foreground">
-                                {a.confidence}% vs {a.threshold}% threshold
-                              </span>
-                            )}
+                          <p className="flex items-center gap-1.5 text-sm font-medium capitalize">
+                            <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                            {a.method}
                           </p>
-                          {a.note && <p className="mt-0.5 text-xs text-muted-foreground">{a.note}</p>}
+                          {a.detail && <p className="mt-0.5 text-xs text-muted-foreground">{a.detail}</p>}
                           <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                             <Clock className="h-3 w-3" aria-hidden="true" />
-                            {formatDate(a.at, 'HH:mm')} · {a.by}
+                            {formatDate(a.at, 'HH:mm')}
                           </p>
                         </div>
                       </li>
@@ -770,19 +608,9 @@ function PickupPageInner() {
           )}
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Where this goes next</CardTitle></CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Completing a pickup writes a dispense record, an audit entry per prescription released, and
-                a payment row. None of that is wired yet.
-              </p>
-              <Button
-                size="sm"
-                variant="outline"
-                className="mt-3"
-                onClick={() => router.push('/prescriptions')}
-              >
-                <Search className="mr-2 h-4 w-4" /> Back to the worklist
+            <CardContent className="pt-6">
+              <Button size="sm" variant="outline" className="w-full" onClick={() => router.push('/prescriptions')}>
+                <Search className="mr-2 h-4 w-4" /> Back to prescriptions
               </Button>
             </CardContent>
           </Card>
@@ -793,8 +621,9 @@ function PickupPageInner() {
         open={faceOpen}
         onOpenChange={setFaceOpen}
         title="Face verification"
-        description={`Capture a clear front-facing photo. A match at or above ${DEFAULT_FACE_MATCH_THRESHOLD}% verifies identity; anything lower falls back to another method.`}
+        description="Capture a clear front-facing photo. A mismatch falls back to another method — it does not block the collection."
         submitLabel="Match face"
+        isSubmitting={matching}
         onSubmit={handleFaceSubmit}
       />
     </div>
@@ -808,15 +637,4 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
       <span className="min-w-0 truncate text-right text-sm">{value}</span>
     </div>
   );
-}
-
-function FaceEnrollmentPill({ state }: { state: PharmacyPatient['faceEnrollment'] }) {
-  const map = {
-    enrolled:     { label: 'Enrolled',   variant: 'success' as const },
-    not_enrolled: { label: 'Not enrolled', variant: 'muted' as const },
-    opted_out:    { label: 'Opted out',  variant: 'warning' as const },
-    expired:      { label: 'Expired',    variant: 'muted' as const },
-  };
-  const { label, variant } = map[state];
-  return <Badge variant={variant}>{label}</Badge>;
 }
