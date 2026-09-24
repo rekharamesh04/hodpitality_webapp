@@ -48,18 +48,24 @@ export function DevIndustrySwitcher() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="max-h-[60vh] overflow-y-auto">
-          {INDUSTRY_OPTIONS.map(({ slug, label }) => {
+          {INDUSTRY_OPTIONS.map(({ slug, label, available }) => {
             const p = industryPack(slug);
             const active = slug === current;
             return (
               <DropdownMenuItem
                 key={slug}
                 className={cn('cursor-pointer flex-col items-start gap-0.5 rounded-lg p-2.5', active && 'bg-primary/5')}
-                onClick={() => !active && setDevIndustry(slug)}
+                disabled={!available}
+                onClick={() => available && !active && setDevIndustry(slug)}
               >
                 <span className="flex w-full items-center justify-between gap-2">
                   <span className="text-sm font-medium">{label}</span>
                   {active && <span className="text-[10px] font-semibold text-primary">CURRENT</span>}
+                  {!available && !active && (
+                    <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                      Coming soon
+                    </span>
+                  )}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {p.person.many} · {p.place.many} · {p.practitioner}

@@ -40,7 +40,9 @@ import { useAuthStore } from '@/store';
 import { getInitials, formatDate, isValidEmail, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateCompanyPayload, UpdateCompanyPayload } from '@/services/company.service';
 import type { Company } from '@/types';
-import { industryLabel, normalizeIndustry, type IndustrySlug } from '@/constants/industry';
+import {
+  AVAILABLE_INDUSTRIES, industryLabel, isIndustryAvailable, normalizeIndustry, type IndustrySlug,
+} from '@/constants/industry';
 import { useIndustries } from '@/hooks';
 
 function getCompanyId(c: Company): string {
@@ -54,7 +56,9 @@ interface FormState {
   industry: IndustrySlug;
 }
 function emptyForm(): FormState {
-  return { name: '', email: '', resellerId: '', industry: 'other' };
+  // Not 'other': that is the fallback for an unclassified tenant, and it is
+  // not selectable, so opening the form on it would show a disabled value.
+  return { name: '', email: '', resellerId: '', industry: AVAILABLE_INDUSTRIES[0] };
 }
 function toFormState(c: Company): FormState {
   return {
@@ -415,14 +419,35 @@ function CompaniesPageInner({
                   <Select value={form.industry} onValueChange={(v) => updateField('industry', v as IndustrySlug)}>
                     <SelectTrigger id="company-industry"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {industryOptions.map((o) => (
-                        <SelectItem key={o.slug} value={o.slug}>{o.label}</SelectItem>
-                      ))}
+                      {industryOptions.map((o) => {
+                        // An industry already saved on this company stays
+                        // selectable even if it is not one of the built-out
+                        // ones — otherwise editing anything else on an older
+                        // company would silently force its industry to change.
+                        const selectable = o.available || o.slug === form.industry;
+                        return (
+                          <SelectItem key={o.slug} value={o.slug} disabled={!selectable}>
+                            <span className="flex w-full items-center justify-between gap-3">
+                              {o.label}
+                              {!o.available && (
+                                <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  Coming soon
+                                </span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-muted-foreground">
                     Decides what this company&rsquo;s staff see people, visits and places called.
                     {editing ? ' Changing it renames labels only — no records are altered.' : ''}
+                    {' '}Only industries with screens built for them can be chosen; the rest are
+                    listed but not yet available.
+                    {editing && !isIndustryAvailable(form.industry)
+                      ? ' This company is on an industry that is not yet built out — it keeps working, but changing away from it cannot be undone here.'
+                      : ''}
                   </p>
                 </div>
               )}

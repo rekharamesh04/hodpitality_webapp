@@ -425,12 +425,43 @@ export const DEFAULT_INDUSTRY: IndustrySlug = 'other';
 
 export const INDUSTRY_SLUGS = Object.keys(INDUSTRIES) as IndustrySlug[];
 
-/** Options for the industry picker on the company form, alphabetical with "Other" last. */
-export const INDUSTRY_OPTIONS: { slug: IndustrySlug; label: string }[] = INDUSTRY_SLUGS
-  .map((slug) => ({ slug, label: INDUSTRIES[slug].label }))
+/**
+ * The industries that have been built out, and may therefore be chosen.
+ *
+ * Every industry in this file has a complete vocabulary, so any of them will
+ * *label* the product correctly. What only these three have is the screens
+ * behind that vocabulary — a pharmacy's prescriptions and collection counter,
+ * a spa's treatment board, a hotel's front desk.
+ *
+ * Choosing one of the others would give a tenant the right words over a
+ * product missing the part that matters to them, which reads as a half-built
+ * feature rather than an honest "not yet". So the rest stay visible in the
+ * picker and disabled: visible because the roadmap is worth showing, disabled
+ * because selecting one would be a promise the product cannot keep.
+ *
+ * Add a slug here in the same change that ships its screens, never before.
+ */
+export const AVAILABLE_INDUSTRIES = [
+  'pharmacy', 'wellness', 'hospitality',
+] as const satisfies readonly IndustrySlug[];
+
+/** Whether an industry can be chosen today, as opposed to merely existing. */
+export function isIndustryAvailable(value: unknown): boolean {
+  return isIndustrySlug(value) && (AVAILABLE_INDUSTRIES as readonly string[]).includes(value);
+}
+
+/**
+ * Options for the industry picker on the company form.
+ *
+ * Available ones first so the choosable options are not buried among the
+ * disabled ones, each group alphabetical, with "Other" last.
+ */
+export const INDUSTRY_OPTIONS: { slug: IndustrySlug; label: string; available: boolean }[] = INDUSTRY_SLUGS
+  .map((slug) => ({ slug, label: INDUSTRIES[slug].label, available: isIndustryAvailable(slug) }))
   .sort((a, b) => {
     if (a.slug === DEFAULT_INDUSTRY) return 1;
     if (b.slug === DEFAULT_INDUSTRY) return -1;
+    if (a.available !== b.available) return a.available ? -1 : 1;
     return a.label.localeCompare(b.label);
   });
 

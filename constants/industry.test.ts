@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_INDUSTRY,
   INDUSTRIES,
+  AVAILABLE_INDUSTRIES,
   INDUSTRY_OPTIONS,
+  isIndustryAvailable,
   INDUSTRY_SLUGS,
   industryAdminLabel,
   industryHasModule,
@@ -241,6 +243,39 @@ describe('navigation', () => {
     const hrefs = getVisibleNavSections('company_admin', 'retail').flatMap((s) => s.items.map((i) => i.href));
     expect(hrefs).not.toContain('/prescriptions');
     expect(hrefs).not.toContain('/pickup');
+  });
+
+  it('only offers the industries that have screens behind them', () => {
+    expect([...AVAILABLE_INDUSTRIES].sort()).toEqual(['hospitality', 'pharmacy', 'wellness']);
+    for (const slug of AVAILABLE_INDUSTRIES) expect(isIndustryAvailable(slug)).toBe(true);
+    expect(isIndustryAvailable('retail')).toBe(false);
+    expect(isIndustryAvailable('other')).toBe(false);
+    expect(isIndustryAvailable('nonsense')).toBe(false);
+  });
+
+  it('marks every option, and keeps them all listed', () => {
+    // Unavailable industries stay visible — the picker shows the roadmap, it
+    // just will not let you pick an unbuilt one.
+    expect(INDUSTRY_OPTIONS).toHaveLength(INDUSTRY_SLUGS.length);
+    expect(INDUSTRY_OPTIONS.filter((o) => o.available)).toHaveLength(AVAILABLE_INDUSTRIES.length);
+  });
+
+  it('puts the choosable options first so they are not buried', () => {
+    // 'Other' is pinned last, so the ordering rule applies to everything above it.
+    const upToOther = INDUSTRY_OPTIONS.slice(0, -1);
+    const firstUnavailable = upToOther.findIndex((o) => !o.available);
+    const lastAvailable = upToOther.map((o) => o.available).lastIndexOf(true);
+    expect(lastAvailable).toBeLessThan(firstUnavailable);
+  });
+
+  it('never marks an industry available unless it has a flagship module', () => {
+    // The list is hand-maintained, so this is what stops a slug being added to
+    // it before the screens that justify it exist.
+    const FLAGSHIP = ['prescriptions', 'treatments', 'frontdesk'];
+    for (const slug of AVAILABLE_INDUSTRIES) {
+      const modules = industryPack(slug).modules as readonly string[];
+      expect(modules.some((m) => FLAGSHIP.includes(m)), slug).toBe(true);
+    }
   });
 
   it('gives each demo industry a flagship screen the others do not get', () => {
