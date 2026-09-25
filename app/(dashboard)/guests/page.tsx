@@ -6,6 +6,7 @@ import { popup } from '@/lib/popup';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Plus, Download, Upload, MoreHorizontal, Eye, Pencil, Trash2, Users, ScanFace, UserCheck, ClipboardList, X,
+  CalendarPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -31,6 +32,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { GuestFormDialog } from '@/components/dialogs/GuestFormDialog';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { GuestImportDialog } from '@/components/dialogs/GuestImportDialog';
+import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 import {
   useGuests, useCreateGuest, useUpdateGuest, useDeleteGuest, useEnrollFace, useBulkDeleteGuests,
 } from '@/hooks/use-guests';
@@ -82,6 +84,8 @@ function GuestsPageInner() {
   const [enrollTarget, setEnrollTarget] = useState<Guest | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  // Who the booking dialog is for. Null closes it.
+  const [bookingFor, setBookingFor] = useState<{ id: string; name: string } | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
@@ -445,6 +449,12 @@ function GuestsPageInner() {
                                   <UserCheck className="mr-2 h-4 w-4" /> Check In
                                 </DropdownMenuItem>
                               )}
+                              <DropdownMenuItem
+                                className="cursor-pointer"
+                                onClick={() => setBookingFor({ id, name: g.name })}
+                              >
+                                <CalendarPlus className="mr-2 h-4 w-4" /> Book {t.visit.one}
+                              </DropdownMenuItem>
                               <DropdownMenuItem className="cursor-pointer" onClick={() => setEnrollTarget(g)}>
                                 <ScanFace className="mr-2 h-4 w-4" /> {g.avatar ? 'Re-enroll Face' : 'Enroll Face'}
                               </DropdownMenuItem>
@@ -510,6 +520,12 @@ function GuestsPageInner() {
       />
 
       <GuestImportDialog open={importOpen} onOpenChange={setImportOpen} />
+
+      <CreateAppointmentDialog
+        open={!!bookingFor}
+        onOpenChange={(v) => !v && setBookingFor(null)}
+        defaultCustomer={bookingFor}
+      />
 
       <CameraCaptureDialog
         open={!!enrollTarget}

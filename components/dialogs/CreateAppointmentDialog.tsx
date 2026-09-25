@@ -24,6 +24,19 @@ interface CreateAppointmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   defaultDate?: string;
+  /**
+   * Book for this person instead of asking which one.
+   *
+   * Set when the dialog is opened from somewhere that already knows who —
+   * a visitor's row or their profile. The picker is then shown as a fixed
+   * name rather than a combobox, because re-choosing someone you just
+   * clicked on is a way to book the wrong person by accident.
+   *
+   * A visitor is accepted here as well as a customer: the API takes either
+   * id for `customerId`, and for most tenants the visitor directory is the
+   * only one with anybody in it.
+   */
+  defaultCustomer?: Pick<Customer, 'id' | 'name'> | null;
 }
 
 function todayIso() {
@@ -40,8 +53,11 @@ function conflictAwareMessage(err: unknown): string | null {
   return backendMsg ?? getFriendlyErrorMessage(err, 'Unable to create appointment.');
 }
 
-export function CreateAppointmentDialog({ open, onOpenChange, defaultDate }: CreateAppointmentDialogProps) {
+export function CreateAppointmentDialog({
+  open, onOpenChange, defaultDate, defaultCustomer,
+}: CreateAppointmentDialogProps) {
   const [customer, setCustomer] = useState<Customer | null>(null);
+  const locked = !!defaultCustomer;
   const [staffId, setStaffId] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [date, setDate] = useState(defaultDate ?? todayIso());
@@ -62,10 +78,13 @@ export function CreateAppointmentDialog({ open, onOpenChange, defaultDate }: Cre
   useEffect(() => {
     if (!open) return;
     setDate(defaultDate ?? todayIso());
-  }, [open, defaultDate]);
+    // Re-applied on every open: the dialog is reused, and a stale person from
+    // the last booking would be worse than an empty picker.
+    if (defaultCustomer) setCustomer(defaultCustomer as Customer);
+  }, [open, defaultDate, defaultCustomer]);
 
   function reset() {
-    setCustomer(null);
+    setCustomer(defaultCustomer ? (defaultCustomer as Customer) : null);
     setStaffId('');
     setServiceId('');
     setStartTime('');
@@ -131,8 +150,16 @@ export function CreateAppointmentDialog({ open, onOpenChange, defaultDate }: Cre
 
           <div className="space-y-1.5">
             <Label>Customer *</Label>
-            <CustomerCombobox selected={customer} onSelectCustomer={setCustomer} disabled={createAppointment.isPending} />
-            {touched && !customer && <p className="text-xs text-destructive">Select a customer</p>}
+            {locked ? (
+              <div className="flex h-10 items-center rounded-md border bg-muted px-3 text-sm font-medium">
+                {customer?.name ?? defaultCustomer?.name}
+              </div>
+            ) : (
+              <>
+                <CustomerCombobox selected={customer} onSelectCustomer={setCustomer} disabled={createAppointment.isPending} />
+                {touched && !customer && <p className="text-xs text-destructive">Select a customer</p>}
+              </>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

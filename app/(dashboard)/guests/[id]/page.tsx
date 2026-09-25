@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { popup } from '@/lib/popup';
 import {
   ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
-  StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays, Hotel,
+  StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays, Hotel, CalendarPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { GuestFormDialog } from '@/components/dialogs/GuestFormDialog';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 
 import {
   useGuest, useUpdateGuest, useDeleteGuest, useEnrollFace, useUnenrollFace,
@@ -50,6 +51,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [faceOpen, setFaceOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
 
   const { data: appointmentsData } = useAppointments({ guestId: id }, { enabled: !!guest });
   const relatedAppointments = appointmentsData ?? [];
@@ -157,6 +159,10 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                     Check In
                   </Button>
                 )}
+                <Button size="sm" variant="secondary" onClick={() => setBookOpen(true)}>
+                  <CalendarPlus className="mr-2 h-4 w-4" />
+                  Book {t.visit.one}
+                </Button>
                 <Button size="sm" onClick={() => setEditOpen(true)}>
                   <Pencil className="mr-2 h-4 w-4" />
                   Edit
@@ -252,7 +258,15 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
               </CardHeader>
               <CardContent className="space-y-2">
                 {relatedAppointments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No appointments linked to this guest.</p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      No {t.visit.many.toLowerCase()} linked to this {t.person.one.toLowerCase()} yet.
+                    </p>
+                    <Button size="sm" variant="outline" className="w-full" onClick={() => setBookOpen(true)}>
+                      <CalendarPlus className="mr-2 h-4 w-4" />
+                      Book {t.visit.one.toLowerCase()}
+                    </Button>
+                  </div>
                 ) : (
                   <>
                     {relatedAppointments.slice(0, 4).map((a) => (
@@ -263,9 +277,14 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                         </p>
                       </div>
                     ))}
-                    <Button size="sm" variant="ghost" className="w-full" onClick={() => router.push('/calendar')}>
-                      View in Calendar
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" className="flex-1" onClick={() => setBookOpen(true)}>
+                        <CalendarPlus className="mr-2 h-4 w-4" /> Book
+                      </Button>
+                      <Button size="sm" variant="ghost" className="flex-1" onClick={() => router.push('/calendar')}>
+                        View in Calendar
+                      </Button>
+                    </div>
                   </>
                 )}
               </CardContent>
@@ -341,7 +360,13 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
         />
 
         {/* Face enrollment */}
-        <CameraCaptureDialog
+        <CreateAppointmentDialog
+        open={bookOpen}
+        onOpenChange={setBookOpen}
+        defaultCustomer={{ id: resolvedId, name: guest.name }}
+      />
+
+      <CameraCaptureDialog
           open={faceOpen}
           onOpenChange={setFaceOpen}
           title="Enroll Face"
