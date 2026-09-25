@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
 import { CustomerCombobox } from '@/components/appointments/CustomerCombobox';
-import { useStaff } from '@/hooks/useStaff';
+import { StaffSelect } from '@/components/common/StaffSelect';
 import { useServices } from '@/hooks/useCalendar';
 import { useCreateAppointment } from '@/hooks/useAppointments';
 import { getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
@@ -67,11 +67,9 @@ export function CreateAppointmentDialog({
   const [notes, setNotes] = useState('');
   const [touched, setTouched] = useState(false);
 
-  const { data: staffData, isLoading: staffLoading } = useStaff({ limit: 50 });
   const { data: servicesData, isLoading: servicesLoading } = useServices();
   const createAppointment = useCreateAppointment();
 
-  const staff = staffData ?? [];
   const services = servicesData ?? [];
   const selectedService = services.find((s) => s.id === serviceId);
 
@@ -165,18 +163,7 @@ export function CreateAppointmentDialog({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="appt-staff">Staff *</Label>
-              <Select value={staffId} onValueChange={setStaffId} disabled={createAppointment.isPending}>
-                <SelectTrigger id="appt-staff">
-                  <SelectValue placeholder={staffLoading ? 'Loading…' : 'Select staff'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {staff.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}{s.department ? ` · ${s.department}` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <StaffSelect id="appt-staff" value={staffId} onChange={setStaffId} disabled={createAppointment.isPending} />
               {touched && !staffId && <p className="text-xs text-destructive">Select a staff member</p>}
             </div>
 

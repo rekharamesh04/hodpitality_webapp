@@ -36,6 +36,7 @@ import {
   assignableRoles, canManageStaff as canRoleManageStaff, canManageStaffMember, roleLabel,
 } from '@/constants/roles';
 import { useIndustry } from '@/hooks';
+import { useActionParam } from '@/hooks/useActionParam';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
 import type { Staff } from '@/types';
 
@@ -156,6 +157,7 @@ function StaffPageInner() {
   }
 
   function openCreate() { if (!canManageStaff) return; setEditingStaff(null); setFormOpen(true); }
+  useActionParam({ add: openCreate });
   function openEdit(s: Staff) { if (!canManageStaffMember(userRole, s.role)) return; setEditingStaff(s); setFormOpen(true); }
 
   function handleFormSubmit(payload: CreateStaffPayload | UpdateStaffPayload) {

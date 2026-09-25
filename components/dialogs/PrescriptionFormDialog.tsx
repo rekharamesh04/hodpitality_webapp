@@ -9,11 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import { GuestCombobox } from '@/components/common/GuestCombobox';
-import { useStaff } from '@/hooks/useStaff';
+import { StaffSelect } from '@/components/common/StaffSelect';
 import { useCreatePrescription, useUpdatePrescription } from '@/hooks/usePrescriptions';
 import { useTerminology } from '@/hooks';
 import { popup } from '@/lib/popup';
@@ -47,7 +44,6 @@ export function PrescriptionFormDialog({
   defaultGuest?: Guest | null;
 }) {
   const t = useTerminology();
-  const { data: staff } = useStaff();
   const create = useCreatePrescription();
   const update = useUpdatePrescription();
   const isEdit = !!existing;
@@ -128,15 +124,13 @@ export function PrescriptionFormDialog({
               </div>
               <div className="space-y-1.5">
                 <Label>{t.practitioner}</Label>
-                <Select value={staffId} onValueChange={setStaffId} disabled={pending}>
-                  <SelectTrigger><SelectValue placeholder={`Select ${t.practitioner.toLowerCase()}`} /></SelectTrigger>
-                  <SelectContent>
-                    {(staff ?? []).map((s) => {
-                      const id = s.id ?? (s.PK ? s.PK.replace('STAFF#', '') : '');
-                      return <SelectItem key={id} value={id}>{s.name}</SelectItem>;
-                    })}
-                  </SelectContent>
-                </Select>
+                <StaffSelect
+                  value={staffId}
+                  onChange={setStaffId}
+                  disabled={pending}
+                  placeholder={`Select ${t.practitioner.toLowerCase()}`}
+                  noun={t.practitioner.toLowerCase()}
+                />
               </div>
             </div>
           )}
