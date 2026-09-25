@@ -47,7 +47,17 @@ export const companyService = {
     return data;
   },
 
-  async deleteCompany(id: string): Promise<void> {
-    await api.delete(`${API_ENDPOINTS.COMPANIES}/${id}`);
+  /**
+   * Delete a company.
+   *
+   * The API refuses with 409 when the company still holds records, rather
+   * than removing it and stranding them — a company is the only thing that
+   * gives its rows a tenant, so deleting it alone left them in the table and
+   * out of reach. `cascade` is how a caller says it meant to take the
+   * contents too; the body of the 409 says how many there are.
+   */
+  async deleteCompany(id: string, cascade = false): Promise<void> {
+    const qs = cascade ? '?cascade=true' : '';
+    await api.delete(`${API_ENDPOINTS.COMPANIES}/${id}${qs}`);
   },
 };

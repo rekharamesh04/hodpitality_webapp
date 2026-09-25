@@ -33,7 +33,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { StatusBadge } from '@/components/common/StatusBadge';
-import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany } from '@/hooks/useCompanies';
+import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, type CompanyHasRecords } from '@/hooks/useCompanies';
 import { useResellers } from '@/hooks/useResellers';
 import { useCreateStaff } from '@/hooks/useStaff';
 import { useAuthStore } from '@/store';
@@ -139,7 +139,11 @@ function CompaniesPageInner({
 
   const createMutation = useCreateCompany();
   const updateMutation = useUpdateCompany();
-  const deleteMutation = useDeleteCompany();
+  // A 409 means the company still holds records. That is a question for the
+  // user, not an error: it is caught here and turned into a second prompt
+  // that says what would go with it.
+  const [hasRecords, setHasRecords] = useState<CompanyHasRecords | null>(null);
+  const deleteMutation = useDeleteCompany({ onHasRecords: setHasRecords });
   const inviteStaff = useCreateStaff();
 
   const allCompanies = useMemo(() => companies ?? [], [companies]);
@@ -198,7 +202,10 @@ function CompaniesPageInner({
 
   function handleDeleteConfirm() {
     if (!deleteTarget) return;
-    deleteMutation.mutate(getCompanyId(deleteTarget), { onSuccess: () => setDeleteTarget(null) });
+    deleteMutation.mutate(
+      { id: getCompanyId(deleteTarget) },
+      { onSuccess: () => setDeleteTarget(null) },
+    );
   }
 
   function openInvite(c: Company) {
@@ -564,6 +571,35 @@ function CompaniesPageInner({
         destructive
         isConfirming={deleteMutation.isPending}
         onConfirm={handleDeleteConfirm}
+      />
+
+      {/* Asked only when the first delete came back saying the company is not empty. */}
+      <ConfirmDialog
+        open={!!hasRecords}
+        onOpenChange={(v) => !v && setHasRecords(null)}
+        title="Delete its records too?"
+        description={
+          hasRecords
+            ? `${deleteTarget?.name ?? 'This company'} still has ${hasRecords.records} record${hasRecords.records === 1 ? '' : 's'}`
+              + (Object.keys(hasRecords.breakdown).length
+                  ? ` (${Object.entries(hasRecords.breakdown)
+                        .map(([k, v]) => `${v} ${k.toLowerCase()}`)
+                        .join(', ')})`
+                  : '')
+              + '. Deleting the company on its own would leave them stranded, so they will be removed with it. They are marked deleted rather than destroyed.'
+            : ''
+        }
+        confirmLabel="Delete company and records"
+        confirmingLabel="Deleting…"
+        destructive
+        isConfirming={deleteMutation.isPending}
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          deleteMutation.mutate(
+            { id: getCompanyId(deleteTarget), cascade: true },
+            { onSuccess: () => { setHasRecords(null); setDeleteTarget(null); } },
+          );
+        }}
       />
     </div>
   );

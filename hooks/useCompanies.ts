@@ -51,17 +51,44 @@ export function useUpdateCompany() {
   });
 }
 
-export function useDeleteCompany() {
+/** What the API reports when a company still holds records. */
+export interface CompanyHasRecords {
+  records: number;
+  breakdown: Record<string, number>;
+  message: string;
+}
+
+/**
+ * Delete a company.
+ *
+ * A 409 here is not a failure — it is the API declining to strand the
+ * company's records and reporting how many there are. The caller is expected
+ * to ask the user and retry with `cascade`, so this reports it through
+ * `onHasRecords` rather than as an error popup the user cannot act on.
+ */
+export function useDeleteCompany(options?: { onHasRecords?: (info: CompanyHasRecords) => void }) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => companyService.deleteCompany(id),
+    mutationFn: ({ id, cascade }: { id: string; cascade?: boolean }) =>
+      companyService.deleteCompany(id, cascade),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: companyKeys.all });
       popup.success("Company deleted");
     },
     onError: (err: any) => {
       const status = err?.response?.status;
-      if (status === 409) return popup.error(err?.backendMessage ?? "This company can't be deleted — it still has active data attached.");
+      const data = err?.response?.data;
+      if (status === 409 && typeof data?.records === "number") {
+        if (options?.onHasRecords) {
+          options.onHasRecords({
+            records: data.records,
+            breakdown: data.breakdown ?? {},
+            message: data.error ?? "",
+          });
+          return;
+        }
+        return popup.error(data.error ?? "This company still has records attached.");
+      }
       popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete company"));
     },
   });
