@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_INDUSTRY, industryPack, type IndustryModule } from "./industry";
+import { getWorkflow } from "./workflow";
 
 export interface NavItem {
   label: string;
@@ -44,6 +45,10 @@ export interface NavItem {
    * table as its own change.
    */
   module?: IndustryModule;
+  /** Position in the industry's workflow (1-based). Unset for tools outside it. */
+  step?: number;
+  /** A workflow step that can be skipped. */
+  optional?: boolean;
 }
 
 export interface NavSection {
@@ -67,6 +72,38 @@ const COMPANY_ROLES = ['super_admin', 'reseller', 'company_admin'];
  * notification targets keep working when a tenant is reclassified.
  */
 export function getNavSections(industry?: unknown): NavSection[] {
+  const sections = getGroupedNavSections(industry);
+  const workflow = getWorkflow(industry ?? DEFAULT_INDUSTRY);
+  if (workflow.length === 0) return sections;
+
+  // An industry with a workflow gets Operations in the order the work happens,
+  // numbered. Screens that belong to a step move into it rather than being
+  // listed twice; operations outside the flow follow, unnumbered.
+  const inFlow = new Set(workflow.map((s) => s.href));
+  const byHref = new Map(sections.flatMap((s) => s.items).map((i) => [i.href, i]));
+  const steps: NavItem[] = workflow.map((s, i) => ({
+    ...byHref.get(s.href),
+    label: s.label,
+    href: s.href,
+    icon: s.icon,
+    description: s.description,
+    module: s.module,
+    step: i + 1,
+    optional: s.optional,
+  }));
+
+  return sections.map((section) =>
+    section.menuLabel === "Operations"
+      ? {
+          ...section,
+          label: "Daily workflow — in order",
+          items: [...steps, ...section.items.filter((i) => !inFlow.has(i.href))],
+        }
+      : { ...section, items: section.items.filter((i) => !inFlow.has(i.href)) },
+  ).filter((section) => section.items.length > 0);
+}
+
+function getGroupedNavSections(industry?: unknown): NavSection[] {
   const t = industryPack(industry ?? DEFAULT_INDUSTRY);
   return [
     {

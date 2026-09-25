@@ -49,7 +49,7 @@ export function RecentGuests({ guests, isLoading, isError, error, onRetry }: Rec
         <CardTitle>Recent {t.person.many}</CardTitle>
         <Link href="/guests">
           <Button variant="ghost" size="sm">
-            View all guests
+            View all {t.person.many.toLowerCase()}
             <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
           </Button>
         </Link>

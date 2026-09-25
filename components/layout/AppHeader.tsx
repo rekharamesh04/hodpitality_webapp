@@ -19,7 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { DevIndustrySwitcher } from '@/components/common/DevIndustrySwitcher';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications, useMarkNotificationRead } from '@/hooks/use-notifications';
-import { getVisibleNavSections, isNavItemActive, type NavSection } from '@/constants/navigation';
+import { getVisibleNavSections, isNavItemActive, type NavItem, type NavSection } from '@/constants/navigation';
 import { useIndustry } from '@/hooks';
 import { cn, getInitials, getRelativeTime } from '@/lib/utils';
 import { authService } from '@/services/auth.service';
@@ -57,13 +57,59 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
     const item = section.items[0];
     return (
       <Link href={item.href} className={triggerClass} aria-current={active ? 'page' : undefined}>
-        {section.menuLabel}
+        {/* A lone item is named for itself — "Events" over a link to Counters would mislead. */}
+        {item.label}
         {indicator}
       </Link>
     );
   }
 
-  const wide = section.items.length > 3;
+  const steps = section.items.filter((item) => item.step);
+  const others = section.items.filter((item) => !item.step);
+  // A workflow reads top to bottom in one column; a two-column grid would read
+  // across and scramble the order.
+  const wide = steps.length === 0 && section.items.length > 3;
+  const renderItem = (item: NavItem) => {
+    const Icon = item.icon;
+    const itemActive = isNavItemActive(pathname, item.href);
+    const badge = item.href === '/notifications' ? unreadCount : 0;
+    return (
+      <DropdownMenuItem key={item.href} asChild className="cursor-pointer rounded-lg p-2.5 focus:bg-accent">
+        <Link href={item.href} className="flex items-start gap-3" aria-current={itemActive ? 'page' : undefined}>
+          <span
+            className={cn(
+              'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
+              itemActive ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+            )}
+          >
+            <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
+            {item.step && (
+              <span
+                className="absolute -left-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-popover bg-foreground px-1 text-[10px] font-bold text-background"
+                aria-hidden="true"
+              >
+                {item.step}
+              </span>
+            )}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              {item.step && <span className="sr-only">Step {item.step}:</span>}
+              {item.label}
+              {item.optional && (
+                <span className="rounded border px-1 text-[10px] font-normal text-muted-foreground">Optional</span>
+              )}
+              {badge > 0 && <Badge className="h-4 px-1.5 text-[10px]">{badge > 99 ? '99+' : badge}</Badge>}
+            </span>
+            {item.description && (
+              <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{item.description}</span>
+            )}
+          </span>
+        </Link>
+      </DropdownMenuItem>
+    );
+  };
+
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger className={cn(triggerClass, 'data-[state=open]:bg-nav-active data-[state=open]:text-nav-foreground')}>
@@ -71,40 +117,26 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
         <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform [[data-state=open]>&]:rotate-180" aria-hidden="true" />
         {indicator}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={14} className={cn('p-2', wide ? 'w-[560px]' : 'w-[320px]')}>
+      <DropdownMenuContent align="start" sideOffset={14} className={cn('p-2', wide ? 'w-[560px]' : steps.length ? 'w-[400px]' : 'w-[320px]')}>
         <DropdownMenuLabel className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           {section.label}
         </DropdownMenuLabel>
-        <div className={cn('grid gap-1', wide && 'grid-cols-2')}>
-          {section.items.map((item) => {
-            const Icon = item.icon;
-            const itemActive = isNavItemActive(pathname, item.href);
-            const badge = item.href === '/notifications' ? unreadCount : 0;
-            return (
-              <DropdownMenuItem key={item.href} asChild className="cursor-pointer rounded-lg p-2.5 focus:bg-accent">
-                <Link href={item.href} className="flex items-start gap-3" aria-current={itemActive ? 'page' : undefined}>
-                  <span
-                    className={cn(
-                      'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-                      itemActive ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
-                    )}
-                  >
-                    <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2 text-sm font-medium">
-                      {item.label}
-                      {badge > 0 && <Badge className="h-4 px-1.5 text-[10px]">{badge > 99 ? '99+' : badge}</Badge>}
-                    </span>
-                    {item.description && (
-                      <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">{item.description}</span>
-                    )}
-                  </span>
-                </Link>
-              </DropdownMenuItem>
-            );
-          })}
-        </div>
+        {steps.length > 0 ? (
+          <>
+            <ol className="grid gap-1">{steps.map((item) => <li key={item.href}>{renderItem(item)}</li>)}</ol>
+            {others.length > 0 && (
+              <>
+                <DropdownMenuSeparator className="my-2" />
+                <DropdownMenuLabel className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  Other tools
+                </DropdownMenuLabel>
+                <div className="grid gap-1">{others.map(renderItem)}</div>
+              </>
+            )}
+          </>
+        ) : (
+          <div className={cn('grid gap-1', wide && 'grid-cols-2')}>{section.items.map(renderItem)}</div>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

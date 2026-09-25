@@ -4,23 +4,44 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, LayoutDashboard, CheckCircle2, Users, ClipboardList, Menu } from 'lucide-react';
+import { X, LayoutDashboard, CheckCircle2, Users, ClipboardList, CreditCard, Menu } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive } from '@/constants/navigation';
+import { getWorkflow } from '@/constants/workflow';
 import { useIndustry } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/layout/AppHeader';
 
+interface TabItem { label: string; short?: string; href: string; icon: LucideIcon }
+
 /** Most-used front-desk destinations, one tap away on phones. */
-const TAB_ITEMS = [
+const DEFAULT_TAB_ITEMS: TabItem[] = [
   { label: 'Home',       href: '/dashboard',     icon: LayoutDashboard },
   { label: 'Check-ins',  href: '/check-ins',     icon: CheckCircle2 },
   { label: 'Guests',     href: '/guests',        icon: Users },
   { label: 'Registrations', short: 'Sign-ups', href: '/registrations', icon: ClipboardList },
 ];
+
+/**
+ * With a workflow, the tabs are the two busiest steps of it — the last two
+ * required ones between registering someone and taking payment — plus
+ * Payments, so the end of the flow is always one tap away.
+ */
+function tabItemsFor(industry: unknown): TabItem[] {
+  const workflow = getWorkflow(industry);
+  if (workflow.length === 0) return DEFAULT_TAB_ITEMS;
+  const middle = workflow.filter((s) => !s.optional && s.href !== '/guests' && s.href !== '/payments').slice(-2);
+  const payments = workflow.find((s) => s.href === '/payments');
+  return [
+    DEFAULT_TAB_ITEMS[0],
+    ...middle.map((s) => ({ label: s.label, short: s.short, href: s.href, icon: s.icon })),
+    ...(payments ? [{ label: 'Payments', href: payments.href, icon: CreditCard }] : []),
+  ];
+}
 
 /** Slide-out drawer with the full navigation (below the `lg` breakpoint). */
 export function MobileNavDrawer() {
@@ -96,8 +117,20 @@ export function MobileNavDrawer() {
                             active ? 'bg-primary/10 font-semibold text-primary' : 'font-medium text-foreground hover:bg-accent'
                           )}
                         >
-                          <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
+                          {item.step ? (
+                            <span
+                              className={cn(
+                                'flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
+                                active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                              )}
+                            >
+                              <span className="sr-only">Step </span>{item.step}
+                            </span>
+                          ) : (
+                            <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
+                          )}
                           <span className="flex-1">{item.label}</span>
+                          {item.optional && <span className="text-[10px] text-muted-foreground">Optional</span>}
                           {badge > 0 && <Badge className="h-5 px-1.5 text-[10px]">{badge > 99 ? '99+' : badge}</Badge>}
                         </Link>
                       );
@@ -116,15 +149,17 @@ export function MobileNavDrawer() {
 /** Fixed bottom tab bar on phones (below `md`). "More" opens the full drawer. */
 export function MobileTabBar() {
   const pathname = usePathname();
+  const industry = useIndustry();
   const { toggleMobileSidebar } = useUIStore();
+  const tabs = tabItemsFor(industry);
 
   return (
     <nav
       aria-label="Quick navigation"
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur supports-[backdrop-filter]:bg-card/85 md:hidden"
     >
-      <div className="grid grid-cols-5">
-        {TAB_ITEMS.map((tab) => {
+      <div className="grid" style={{ gridTemplateColumns: `repeat(${tabs.length + 1}, minmax(0, 1fr))` }}>
+        {tabs.map((tab) => {
           const Icon = tab.icon;
           const active = isNavItemActive(pathname, tab.href);
           return (
@@ -139,7 +174,7 @@ export function MobileTabBar() {
             >
               {active && <span className="absolute inset-x-5 top-0 h-0.5 rounded-b-full bg-primary" aria-hidden="true" />}
               <Icon className="h-5 w-5" aria-hidden="true" />
-              {tab.short ?? tab.label}
+              <span className="max-w-full truncate px-1">{tab.short ?? tab.label}</span>
             </Link>
           );
         })}

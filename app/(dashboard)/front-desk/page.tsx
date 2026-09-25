@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  LogIn, LogOut, BedDouble, AlertTriangle, Plus, RefreshCw, KeyRound, CalendarDays, Crown,
+  LogIn, LogOut, BedDouble, AlertTriangle, Plus, RefreshCw, KeyRound, CalendarDays, Crown, CreditCard, Receipt,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
+import { RecordAppointmentPaymentDialog } from '@/components/dialogs/RecordAppointmentPaymentDialog';
 import { useAppointments, useUpdateAppointmentStatus } from '@/hooks/useAppointments';
 import { useVenues } from '@/hooks/useVenues';
 import { useTerminology } from '@/hooks';
@@ -59,14 +60,20 @@ export default function FrontDeskPage() {
 
   const [date, setDate] = useState(toLocalDateInput());
   const [floorFilter, setFloorFilter] = useState<string>('');
-  const [selected, setSelected] = useState<Appointment | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [payOpen, setPayOpen] = useState(false);
 
   const { data: appointments, isLoading, isError, error, refetch, isFetching } = useAppointments({ date });
   const { data: venues, isLoading: venuesLoading } = useVenues();
   const updateStatus = useUpdateAppointmentStatus();
 
   const rows = useMemo(() => appointments ?? [], [appointments]);
+  // Read from the live list so a check-in or a payment shows here the moment it lands.
+  const selected = rows.find((a) => a.id === selectedId) ?? null;
+  const setSelected = (a: Appointment | null) => setSelectedId(a?.id ?? null);
+  const unpaid = !!selected && selected.paymentStatus !== 'paid' && Number(selected.amount ?? 0) > 0;
+  const payerName = selected ? selected.customerName || selected.guestName || '' : '';
   const arriving = rows.filter((a) => pileOf(a) === 'arriving');
   const inHouse = rows.filter((a) => pileOf(a) === 'in_house');
   const departing = rows.filter((a) => pileOf(a) === 'departing');
@@ -337,15 +344,37 @@ export default function FrontDeskPage() {
                     <LogOut className="mr-2 h-4 w-4" /> Check out
                   </Button>
                 )}
+                {unpaid && (
+                  <Button
+                    size="sm"
+                    variant={pileOf(selected) === 'departing' ? 'default' : 'outline'}
+                    onClick={() => setPayOpen(true)}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" /> Record payment
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => router.push(payerName ? `/payments?search=${encodeURIComponent(payerName)}` : '/payments')}
+                >
+                  <Receipt className="mr-2 h-4 w-4" /> Payment records
+                </Button>
                 <Button size="sm" variant="outline" onClick={() => router.push('/calendar')}>
                   <CalendarDays className="mr-2 h-4 w-4" /> Manage in the calendar
                 </Button>
               </div>
+              {pileOf(selected) === 'departing' && unpaid && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Checked out with {formatCurrency(Number(selected.amount ?? 0))} still to settle.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
 
         <CreateAppointmentDialog open={createOpen} onOpenChange={setCreateOpen} />
+        <RecordAppointmentPaymentDialog open={payOpen} onOpenChange={setPayOpen} appointment={selected} />
       </div>
     </TooltipProvider>
   );

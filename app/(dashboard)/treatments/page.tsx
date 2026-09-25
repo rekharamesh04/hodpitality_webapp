@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Sparkles, RefreshCw, Plus, AlertTriangle, Users, CalendarDays } from 'lucide-react';
+import { Sparkles, RefreshCw, Plus, AlertTriangle, Users, CalendarDays, CreditCard, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,8 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
+import { RecordAppointmentPaymentDialog } from '@/components/dialogs/RecordAppointmentPaymentDialog';
+import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useVenues } from '@/hooks/useVenues';
 import { useStaff } from '@/hooks/useStaff';
@@ -82,13 +84,18 @@ export default function TreatmentBoardPage() {
   const [date, setDate] = useState(toLocalDateInput());
   const [therapist, setTherapist] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
-  const [selected, setSelected] = useState<Appointment | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
 
   const { data: appointments, isLoading, isError, error, refetch, isFetching } = useAppointments({ date });
   const { data: venues } = useVenues();
   const { data: staff } = useStaff();
 
   const rows = useMemo(() => appointments ?? [], [appointments]);
+  // Read from the live list so a status change or a payment shows here the moment it lands.
+  const selected = rows.find((a) => a.id === selectedId) ?? null;
+  const setSelected = (a: Appointment | null) => setSelectedId(a?.id ?? null);
+  const unpaid = !!selected && selected.paymentStatus !== 'paid' && Number(selected.amount ?? 0) > 0;
 
   const therapists = useMemo(
     () => Array.from(new Set(rows.map((a) => a.staffName).filter((n): n is string => !!n))).sort(),
@@ -396,7 +403,7 @@ export default function TreatmentBoardPage() {
                           {a.service || a.serviceName} · {a.startTime}
                         </p>
                       </div>
-                      <Button size="sm" variant="outline" onClick={() => router.push('/calendar')}>Open</Button>
+                      <Button size="sm" variant="outline" onClick={() => setSelected(a)}>Open</Button>
                     </div>
                   ))}
                 </CardContent>
@@ -465,14 +472,42 @@ export default function TreatmentBoardPage() {
 
               {selected.notes && <p className="rounded bg-muted px-3 py-2 text-sm">{selected.notes}</p>}
 
-              <Button size="sm" variant="outline" onClick={() => router.push('/calendar')}>
-                <Sparkles className="mr-2 h-4 w-4" /> Manage in the calendar
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <AppointmentStatusMenu appointmentId={selected.id} currentStatus={selected.status} />
+                {unpaid && (
+                  <Button
+                    size="sm"
+                    variant={stateOf(selected) === 'complete' ? 'default' : 'outline'}
+                    onClick={() => setPayOpen(true)}
+                  >
+                    <CreditCard className="mr-2 h-4 w-4" /> Record payment
+                  </Button>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const name = selected.customerName || selected.guestName;
+                    router.push(name ? `/payments?search=${encodeURIComponent(name)}` : '/payments');
+                  }}
+                >
+                  <Receipt className="mr-2 h-4 w-4" /> Payment records
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => router.push('/calendar')}>
+                  <Sparkles className="mr-2 h-4 w-4" /> Manage in the calendar
+                </Button>
+              </div>
+              {stateOf(selected) === 'complete' && unpaid && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  {t.visit.one} complete — {formatCurrency(Number(selected.amount ?? 0))} still to take.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}
 
         <CreateAppointmentDialog open={createOpen} onOpenChange={setCreateOpen} />
+        <RecordAppointmentPaymentDialog open={payOpen} onOpenChange={setPayOpen} appointment={selected} />
       </div>
     </TooltipProvider>
   );

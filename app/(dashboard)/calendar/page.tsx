@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { ChevronLeft, ChevronRight, CalendarDays, Calendar as CalendarIcon, Plus, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { useAppointments } from '@/hooks/useAppointments';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 import type { Appointment } from '@/types';
 import { useTerminology } from '@/hooks';
+import { useActionParam } from '@/hooks/useActionParam';
 
 type ViewMode = 'day' | 'month';
 
@@ -48,12 +49,21 @@ function formatMonthHeading(monthStr: string): string {
 }
 
 export default function CalendarPage() {
+  return (
+    <Suspense fallback={<Skeleton className="h-96 w-full" />}>
+      <CalendarPageInner />
+    </Suspense>
+  );
+}
+
+function CalendarPageInner() {
   const t = useTerminology();
   const [view, setView] = useState<ViewMode>('day');
   const [selectedDate, setSelectedDate] = useState(todayIso());
   const [selectedMonth, setSelectedMonth] = useState(todayIso().slice(0, 7));
   const [createOpen, setCreateOpen] = useState(false);
   const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
+  useActionParam({ add: () => setCreateOpen(true) });
 
   const dayQuery = useCalendar(selectedDate, { enabled: view === 'day' });
   const monthQuery = useCalendarEvents(selectedMonth, { enabled: view === 'month' });
@@ -102,13 +112,13 @@ export default function CalendarPage() {
           <p className="text-sm text-muted-foreground">
             {view === 'day' ? formatDayHeading(selectedDate) : formatMonthHeading(selectedMonth)}
             {view === 'day' && typeof totalToday === 'number' && (
-              <span> · {totalToday} appointment{totalToday === 1 ? '' : 's'}{typeof onSiteToday === 'number' ? ` · ${onSiteToday} on site` : ''}</span>
+              <span> · {totalToday} {(totalToday === 1 ? t.visit.one : t.visit.many).toLowerCase()}{typeof onSiteToday === 'number' ? ` · ${onSiteToday} on site` : ''}</span>
             )}
           </p>
         </div>
         <Button size="sm" onClick={() => setCreateOpen(true)}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-          New Appointment
+          New {t.visit.one}
         </Button>
       </div>
 

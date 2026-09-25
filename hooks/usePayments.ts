@@ -15,11 +15,12 @@ export const paymentKeys = {
   stats:  QUERY_KEYS.PAYMENT_STATS,
 };
 
-export function usePayments(filters: PaymentFilters = {}) {
+export function usePayments(filters: PaymentFilters = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: paymentKeys.list(filters),
     queryFn:  () => paymentService.getPayments(filters),
     placeholderData: keepPreviousData,
+    enabled: options.enabled ?? true,
   });
 }
 

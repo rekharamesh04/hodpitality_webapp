@@ -25,6 +25,7 @@ import { PrescriptionStatusBadge } from '@/components/prescriptions/Prescription
 import { PrescriptionFormDialog } from '@/components/dialogs/PrescriptionFormDialog';
 import { usePrescriptions, useDeletePrescription } from '@/hooks/usePrescriptions';
 import { useTerminology } from '@/hooks';
+import { useActionParam } from '@/hooks/useActionParam';
 import { PRESCRIPTION_QUEUES } from '@/constants/prescription';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials, getRelativeTime } from '@/lib/utils';
 import {
@@ -64,6 +65,7 @@ function PrescriptionsPageInner() {
   const [limit, setLimit] = useState(20);
   const [createOpen, setCreateOpen] = useState(false);
   const [toDelete, setToDelete] = useState<Prescription | null>(null);
+  useActionParam({ add: () => setCreateOpen(true) });
 
   // Only `search` is a confirmed server-side filter. Status and prescriber are
   // applied below over this one fetched set, which also keeps the tab counts

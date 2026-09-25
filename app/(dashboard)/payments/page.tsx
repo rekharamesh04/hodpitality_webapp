@@ -417,10 +417,11 @@ function PaymentsPageInner() {
   const searchParams = useSearchParams();
   const eventIdFilter = searchParams.get('eventId') || '';
 
-  const [search, setSearch] = useState('');
+  // Seeded from the URL so other screens can link straight to one person's records.
+  const [search, setSearch] = useState(searchParams.get('search') ?? '');
   // Bumped on "Clear" to remount the (uncontrolled) search box empty.
   const [searchResetKey, setSearchResetKey] = useState(0);
-  const [statusFilter, setStatusFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '');
   const [methodFilter, setMethodFilter] = useState('');
 
   const [createOpen, setCreateOpen] = useState(false);
