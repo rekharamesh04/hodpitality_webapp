@@ -11,11 +11,12 @@ export const prescriptionKeys = {
   detail: (id: string) => QUERY_KEYS.PRESCRIPTION_DETAIL(id),
 };
 
-export function usePrescriptions(filters: PrescriptionFilters = {}) {
+export function usePrescriptions(filters: PrescriptionFilters = {}, options: { enabled?: boolean } = {}) {
   return useQuery({
     queryKey: prescriptionKeys.list(filters),
     queryFn: () => prescriptionService.getPrescriptions(filters),
     placeholderData: keepPreviousData,
+    enabled: options.enabled ?? true,
   });
 }
 

@@ -19,6 +19,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { GuestFormDialog } from '@/components/dialogs/GuestFormDialog';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
+import { PatientPrescriptionsCard } from '@/components/prescriptions/PatientPrescriptionsCard';
 
 import {
   useGuest, useUpdateGuest, useDeleteGuest, useEnrollFace, useUnenrollFace,
@@ -55,7 +56,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
 
   const { data: appointmentsData } = useAppointments({ guestId: id }, { enabled: !!guest });
   const relatedAppointments = appointmentsData ?? [];
-  const { data: hospitalityData, isLoading: hospitalityLoading } = useGuestHospitality(id, { enabled: !!guest });
+  const { data: hospitalityData, isLoading: hospitalityLoading } = useGuestHospitality(id, { enabled: !!guest && t.has('hospitality') });
   const hospitalityRequests = hospitalityData ?? [];
 
   function handleUpdate(payload: UpdateGuestPayload) {
@@ -97,7 +98,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
       <div className="mx-auto max-w-2xl space-y-6">
         <Button variant="ghost" size="sm" onClick={() => router.push('/guests')} className="-ml-2">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          All guests
+          All {t.person.many.toLowerCase()}
         </Button>
         <ErrorState
           title={`Unable to load this ${t.person.one.toLowerCase()}`}
@@ -117,7 +118,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
       <div className="mx-auto max-w-5xl space-y-6">
         <Button variant="ghost" size="sm" onClick={() => router.push('/guests')} className="-ml-2">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          All guests
+          All {t.person.many.toLowerCase()}
         </Button>
 
         {/* Hero */}
@@ -204,7 +205,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle className="text-base">Guest Information</CardTitle>
+              <CardTitle className="text-base">{t.person.one} Information</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <InfoRow icon={Mail} label="Email" value={guest.email} />
@@ -292,49 +293,54 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
+        {/* Prescriptions */}
+        {t.has('prescriptions') && <PatientPrescriptionsCard guest={guest} guestId={resolvedId} />}
+
         {/* Hospitality */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-base">Hospitality Requests</CardTitle>
-            <Button size="sm" variant="outline" onClick={() => router.push('/hospitality?action=add')}>
-              <Hotel className="mr-2 h-4 w-4" aria-hidden="true" />
-              New Request
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {hospitalityLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-              </div>
-            ) : hospitalityRequests.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No hospitality requests for this guest.</p>
-            ) : (
-              <ul className="divide-y rounded-lg border">
-                {hospitalityRequests.map((h) => (
-                  <li key={h.id}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-accent"
-                      onClick={() => router.push(`/hospitality/${h.id}`)}
-                    >
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <Hotel className="h-4 w-4 text-primary" aria-hidden="true" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{h.type}{h.description ? ` — ${h.description}` : ''}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(h.scheduledAt || h.serviceDate)}{h.venue ? ` · ${h.venue}` : ''}
-                        </p>
-                      </div>
-                      <StatusBadge status={h.status} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        {t.has('hospitality') && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Hospitality Requests</CardTitle>
+              <Button size="sm" variant="outline" onClick={() => router.push('/hospitality?action=add')}>
+                <Hotel className="mr-2 h-4 w-4" aria-hidden="true" />
+                New Request
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {hospitalityLoading ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : hospitalityRequests.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No hospitality requests for this {t.person.one.toLowerCase()}.</p>
+              ) : (
+                <ul className="divide-y rounded-lg border">
+                  {hospitalityRequests.map((h) => (
+                    <li key={h.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-accent"
+                        onClick={() => router.push(`/hospitality/${h.id}`)}
+                      >
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                          <Hotel className="h-4 w-4 text-primary" aria-hidden="true" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">{h.type}{h.description ? ` — ${h.description}` : ''}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(h.scheduledAt || h.serviceDate)}{h.venue ? ` · ${h.venue}` : ''}
+                          </p>
+                        </div>
+                        <StatusBadge status={h.status} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Edit dialog */}
         <GuestFormDialog

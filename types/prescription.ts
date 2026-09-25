@@ -110,3 +110,30 @@ export function medicineLabel(entry: MedicineEntry): string {
 export function medicinesOf(p: Prescription): MedicineEntry[] {
   return Array.isArray(p.medicines) ? p.medicines : [];
 }
+
+/** When the prescription was written, whichever field the row carries. */
+export function writtenAt(p: Prescription): string | undefined {
+  return p.created_at ?? p.createdAt;
+}
+
+/**
+ * One patient's prescriptions, newest first.
+ *
+ * `customerId` holds the guest id the prescription was written for (the form
+ * picks from the guest directory), so that is what a profile matches on.
+ */
+export function prescriptionsFor(all: readonly Prescription[], patientId: string): Prescription[] {
+  if (!patientId) return [];
+  return all
+    .filter((p) => p.customerId === patientId)
+    .sort((a, b) => new Date(writtenAt(b) ?? 0).getTime() - new Date(writtenAt(a) ?? 0).getTime());
+}
+
+/**
+ * Waiting to be collected. The record has no dispensing states, so "active"
+ * — written and not yet released at the counter — is what ready means here;
+ * releasing one sets it to completed.
+ */
+export function isReadyForPickup(p: Prescription): boolean {
+  return p.status === 'active';
+}

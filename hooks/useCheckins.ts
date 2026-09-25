@@ -122,7 +122,11 @@ function facialErrorMessage(err: any): string {
   }
 }
 
-export function useFacialCheckIn() {
+/**
+ * `announce: false` skips the success message, for a caller that shows its own
+ * result — the pharmacy's "ready for pickup" dialog — rather than stacking two.
+ */
+export function useFacialCheckIn({ announce = true }: { announce?: boolean } = {}) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: { image: string; venue?: string; eventId?: string }) =>
@@ -131,6 +135,7 @@ export function useFacialCheckIn() {
       qc.invalidateQueries({ queryKey: checkInKeys.all });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
+      if (!announce) return;
       const confidence = typeof result.matchConfidence === "number"
         ? ` (${result.matchConfidence.toFixed(1)}% match)`
         : "";

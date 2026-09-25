@@ -31,6 +31,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+import { ReadyForPickupDialog, type FaceMatch } from '@/components/prescriptions/ReadyForPickupDialog';
 import { GuestCombobox } from '@/components/common/GuestCombobox';
 import {
   useCheckIns, useCheckInStats, useCheckIn, useQrCheckIn, usePrintBadge, useFacialCheckIn,
@@ -112,7 +113,9 @@ function CheckInsPageInner() {
   const quickCheckIn = useCheckIn();
   const qrCheckIn = useQrCheckIn();
   const printBadge = usePrintBadge();
-  const facialCheckIn = useFacialCheckIn();
+  const facialCheckIn = useFacialCheckIn({ announce: !t.has('prescriptions') });
+  // A pharmacy follows a face match with what the patient has come to collect.
+  const [faceMatch, setFaceMatch] = useState<FaceMatch | null>(null);
 
   const allCheckIns = useMemo(() => checkIns ?? [], [checkIns]);
 
@@ -232,7 +235,19 @@ function CheckInsPageInner() {
   function handleFaceCheckIn(imageDataUrl: string) {
     facialCheckIn.mutate(
       { image: imageDataUrl, venue: faceVenue.trim() || undefined, eventId: faceEventId || undefined },
-      { onSuccess: () => setCheckMode(null) }
+      {
+        onSuccess: (result) => {
+          setCheckMode(null);
+          if (t.has('prescriptions') && result.guestId) {
+            setFaceMatch({
+              guestId: result.guestId,
+              guestName: result.guestName,
+              matchConfidence: result.matchConfidence,
+              matchThreshold: result.matchThreshold,
+            });
+          }
+        },
+      }
     );
   }
 
@@ -571,6 +586,8 @@ function CheckInsPageInner() {
           </div>
         </div>
       </CameraCaptureDialog>
+
+      <ReadyForPickupDialog match={faceMatch} onOpenChange={(open) => !open && setFaceMatch(null)} />
     </div>
     </TooltipProvider>
   );

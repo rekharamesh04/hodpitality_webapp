@@ -37,11 +37,14 @@ export function PrescriptionFormDialog({
   open,
   onOpenChange,
   existing,
+  defaultGuest,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Present when amending; absent when writing a new one. */
   existing?: Prescription;
+  /** Pre-selects the patient — e.g. when writing from their profile. */
+  defaultGuest?: Guest | null;
 }) {
   const t = useTerminology();
   const { data: staff } = useStaff();
@@ -67,9 +70,12 @@ export function PrescriptionFormDialog({
       );
       setMedicines(meds.length ? meds : [{ name: '', dosage: '', frequency: '', duration: '' }]);
     } else {
-      setGuest(null); setStaffId(''); setDiagnosis(''); setNotes('');
+      setGuest(defaultGuest ?? null); setStaffId(''); setDiagnosis(''); setNotes('');
       setMedicines([{ name: '', dosage: '', frequency: '', duration: '' }]);
     }
+    // defaultGuest is read only when the dialog opens, so a parent re-render
+    // cannot wipe a patient the user has since changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, existing]);
 
   function setMedicine(index: number, patch: Partial<Medicine>) {

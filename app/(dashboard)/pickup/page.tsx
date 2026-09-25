@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, Check, ScanFace, Phone, Mail, UserCheck, EyeOff,
@@ -22,13 +22,14 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
-import { useGuests } from '@/hooks/use-guests';
+import { useGuest, useGuests } from '@/hooks/use-guests';
+import { usePickupHandoffStore } from '@/store/pickup-handoff-store';
 import { usePrescriptions, useUpdatePrescription } from '@/hooks/usePrescriptions';
 import { useTerminology } from '@/hooks';
 import { checkInService } from '@/services/checkin.service';
 import { popup } from '@/lib/popup';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
-import { medicineLabel, medicinesOf } from '@/types/prescription';
+import { isReadyForPickup, medicineLabel, medicinesOf, prescriptionsFor } from '@/types/prescription';
 import type { Guest } from '@/types';
 
 /**
@@ -105,13 +106,29 @@ function PickupPageInner() {
     [guestPage],
   );
 
-  // Resolve a patient passed in from the worklist.
+  // Resolve a patient passed in from the worklist, a profile or check-in. Read
+  // by id: the search list above is only its first page, so a patient further
+  // down would otherwise never resolve and the counter would render blank.
   const preId = searchParams.get('patient');
+  const { data: preGuest } = useGuest(preId ?? '');
   const resolvedPre = useMemo(
-    () => (preId ? guests.find((g) => guestIdOf(g) === preId) ?? null : null),
-    [preId, guests],
+    () => (preId ? preGuest ?? guests.find((g) => guestIdOf(g) === preId) ?? null : null),
+    [preId, preGuest, guests],
   );
   const activeGuest = guest ?? resolvedPre;
+
+  // A face matched at check-in moments ago counts as this collection's
+  // verification, so the patient is not asked to scan twice. Taken once.
+  const takeHandoff = usePickupHandoffStore((s) => s.take);
+  const handoffChecked = useRef(false);
+  useEffect(() => {
+    if (handoffChecked.current || !preId || !resolvedPre) return;
+    handoffChecked.current = true;
+    const handoff = takeHandoff(preId);
+    if (!handoff) return;
+    setAttempts([{ id: 'v1', method: 'face', ok: true, detail: handoff.detail, at: new Date(handoff.at).toISOString() }]);
+    setStep('release');
+  }, [preId, resolvedPre, takeHandoff]);
 
   const verified = attempts.some((a) => a.ok);
 
@@ -119,7 +136,7 @@ function PickupPageInner() {
   const theirs = useMemo(() => {
     if (!activeGuest) return [];
     const gid = guestIdOf(activeGuest);
-    return (prescriptions ?? []).filter((p) => p.customerId === gid && p.status === 'active');
+    return prescriptionsFor(prescriptions ?? [], gid).filter(isReadyForPickup);
   }, [prescriptions, activeGuest]);
 
   const updateRx = useUpdatePrescription();
@@ -136,6 +153,8 @@ function PickupPageInner() {
     setSearch(''); setGuest(null); setStep('find'); setAttempts([]);
     setPhoneInput(''); setEmailInput(''); setAttestation('');
     setSelected(new Set()); setCounselled(false);
+    // Drop a patient passed in the URL, or it would stay "this collection".
+    if (preId) router.replace('/pickup');
   }
 
   /**
