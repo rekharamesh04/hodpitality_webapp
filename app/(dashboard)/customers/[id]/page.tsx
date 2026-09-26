@@ -18,6 +18,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+import { PatientPrescriptionsCard } from '@/components/prescriptions/PatientPrescriptionsCard';
 
 import {
   useCustomer, useUpdateCustomer, useDeleteCustomer, useEnrollCustomerFace, useUnenrollCustomerFace,
@@ -82,7 +83,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       <div className="mx-auto max-w-2xl space-y-6">
         <Button variant="ghost" size="sm" onClick={() => router.push('/customers')} className="-ml-2">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          All customers
+          All {t.account.many.toLowerCase()}
         </Button>
         <ErrorState
           title={`Unable to load this ${t.account.one.toLowerCase()}`}
@@ -103,7 +104,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       <div className="mx-auto max-w-5xl space-y-6">
         <Button variant="ghost" size="sm" onClick={() => router.push('/customers')} className="-ml-2">
           <ArrowLeft className="mr-2 h-4 w-4" />
-          All customers
+          All {t.account.many.toLowerCase()}
         </Button>
 
         {/* Hero */}
@@ -182,7 +183,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader>
-              <CardTitle className="text-base">Customer Information</CardTitle>
+              <CardTitle className="text-base">{t.account.one} Information</CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <InfoRow icon={Mail} label="Email" value={customer.email} />
@@ -242,6 +243,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             )}
           </div>
         </div>
+
+        {/* Prescriptions */}
+        {t.has('prescriptions') && <PatientPrescriptionsCard guest={customer} guestId={resolvedId} />}
 
         {/* Edit dialog */}
         <CustomerFormDialog

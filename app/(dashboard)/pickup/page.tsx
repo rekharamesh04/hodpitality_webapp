@@ -23,6 +23,7 @@ import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
 import { useGuest, useGuests } from '@/hooks/use-guests';
+import { useCustomer } from '@/hooks/useCustomers';
 import { usePickupHandoffStore } from '@/store/pickup-handoff-store';
 import { usePrescriptions, useUpdatePrescription } from '@/hooks/usePrescriptions';
 import { useTerminology } from '@/hooks';
@@ -110,10 +111,15 @@ function PickupPageInner() {
   // by id: the search list above is only its first page, so a patient further
   // down would otherwise never resolve and the counter would render blank.
   const preId = searchParams.get('patient');
+  // A prescription may be written for a guest or a patient account, so the id
+  // is looked up in both at once; whichever answers is the person.
   const { data: preGuest } = useGuest(preId ?? '');
+  const { data: preCustomer } = useCustomer(preId ?? '');
   const resolvedPre = useMemo(
-    () => (preId ? preGuest ?? guests.find((g) => guestIdOf(g) === preId) ?? null : null),
-    [preId, preGuest, guests],
+    () => (preId
+      ? preGuest ?? (preCustomer as unknown as Guest | undefined) ?? guests.find((g) => guestIdOf(g) === preId) ?? null
+      : null),
+    [preId, preGuest, preCustomer, guests],
   );
   const activeGuest = guest ?? resolvedPre;
 

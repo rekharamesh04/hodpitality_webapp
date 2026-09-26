@@ -17,10 +17,23 @@ import {
 } from '@/types/prescription';
 import type { Guest } from '@/types';
 
+/** What this card reads from a person — both directories carry it. */
+export interface PrescriptionPerson {
+  id?: string;
+  PK?: string;
+  name?: string;
+}
+
 const SHOWN = 5;
 
-/** A patient's prescriptions on their profile, with the two things done next: write one, or hand them over. */
-export function PatientPrescriptionsCard({ guest, guestId }: { guest: Guest; guestId: string }) {
+/**
+ * A patient's prescriptions on their profile, with the two things done next:
+ * write one, or hand them over.
+ *
+ * Works for a person from either directory — a prescription's customerId may
+ * hold a guest id or a customer (patient account) id; the API accepts both.
+ */
+export function PatientPrescriptionsCard({ guest, guestId }: { guest: PrescriptionPerson; guestId: string }) {
   const t = useTerminology();
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
@@ -108,7 +121,8 @@ export function PatientPrescriptionsCard({ guest, guestId }: { guest: Guest; gue
           </>
         )}
       </CardContent>
-      <PrescriptionFormDialog open={createOpen} onOpenChange={setCreateOpen} defaultGuest={guest} />
+      {/* The form only reads id, PK and name, which both directories carry. */}
+      <PrescriptionFormDialog open={createOpen} onOpenChange={setCreateOpen} defaultGuest={guest as Guest} />
     </Card>
   );
 }

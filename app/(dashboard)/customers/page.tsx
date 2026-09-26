@@ -269,9 +269,14 @@ function CustomersPageInner() {
                 {customers.map((c) => {
                   const id = getCustomerId(c);
                   return (
-                    <TableRow key={id}>
+                    <TableRow key={id} className="cursor-pointer" onClick={() => router.push(`/customers/${id}`)}>
                       <TableCell>
-                        <div className="flex items-center gap-3">
+                        {/* The row is the click target; the name is also a button so it can be reached by keyboard. */}
+                        <button
+                          type="button"
+                          className="flex items-center gap-3 rounded-sm text-left hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          onClick={(e) => { e.stopPropagation(); router.push(`/customers/${id}`); }}
+                        >
                           <Avatar className="h-8 w-8 shrink-0">
                             <AvatarImage src={c.face_photo_url} alt={c.name} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
@@ -279,7 +284,7 @@ function CustomersPageInner() {
                             </AvatarFallback>
                           </Avatar>
                           <span className="font-medium">{c.name || 'Unnamed'}</span>
-                        </div>
+                        </button>
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">{c.email || '—'}</div>
@@ -305,7 +310,7 @@ function CustomersPageInner() {
                       <TableCell className="hidden sm:table-cell">{c.visits ?? 0}</TableCell>
                       <TableCell className="hidden md:table-cell">{formatCurrency(c.balance ?? 0)}</TableCell>
                       <TableCell className="hidden lg:table-cell">{formatDate(c.nextAppointment)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon-sm" aria-label={`Actions for ${c.name}`}>
