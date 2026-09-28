@@ -47,6 +47,8 @@ interface RecordPatientPaymentDialogProps {
   defaultPerson?: PaymentPerson | null;
   /** Start with these prescriptions ticked — the ones just handed over at the counter. */
   defaultPrescriptionIds?: string[];
+  /** Called once the payment is saved, before the dialog closes. */
+  onRecorded?: () => void;
 }
 
 function guestId(g: Guest): string {
@@ -65,7 +67,7 @@ function guestId(g: Guest): string {
  * covered is marked paid so it stops showing as owed.
  */
 export function RecordPatientPaymentDialog({
-  open, onOpenChange, defaultPerson, defaultPrescriptionIds,
+  open, onOpenChange, defaultPerson, defaultPrescriptionIds, onRecorded,
 }: RecordPatientPaymentDialogProps) {
   const t = useTerminology();
   const qc = useQueryClient();
@@ -162,6 +164,7 @@ export function RecordPatientPaymentDialog({
       qc.invalidateQueries({ queryKey: QUERY_KEYS.PRESCRIPTIONS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CUSTOMERS });
+      onRecorded?.();
       onOpenChange(false);
     };
 

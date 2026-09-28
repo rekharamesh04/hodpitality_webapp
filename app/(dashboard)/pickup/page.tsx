@@ -64,7 +64,9 @@ export default function PickupPage() {
   );
 }
 
-type StepId = 'find' | 'verify' | 'release';
+// 'done' is the receipt after release: the counter stays on it (so closing the payment
+// popup never throws the desk back to step 1) until "New collection" is pressed.
+type StepId = 'find' | 'verify' | 'release' | 'done';
 type Method = 'face' | 'phone' | 'email' | 'attestation';
 
 const METHOD_ICON: Record<Method, LucideIcon> = {
@@ -101,6 +103,9 @@ function PickupPageInner() {
   const [counselled, setCounselled] = useState(false);
   // Opened right after a collection so the desk takes the money for what was just handed over.
   const [payFor, setPayFor] = useState<{ person: PaymentPerson; prescriptionIds: string[] } | null>(null);
+  const [completed, setCompleted] = useState<{
+    person: PaymentPerson; prescriptionIds: string[]; count: number; paid: boolean;
+  } | null>(null);
 
   const { data: guestPage, isLoading: guestsLoading, isError: guestsError, error: guestsErr, refetch } =
     useGuests({ search: search || undefined });
@@ -162,6 +167,7 @@ function PickupPageInner() {
     setSearch(''); setGuest(null); setStep('find'); setAttempts([]);
     setPhoneInput(''); setEmailInput(''); setAttestation('');
     setSelected(new Set()); setCounselled(false);
+    setCompleted(null); setPayFor(null);
     // Drop a patient passed in the URL, or it would stay "this collection".
     if (preId) router.replace('/pickup');
   }
@@ -250,7 +256,10 @@ function PickupPageInner() {
             done += 1;
             if (done === chosen.length) {
               popup.success(`Released ${done} prescription${done === 1 ? '' : 's'} to ${activeGuest.name}`);
-              reset();
+              // Stay on a receipt rather than resetting: the payment popup opens over it, and
+              // closing that popup must leave the desk here, not back at "Find patient".
+              setCompleted({ person, prescriptionIds: released, count: done, paid: false });
+              setStep('done');
               if (t.has('payments')) setPayFor({ person, prescriptionIds: released });
             }
           },
@@ -264,7 +273,8 @@ function PickupPageInner() {
     { id: 'verify', label: 'Verify identity' },
     { id: 'release', label: 'Release' },
   ];
-  const stepIndex = STEPS.findIndex((s) => s.id === step);
+  // On the receipt every step shows as done.
+  const stepIndex = step === 'done' ? STEPS.length : STEPS.findIndex((s) => s.id === step);
 
   return (
     <div className="space-y-6">
@@ -455,6 +465,52 @@ function PickupPageInner() {
                   </Button>
                   <Button onClick={() => setStep('release')} disabled={!verified}>
                     Continue <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ✓ · done */}
+          {step === 'done' && completed && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ShieldCheck className="h-5 w-5 text-success" aria-hidden="true" />
+                  Collection complete
+                </CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Released {completed.count} prescription{completed.count === 1 ? '' : 's'} to {completed.person.name}.
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {t.has('payments') && (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                    <div>
+                      <p className="text-sm font-medium">Payment</p>
+                      <p className="text-xs text-muted-foreground">
+                        {completed.paid
+                          ? 'Recorded — it shows under Payments and on their profile.'
+                          : 'Not taken yet. You can take it now or later from Payments.'}
+                      </p>
+                    </div>
+                    {completed.paid ? (
+                      <Badge variant="outline" className="border-success/40 text-success">
+                        <Check className="mr-1 h-3.5 w-3.5" /> Paid
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        onClick={() => setPayFor({ person: completed.person, prescriptionIds: completed.prescriptionIds })}
+                      >
+                        Take payment
+                      </Button>
+                    )}
+                  </div>
+                )}
+                <div className="flex justify-end">
+                  <Button variant={completed.paid || !t.has('payments') ? 'default' : 'outline'} onClick={reset}>
+                    <RotateCcw className="mr-2 h-4 w-4" /> New collection
                   </Button>
                 </div>
               </CardContent>
@@ -664,6 +720,7 @@ function PickupPageInner() {
         onOpenChange={(v) => !v && setPayFor(null)}
         defaultPerson={payFor?.person ?? null}
         defaultPrescriptionIds={payFor?.prescriptionIds}
+        onRecorded={() => setCompleted((c) => (c ? { ...c, paid: true } : c))}
       />
     </div>
   );
