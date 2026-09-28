@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { CalendarPlus } from 'lucide-react';
+import { CalendarPlus, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppointmentDetailDialog } from '@/components/appointments/AppointmentDetailDialog';
 import { PersonDocumentsPanel } from '@/components/people/PersonDocumentsPanel';
+import { RecordPatientPaymentDialog } from '@/components/dialogs/RecordPatientPaymentDialog';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCheckIns } from '@/hooks/useCheckins';
 import { usePayments } from '@/hooks/usePayments';
@@ -22,6 +23,7 @@ const NEUTRAL_BADGE = 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-90
 interface PersonHistoryProps {
   entity: PersonEntity;
   personId: string;
+  personName?: string;
   onBook?: () => void;
 }
 
@@ -34,9 +36,10 @@ function byDateTime(a: Appointment, b: Appointment): number {
  * up, what has happened (with how each session ended and whether it was paid), their visits,
  * their payments, and their reports.
  */
-export function PersonHistory({ entity, personId, onBook }: PersonHistoryProps) {
+export function PersonHistory({ entity, personId, personName, onBook }: PersonHistoryProps) {
   const t = useTerminology();
   const [selected, setSelected] = useState<Appointment | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
 
   const appointmentsQuery = useAppointments({ guestId: personId }, { enabled: !!personId });
   const visitsQuery = useCheckIns({ guestId: personId });
@@ -167,11 +170,18 @@ export function PersonHistory({ entity, personId, onBook }: PersonHistoryProps) 
 
           {t.has('payments') && (
             <TabsContent value="payments" className="pt-3">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-sm text-muted-foreground">
+                  Total paid: <span className="font-semibold text-foreground">{formatCurrency(totalPaid)}</span>
+                </p>
+                <Button size="sm" variant="outline" onClick={() => setPayOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Record payment
+                </Button>
+              </div>
               {paymentsQuery.isLoading ? <ListSkeleton /> : payments.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">No payments yet.</p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">Total paid: <span className="font-semibold text-foreground">{formatCurrency(totalPaid)}</span></p>
                   <ul className="space-y-2">
                     {payments.map((p) => {
                       const when = p.paidAt ?? p.created_at ?? p.createdAt ?? p.date;
@@ -181,7 +191,7 @@ export function PersonHistory({ entity, personId, onBook }: PersonHistoryProps) 
                             <p className="font-medium">{formatCurrency(Number(p.amount) || 0)} · <span className="capitalize">{(p.method ?? p.paymentMethod ?? '').toString().replace(/_/g, ' ')}</span></p>
                             <p className="text-xs text-muted-foreground">
                               {when ? formatDate(when, 'MMM dd, yyyy') : '—'}
-                              {p.service ? ` · ${p.service}` : p.event ? ` · ${p.event}` : ''}
+                              {p.service ? ` · ${p.service}` : p.event ? ` · ${p.event}` : p.description ? ` · ${p.description}` : ''}
                               {p.transactionId ? ` · Ref ${p.transactionId}` : ''}
                             </p>
                           </div>
@@ -202,6 +212,14 @@ export function PersonHistory({ entity, personId, onBook }: PersonHistoryProps) 
           </TabsContent>
         </Tabs>
       </CardContent>
+
+      {t.has('payments') && (
+        <RecordPatientPaymentDialog
+          open={payOpen}
+          onOpenChange={setPayOpen}
+          defaultPerson={{ id: personId, name: personName || t.person.one }}
+        />
+      )}
 
       <AppointmentDetailDialog
         appointment={selectedLive}

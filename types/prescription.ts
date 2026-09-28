@@ -65,6 +65,9 @@ export interface Prescription {
   diagnosis?: string;
   notes?: string;
   status?: PrescriptionStatus | string;
+  /** "paid" once a payment covering this prescription is recorded (POST /payments with prescriptionIds). */
+  paymentStatus?: string;
+  paymentId?: string;
 
   created_at?: string;
   createdAt?: string;

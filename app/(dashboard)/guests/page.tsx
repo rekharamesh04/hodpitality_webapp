@@ -41,6 +41,7 @@ import {
 import { usePhotoFirstCreate } from '@/hooks/usePhotoFirstCreate';
 import { useCheckIn } from '@/hooks/useCheckins';
 import { useActionParam } from '@/hooks/useActionParam';
+import { personDeleteWarning } from '@/lib/person-delete';
 import { guestService } from '@/services/guest.service';
 import type { CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
 import { guestCategories, guestCategoryBadgeClass, QUERY_KEYS } from '@/constants';
@@ -528,7 +529,7 @@ function GuestsPageInner() {
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         title={`Delete ${t.person.one}?`}
-        description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this guest'}? This action cannot be undone.`}
+        description={`Delete ${deleteTarget?.name ?? `this ${t.person.one.toLowerCase()}`}? ${personDeleteWarning(t.person.one)}`}
         confirmLabel="Delete"
         confirmingLabel="Deleting…"
         destructive
@@ -540,7 +541,7 @@ function GuestsPageInner() {
         open={bulkDeleteOpen}
         onOpenChange={setBulkDeleteOpen}
         title={`Delete ${selectedIds.size} guest${selectedIds.size === 1 ? '' : 's'}?`}
-        description={`The selected ${t.person.many.toLowerCase()} will be permanently removed. This action cannot be undone.`}
+        description={`The selected ${t.person.many.toLowerCase()} will be permanently removed. ${personDeleteWarning(t.person.one)}`}
         confirmLabel="Delete"
         confirmingLabel="Deleting…"
         destructive

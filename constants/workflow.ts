@@ -61,10 +61,11 @@ function buildWorkflow(slug: WorkflowIndustry): WorkflowStep[] {
   const pay: WorkflowStep = {
     href: '/payments',
     label: 'Payments',
-    description: 'Every payment recorded along the way, with refunds and status updates.',
+    // Payments are always taken against a person: pick them, then what the money is for.
+    description: `Take payment from the ${person} for a ${visit} or what they collected. It is saved on their profile too.`,
     icon: CreditCard,
     module: 'payments',
-    action: { label: 'View payment records', href: '/payments' },
+    action: { label: 'Record a payment', href: '/payments?action=add' },
   };
 
   switch (slug) {

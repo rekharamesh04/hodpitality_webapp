@@ -5,6 +5,7 @@ import type { GuestFilters, CreateGuestPayload, UpdateGuestPayload, FaceEnrollOp
 import { QUERY_KEYS } from '@/constants';
 import { getFriendlyErrorMessage, getDuplicatePersonConflict, getDuplicateFaceConflict } from '@/lib/utils';
 import type { PaginatedResponse, Guest } from '@/types';
+import { invalidateAfterPersonDelete, describeRemoved } from '@/lib/person-delete';
 
 export const guestKeys = {
   all:    QUERY_KEYS.GUESTS,
@@ -81,9 +82,9 @@ export function useDeleteGuest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => guestService.deleteGuest(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: guestKeys.all });
-      popup.success('Guest removed');
+    onSuccess: (result) => {
+      invalidateAfterPersonDelete(qc);
+      popup.success(`Deleted ${describeRemoved(result?.removed)}`.trim());
     },
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove guest')),
   });
@@ -158,7 +159,7 @@ export function useBulkDeleteGuests() {
   return useMutation({
     mutationFn: (ids: string[]) => guestService.bulkDeleteGuests(ids),
     onSuccess: (data, ids) => {
-      qc.invalidateQueries({ queryKey: guestKeys.all });
+      invalidateAfterPersonDelete(qc);
       // The backend silently skips IDs that no longer exist or belong to another tenant, so
       // trust `deleted` rather than assuming every requested ID went.
       const deleted = Array.isArray(data?.deleted) ? data.deleted.length : ids.length;
@@ -168,7 +169,7 @@ export function useBulkDeleteGuests() {
       } else if (skipped > 0) {
         popup.warning(`${deleted} of ${ids.length} guests deleted. ${skipped} could not be deleted (already removed or not accessible).`);
       } else {
-        popup.success(`${deleted} guest${deleted === 1 ? '' : 's'} deleted`);
+        popup.success(`${deleted} record${deleted === 1 ? '' : 's'} deleted ${describeRemoved(data?.removed)}`.trim());
       }
     },
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to remove guests')),

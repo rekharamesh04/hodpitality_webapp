@@ -143,8 +143,14 @@ export interface Payment {
   service?: string;
   date?: string;
   startTime?: string;
-  /** Discriminates event-ticket payments from consultation payments — never merge with `status`. */
-  type?: 'event' | 'consultation';
+  /** What the payment was for — never merge with `status`. "prescription" = a pharmacy collection; "other" = anything else, see `description`. */
+  type?: 'event' | 'consultation' | 'prescription' | 'other' | '';
+  /** The prescriptions a collection payment covered. */
+  prescriptionIds?: string[];
+  /** The person was deleted; the payment is kept for the accounts. */
+  personDeleted?: boolean;
+  /** GUEST or CUSTOMER — which page the person opens on. */
+  personType?: 'GUEST' | 'CUSTOMER';
   amount: number;
   currency: string;
   status: PaymentStatus;

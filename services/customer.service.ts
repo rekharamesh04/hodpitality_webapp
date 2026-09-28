@@ -5,6 +5,7 @@ import { uploadService } from './upload.service';
 import { faceEnrollFlags } from './guest.service';
 import type { FaceEnrollResult, FaceEnrollOptions } from './guest.service';
 import type { PaginatedResponse, TableFilters } from '@/types';
+import type { PersonDeleteResult } from '@/lib/person-delete';
 import { debugLog, maskEmail } from '@/utils/debugLog';
 
 /** Backend customer record. `created_at` is canonical; `createdAt` is filled too for older callers. */
@@ -96,8 +97,10 @@ export const customerService = {
     return data;
   },
 
-  async deleteCustomer(id: string): Promise<void> {
-    await api.delete(`${API_ENDPOINTS.CUSTOMERS}/${id}`);
+  /** Deletes the person and everything that is theirs (payments are kept); returns what went. */
+  async deleteCustomer(id: string): Promise<PersonDeleteResult> {
+    const { data } = await api.delete<PersonDeleteResult>(`${API_ENDPOINTS.CUSTOMERS}/${id}`);
+    return data ?? {};
   },
 
   /** Export returns the rows themselves — `downloadUrl` is always null, so never advertise a file link. */

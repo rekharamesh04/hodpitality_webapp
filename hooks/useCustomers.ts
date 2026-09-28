@@ -5,6 +5,7 @@ import type { CustomerFilters, CreateCustomerPayload, UpdateCustomerPayload, Cus
 import { QUERY_KEYS } from "@/constants";
 import { getFriendlyErrorMessage, getDuplicatePersonConflict, getDuplicateFaceConflict } from "@/lib/utils";
 import type { FaceEnrollOptions } from "@/services/guest.service";
+import { describeRemoved, invalidateAfterPersonDelete } from "@/lib/person-delete";
 import type { PaginatedResponse } from "@/types";
 
 export const customerKeys = {
@@ -68,9 +69,9 @@ export function useDeleteCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => customerService.deleteCustomer(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: customerKeys.all });
-      popup.success("Customer deleted");
+    onSuccess: (result) => {
+      invalidateAfterPersonDelete(qc);
+      popup.success(`Deleted ${describeRemoved(result?.removed)}`.trim());
     },
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to delete customer")),
   });

@@ -2,7 +2,6 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { popup } from '@/lib/popup';
 import {
   ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
   Wallet, CalendarClock, MessageSquare, AlertTriangle, Clock,
@@ -28,6 +27,7 @@ import {
 import { cn, formatCurrency, formatDate, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { tierBadgeClass } from '@/constants';
 import { useIndustry, useTerminology } from '@/hooks';
+import { personDeleteWarning } from '@/lib/person-delete';
 import type { UpdateCustomerPayload } from '@/services/customer.service';
 
 function getCustomerId(id: string, pk?: string): string {
@@ -57,7 +57,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   function handleDelete() {
     deleteMutation.mutate(id, {
       onSuccess: () => {
-        popup.success('Customer deleted');
         router.push('/customers');
       },
     });
@@ -247,7 +246,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         </div>
 
         {/* Current, upcoming and past visits, payments and reports */}
-        <PersonHistory entity="customer" personId={resolvedId} onBook={() => setBookOpen(true)} />
+        <PersonHistory entity="customer" personId={resolvedId} personName={customer.name} onBook={() => setBookOpen(true)} />
 
         {/* Prescriptions */}
         {t.has('prescriptions') && <PatientPrescriptionsCard guest={customer} guestId={resolvedId} />}
@@ -267,7 +266,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
           title={`Delete ${t.account.one}?`}
-          description={`Are you sure you want to delete ${customer.name || 'this customer'}? This action cannot be undone.`}
+          description={`Delete ${customer.name || `this ${t.account.one.toLowerCase()}`}? ${personDeleteWarning(t.account.one)}`}
           confirmLabel="Delete"
           confirmingLabel="Deleting…"
           destructive

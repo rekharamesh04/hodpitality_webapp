@@ -3,6 +3,7 @@ import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import { uploadService } from './upload.service';
 import type { Guest, PaginatedResponse, TableFilters } from '@/types';
+import type { PersonDeleteResult, RemovedCounts } from '@/lib/person-delete';
 
 export type GuestListResponse = PaginatedResponse<Guest>;
 
@@ -86,12 +87,14 @@ export const guestService = {
     return data;
   },
 
-  async deleteGuest(id: string): Promise<void> {
-    await api.delete(`${API_ENDPOINTS.GUESTS}/${id}`);
+  /** Deletes the person and everything that is theirs (payments are kept); returns what went. */
+  async deleteGuest(id: string): Promise<PersonDeleteResult> {
+    const { data } = await api.delete<PersonDeleteResult>(`${API_ENDPOINTS.GUESTS}/${id}`);
+    return data ?? {};
   },
 
-  async bulkDeleteGuests(ids: string[]): Promise<{ success: boolean; deleted: string[] }> {
-    const { data } = await api.delete<{ success: boolean; deleted: string[] }>(
+  async bulkDeleteGuests(ids: string[]): Promise<{ success: boolean; deleted: string[]; removed?: RemovedCounts }> {
+    const { data } = await api.delete<{ success: boolean; deleted: string[]; removed?: RemovedCounts }>(
       `${API_ENDPOINTS.GUESTS}/bulk`, { data: { ids } }
     );
     return data;

@@ -2,7 +2,6 @@
 
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { popup } from '@/lib/popup';
 import {
   ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
   StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays, Hotel, CalendarPlus,
@@ -31,6 +30,7 @@ import { useGuestHospitality } from '@/hooks/useHospitality';
 import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { guestCategoryBadgeClass } from '@/constants';
 import { useTerminology } from '@/hooks';
+import { personDeleteWarning } from '@/lib/person-delete';
 import type { UpdateGuestPayload } from '@/services/guest.service';
 
 function getGuestId(id: string, pk?: string): string {
@@ -66,7 +66,6 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
   function handleDelete() {
     deleteMutation.mutate(id, {
       onSuccess: () => {
-        popup.success('Guest deleted');
         router.push('/guests');
       },
     });
@@ -256,7 +255,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
         </div>
 
         {/* Current, upcoming and past visits, payments and reports */}
-        <PersonHistory entity="guest" personId={resolvedId} onBook={() => setBookOpen(true)} />
+        <PersonHistory entity="guest" personId={resolvedId} personName={guest.name} onBook={() => setBookOpen(true)} />
 
         {/* Prescriptions */}
         {t.has('prescriptions') && <PatientPrescriptionsCard guest={guest} guestId={resolvedId} />}
@@ -322,7 +321,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
           title={`Delete ${t.person.one}?`}
-          description={`Are you sure you want to delete ${guest.name || 'this guest'}? This action cannot be undone.`}
+          description={`Delete ${guest.name || `this ${t.person.one.toLowerCase()}`}? ${personDeleteWarning(t.person.one)}`}
           confirmLabel="Delete"
           confirmingLabel="Deleting…"
           destructive

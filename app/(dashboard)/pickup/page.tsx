@@ -22,6 +22,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
+import { RecordPatientPaymentDialog, type PaymentPerson } from '@/components/dialogs/RecordPatientPaymentDialog';
 import { useGuest, useGuests } from '@/hooks/use-guests';
 import { useCustomer } from '@/hooks/useCustomers';
 import { usePickupHandoffStore } from '@/store/pickup-handoff-store';
@@ -98,6 +99,8 @@ function PickupPageInner() {
   const [attestation, setAttestation] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [counselled, setCounselled] = useState(false);
+  // Opened right after a collection so the desk takes the money for what was just handed over.
+  const [payFor, setPayFor] = useState<{ person: PaymentPerson; prescriptionIds: string[] } | null>(null);
 
   const { data: guestPage, isLoading: guestsLoading, isError: guestsError, error: guestsErr, refetch } =
     useGuests({ search: search || undefined });
@@ -237,6 +240,8 @@ function PickupPageInner() {
     const stamp = `Collected ${formatDate(new Date(), 'MMM dd, yyyy HH:mm')} — identity verified (${proof})${counselled ? '; counselling offered' : ''}`;
 
     let done = 0;
+    const person = { id: guestIdOf(activeGuest), name: activeGuest.name };
+    const released = chosen.map((p) => p.id);
     chosen.forEach((p) => {
       updateRx.mutate(
         { id: p.id, data: { status: 'completed', notes: [p.notes, stamp].filter(Boolean).join('\n') } },
@@ -246,6 +251,7 @@ function PickupPageInner() {
             if (done === chosen.length) {
               popup.success(`Released ${done} prescription${done === 1 ? '' : 's'} to ${activeGuest.name}`);
               reset();
+              if (t.has('payments')) setPayFor({ person, prescriptionIds: released });
             }
           },
         },
@@ -536,7 +542,8 @@ function PickupPageInner() {
                     disabled={chosen.length === 0 || updateRx.isPending}
                     loading={updateRx.isPending}
                   >
-                    <PackageCheck className="mr-2 h-4 w-4" /> Complete collection
+                    <PackageCheck className="mr-2 h-4 w-4" />
+                    {t.has('payments') ? 'Complete collection & take payment' : 'Complete collection'}
                   </Button>
                 </div>
               </CardContent>
@@ -650,6 +657,13 @@ function PickupPageInner() {
         submitLabel="Match face"
         isSubmitting={matching}
         onSubmit={handleFaceSubmit}
+      />
+
+      <RecordPatientPaymentDialog
+        open={!!payFor}
+        onOpenChange={(v) => !v && setPayFor(null)}
+        defaultPerson={payFor?.person ?? null}
+        defaultPrescriptionIds={payFor?.prescriptionIds}
       />
     </div>
   );

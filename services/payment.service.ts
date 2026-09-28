@@ -31,6 +31,10 @@ export interface CreatePaymentPayload {
   registrationId?: string;
   customerId?: string;
   guestId?: string;
+  /** The prescriptions this collection payment covers — they are marked paid. */
+  prescriptionIds?: string[];
+  /** "prescription" or "other"; events and consultations are inferred by the backend. */
+  type?: 'prescription' | 'other';
   transactionId?: string;
   description?: string;
 }
@@ -194,7 +198,7 @@ export const paymentService = {
   async createPayment(input: CreatePaymentPayload): Promise<Payment> {
     // The backend rejects anonymous payments with 400 "registrationId or guestId is required
     // so we know who paid" — fail fast client-side with the same rule.
-    if (!input.registrationId && !input.guestId) {
+    if (!input.registrationId && !input.guestId && !input.prescriptionIds?.length) {
       throw new Error('registrationId or guestId is required so we know who paid');
     }
     const payload = {

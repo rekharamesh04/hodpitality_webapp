@@ -27,6 +27,7 @@ import { FindByFaceDialog } from '@/components/faces/FindByFaceDialog';
 import { DuplicateFaceDialog } from '@/components/faces/DuplicateFaceDialog';
 import { usePhotoFirstCreate } from '@/hooks/usePhotoFirstCreate';
 import { useActionParam } from '@/hooks/useActionParam';
+import { personDeleteWarning } from '@/lib/person-delete';
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@/hooks/useCustomers';
 import { customerService } from '@/services/customer.service';
 import type { Customer, CreateCustomerPayload, UpdateCustomerPayload } from '@/services/customer.service';
@@ -396,7 +397,7 @@ function CustomersPageInner() {
         open={!!deleteTarget}
         onOpenChange={(v) => !v && setDeleteTarget(null)}
         title={`Delete ${t.account.one}?`}
-        description={`Are you sure you want to delete ${deleteTarget?.name ?? 'this customer'}? This action cannot be undone.`}
+        description={`Delete ${deleteTarget?.name ?? `this ${t.account.one.toLowerCase()}`}? ${personDeleteWarning(t.account.one)}`}
         confirmLabel="Delete"
         confirmingLabel="Deleting…"
         destructive

@@ -30,6 +30,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { SearchInput } from '@/components/common/SearchInput';
 import { RegistrationCombobox } from '@/components/common/RegistrationCombobox';
+import { RecordPatientPaymentDialog } from '@/components/dialogs/RecordPatientPaymentDialog';
 import { TableSkeleton, StatsCardSkeleton } from '@/components/common/SkeletonLoader';
 import {
   usePayments, usePaymentStats, useRefundPayment, useUpdatePaymentStatus, useCreatePayment,
@@ -424,7 +425,11 @@ function PaymentsPageInner() {
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') ?? '');
   const [methodFilter, setMethodFilter] = useState('');
 
+  // "Record Payment" is always against a person; the older registration form is only for
+  // industries that run events.
   const [createOpen, setCreateOpen] = useState(false);
+  const [eventPaymentOpen, setEventPaymentOpen] = useState(false);
+  const hasRegistrations = t.has('registrations');
   const [refundTarget, setRefundTarget] = useState<Payment | null>(null);
   const [statusTarget, setStatusTarget] = useState<Payment | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -544,12 +549,26 @@ function PaymentsPageInner() {
             {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
             Export
           </Button>
+          {hasRegistrations && (
+            <Button variant="outline" size="sm" onClick={() => setEventPaymentOpen(true)}>
+              <ClipboardList className="mr-2 h-4 w-4" aria-hidden="true" />
+              Event payment
+            </Button>
+          )}
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Record Payment
           </Button>
         </div>
       </div>
+
+      <p className="rounded-lg border bg-muted/30 px-4 py-2.5 text-sm text-muted-foreground">
+        Every payment belongs to a {t.person.one.toLowerCase()}. Take it where it happens —{' '}
+        <span className="font-medium text-foreground">End session</span> on a {t.visit.one.toLowerCase()},
+        {t.has('prescriptions') && <> after <span className="font-medium text-foreground">Collection</span>,</>}{' '}
+        or <span className="font-medium text-foreground">Record Payment</span> here — and it also shows on
+        that {t.person.one.toLowerCase()}&apos;s profile under Payments.
+      </p>
 
       {/* ─── Stats Row ─── */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -657,7 +676,7 @@ function PaymentsPageInner() {
                 <EmptyState
                   icon={CreditCard}
                   title="No payments yet"
-                  description="Payments will appear here once recorded from the Registrations tab or created above."
+                  description={`Payments appear here once taken — at the end of a ${t.visit.one.toLowerCase()}, at collection, or with Record Payment above.`}
                 />
               )}
             </div>
@@ -683,7 +702,11 @@ function PaymentsPageInner() {
                     const methodKey = payment.paymentMethod ?? (payment.method === 'credit_card' ? 'card' : payment.method) ?? 'card';
                     const methodLabel = METHOD_LABELS[methodKey as PaymentMethodType] ?? payment.method ?? payment.paymentMethod ?? 'Card';
                     const paidDate = payment.paidAt ?? payment.createdAt ?? payment.created_at;
-                    const paymentType = payment.type ?? (payment.appointmentId ? 'consultation' : 'event');
+                    // `type` may be blank on a person-only payment; never call that an event.
+                    const paymentType = payment.type
+                      || (payment.appointmentId ? 'consultation'
+                        : payment.prescriptionIds?.length ? 'prescription'
+                        : payment.registrationId || payment.eventId ? 'event' : 'other');
 
                     return (
                       <TableRow key={cleanId || payment.id}>
@@ -691,8 +714,26 @@ function PaymentsPageInner() {
                           {cleanId ? cleanId.slice(-12) : '—'}
                         </TableCell>
                         <TableCell>
-                          <div className="font-medium truncate max-w-[160px]">{payment.guestName || '—'}</div>
-                          <div className="text-xs text-muted-foreground truncate max-w-[160px]">{payment.guestEmail || '—'}</div>
+                          {payment.guestId && !payment.personDeleted ? (
+                            <button
+                              type="button"
+                              className="block max-w-[160px] truncate text-left font-medium text-primary hover:underline"
+                              onClick={() => router.push(
+                                payment.personType === 'CUSTOMER' ? `/customers/${payment.guestId}` : `/guests/${payment.guestId}`
+                              )}
+                            >
+                              {payment.guestName || '—'}
+                            </button>
+                          ) : (
+                            <div className="font-medium truncate max-w-[160px]">{payment.guestName || '—'}</div>
+                          )}
+                          {payment.personDeleted ? (
+                            <Badge variant="outline" className="mt-0.5 text-[10px] text-muted-foreground">
+                              {t.person.one} deleted
+                            </Badge>
+                          ) : (
+                            <div className="text-xs text-muted-foreground truncate max-w-[160px]">{payment.guestEmail || '—'}</div>
+                          )}
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <Badge variant="outline" className="capitalize text-xs">{paymentType}</Badge>
@@ -700,7 +741,11 @@ function PaymentsPageInner() {
                         <TableCell className="hidden sm:table-cell truncate max-w-[160px]">
                           {paymentType === 'consultation'
                             ? [payment.service, payment.date ? formatDate(payment.date) : null].filter(Boolean).join(' — ') || '—'
-                            : (payment.event || '—')}
+                            : paymentType === 'prescription'
+                              ? payment.service || 'Prescription'
+                              : paymentType === 'event'
+                                ? (payment.event || '—')
+                                : (payment.description || '—')}
                         </TableCell>
                         <TableCell>
                           <div className="font-semibold tabular-nums">{formatCurrency(payment.amount ?? 0, payment.currency)}</div>
@@ -772,7 +817,10 @@ function PaymentsPageInner() {
       </Card>
 
       {/* ─── Dialogs ─── */}
-      <CreateStandalonePaymentDialog open={createOpen} onClose={() => setCreateOpen(false)} />
+      <RecordPatientPaymentDialog open={createOpen} onOpenChange={setCreateOpen} />
+      {hasRegistrations && (
+        <CreateStandalonePaymentDialog open={eventPaymentOpen} onClose={() => setEventPaymentOpen(false)} />
+      )}
       {/* Keyed by payment so each opening starts from that payment's current values. */}
       <RefundDialog key={refundTarget?.id ?? 'refund'} payment={refundTarget} onClose={() => setRefundTarget(null)} />
       <StatusDialog key={statusTarget?.id ?? 'status'} payment={statusTarget} onClose={() => setStatusTarget(null)} />
