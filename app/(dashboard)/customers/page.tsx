@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { popup } from '@/lib/popup';
-import { Plus, Download, MoreHorizontal, Eye, Pencil, Trash2, Users } from 'lucide-react';
+import { Plus, Download, MoreHorizontal, Eye, Pencil, Trash2, Users, ScanFace } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -23,6 +23,10 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog';
+import { FindByFaceDialog } from '@/components/faces/FindByFaceDialog';
+import { DuplicateFaceDialog } from '@/components/faces/DuplicateFaceDialog';
+import { usePhotoFirstCreate } from '@/hooks/usePhotoFirstCreate';
+import { useActionParam } from '@/hooks/useActionParam';
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@/hooks/useCustomers';
 import { customerService } from '@/services/customer.service';
 import type { Customer, CreateCustomerPayload, UpdateCustomerPayload } from '@/services/customer.service';
@@ -64,6 +68,7 @@ function CustomersPageInner() {
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [findByFaceOpen, setFindByFaceOpen] = useState(false);
 
   const filters = useMemo(
     () => ({ page, limit, search: search || undefined, tier: tier || undefined }),
@@ -83,6 +88,15 @@ function CustomersPageInner() {
   });
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
+  const photoCreate = usePhotoFirstCreate<CreateCustomerPayload>('customer', (payload, onCreated) => {
+    createMutation.mutate(payload, {
+      onSuccess: (created) => {
+        setFormOpen(false);
+        const id = created ? getCustomerId(created) : '';
+        if (id) onCreated(id);
+      },
+    });
+  });
 
   function syncUrl(next: { search?: string; tier?: string; page?: number; limit?: number }) {
     const s = next.search ?? search;
@@ -134,19 +148,22 @@ function CustomersPageInner() {
     setFormOpen(true);
   }
 
+  useActionParam({ add: openCreate });
+
   function openEdit(c: Customer) {
     setEditingCustomer(c);
     setFormOpen(true);
   }
 
-  function handleFormSubmit(payload: CreateCustomerPayload | UpdateCustomerPayload) {
+  function handleFormSubmit(payload: CreateCustomerPayload | UpdateCustomerPayload, photo?: string | null) {
     if (editingCustomer) {
       updateMutation.mutate(
         { id: getCustomerId(editingCustomer), data: payload },
         { onSuccess: () => setFormOpen(false) }
       );
     } else {
-      createMutation.mutate(payload as CreateCustomerPayload, { onSuccess: () => setFormOpen(false) });
+      // With a photo, the face is looked up first so a returning person is not registered twice.
+      void photoCreate.submit(payload as CreateCustomerPayload, photo ?? null);
     }
   }
 
@@ -176,7 +193,7 @@ function CustomersPageInner() {
     }
   }
 
-  const isSubmittingForm = createMutation.isPending || updateMutation.isPending;
+  const isSubmittingForm = createMutation.isPending || updateMutation.isPending || photoCreate.checking;
   const formSubmitError = formErrorMessage(createMutation.error ?? updateMutation.error);
   const hasActiveFilters = !!search || !!tier;
 
@@ -188,13 +205,17 @@ function CustomersPageInner() {
           <p className="text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
+            <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
+            Find by face
+          </Button>
           <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} loading={isExporting}>
             {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
             Export
           </Button>
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Add Customer
+            Add {t.account.one}
           </Button>
         </div>
       </div>
@@ -357,7 +378,19 @@ function CustomersPageInner() {
         isSubmitting={isSubmittingForm}
         submitError={formSubmitError}
         onSubmit={handleFormSubmit}
+        photoError={photoCreate.photoError}
       />
+
+      <DuplicateFaceDialog
+        conflict={photoCreate.conflict}
+        onOpenChange={(v) => !v && photoCreate.clearConflict()}
+        onOpenRecord={() => setFormOpen(false)}
+        onOverride={photoCreate.createAnyway}
+        overrideLabel="Create anyway"
+        isOverriding={createMutation.isPending}
+      />
+
+      <FindByFaceDialog open={findByFaceOpen} onOpenChange={setFindByFaceOpen} registerHref="/customers?action=add" />
 
       <ConfirmDialog
         open={!!deleteTarget}

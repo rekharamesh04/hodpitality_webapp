@@ -114,7 +114,7 @@ export function AppointmentListTable({
                 </span>
               </TableCell>
               <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                <AppointmentStatusMenu appointmentId={id} currentStatus={a.status} />
+                <AppointmentStatusMenu appointmentId={id} currentStatus={a.status} appointment={a} />
               </TableCell>
             </TableRow>
           );

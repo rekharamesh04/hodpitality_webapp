@@ -17,12 +17,13 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { GuestFormDialog } from '@/components/dialogs/GuestFormDialog';
-import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+import { FaceEnrollDialog } from '@/components/faces/FaceEnrollDialog';
+import { PersonHistory } from '@/components/people/PersonHistory';
 import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 import { PatientPrescriptionsCard } from '@/components/prescriptions/PatientPrescriptionsCard';
 
 import {
-  useGuest, useUpdateGuest, useDeleteGuest, useEnrollFace, useUnenrollFace,
+  useGuest, useUpdateGuest, useDeleteGuest, useUnenrollFace,
 } from '@/hooks/use-guests';
 import { useCheckIn } from '@/hooks/useCheckins';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -45,7 +46,6 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
   const { data: guest, isLoading, isError, error, refetch } = useGuest(id);
   const updateMutation = useUpdateGuest();
   const deleteMutation = useDeleteGuest();
-  const enrollFace = useEnrollFace();
   const unenrollFace = useUnenrollFace();
   const checkIn = useCheckIn();
 
@@ -70,10 +70,6 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
         router.push('/guests');
       },
     });
-  }
-
-  function handleFaceSubmit(image: string) {
-    enrollFace.mutate({ guestId: id, image }, { onSuccess: () => setFaceOpen(false) });
   }
 
   function handleCheckIn() {
@@ -250,48 +246,17 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                     </Button>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Related Appointments</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {relatedAppointments.length === 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      No {t.visit.many.toLowerCase()} linked to this {t.person.one.toLowerCase()} yet.
-                    </p>
-                    <Button size="sm" variant="outline" className="w-full" onClick={() => setBookOpen(true)}>
-                      <CalendarPlus className="mr-2 h-4 w-4" />
-                      Book {t.visit.one.toLowerCase()}
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    {relatedAppointments.slice(0, 4).map((a) => (
-                      <div key={a.id} className="rounded-lg border p-2.5 text-sm">
-                        <p className="font-medium truncate">{a.service ?? a.title ?? 'Appointment'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {a.date ? formatDate(a.date) : '—'}{a.startTime ? ` · ${a.startTime}` : ''}
-                        </p>
-                      </div>
-                    ))}
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => setBookOpen(true)}>
-                        <CalendarPlus className="mr-2 h-4 w-4" /> Book
-                      </Button>
-                      <Button size="sm" variant="ghost" className="flex-1" onClick={() => router.push('/calendar')}>
-                        View in Calendar
-                      </Button>
-                    </div>
-                  </>
-                )}
+                <p className="text-xs text-muted-foreground">
+                  New email or phone? Use <span className="font-medium text-foreground">Edit</span> — the face and full
+                  history stay on this record. Don&apos;t register them again.
+                </p>
               </CardContent>
             </Card>
           </div>
         </div>
+
+        {/* Current, upcoming and past visits, payments and reports */}
+        <PersonHistory entity="guest" personId={resolvedId} onBook={() => setBookOpen(true)} />
 
         {/* Prescriptions */}
         {t.has('prescriptions') && <PatientPrescriptionsCard guest={guest} guestId={resolvedId} />}
@@ -365,21 +330,20 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
           onConfirm={handleDelete}
         />
 
-        {/* Face enrollment */}
         <CreateAppointmentDialog
         open={bookOpen}
         onOpenChange={setBookOpen}
         defaultCustomer={{ id: resolvedId, name: guest.name }}
       />
 
-      <CameraCaptureDialog
+      {/* Face enrollment */}
+      <FaceEnrollDialog
+          entity="guest"
+          personId={resolvedId}
           open={faceOpen}
           onOpenChange={setFaceOpen}
           title="Enroll Face"
           description={`Capture a clear front-facing photo to enroll this ${t.person.one.toLowerCase()}.`}
-          submitLabel="Enroll"
-          isSubmitting={enrollFace.isPending}
-          onSubmit={handleFaceSubmit}
         />
 
       </div>

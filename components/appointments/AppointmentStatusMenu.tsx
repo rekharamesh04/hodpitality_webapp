@@ -7,34 +7,85 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { RecordAppointmentPaymentDialog } from '@/components/dialogs/RecordAppointmentPaymentDialog';
 import { useUpdateAppointmentStatus } from '@/hooks/useAppointments';
-import { getManualStatusActions, APPOINTMENT_STATUS_LABELS, type AppointmentStatusOption } from '@/constants/appointment';
+import { getStatusMenuActions, APPOINTMENT_STATUS_LABELS, type StatusMenuAction } from '@/constants/appointment';
+import { isOrgAdmin } from '@/constants/roles';
+import { useAuthStore } from '@/store';
 import { cn } from '@/lib/utils';
+import type { Appointment } from '@/types';
 
 interface AppointmentStatusMenuProps {
   appointmentId: string;
   currentStatus?: string;
+  /** Lets "End session…" open the End Session dialog (outcome + payment in one step). */
+  appointment?: Appointment | null;
   size?: 'sm' | 'default';
 }
 
-export function AppointmentStatusMenu({ appointmentId, currentStatus, size = 'sm' }: AppointmentStatusMenuProps) {
-  const updateStatus = useUpdateAppointmentStatus();
-  const [confirmAction, setConfirmAction] = useState<'cancelled' | 'no-show' | null>(null);
+const ACTION_LABELS: Record<StatusMenuAction, string> = {
+  confirmed: `Mark as ${APPOINTMENT_STATUS_LABELS.confirmed}`,
+  'end-session': 'End session…',
+  cancelled: `Mark as ${APPOINTMENT_STATUS_LABELS.cancelled}`,
+  'no-show': `Mark as ${APPOINTMENT_STATUS_LABELS['no-show']}`,
+  reopen: 'Reopen session',
+};
 
-  const actions = getManualStatusActions(currentStatus);
+type ConfirmAction = 'cancelled' | 'no-show' | 'reopen';
+
+export function AppointmentStatusMenu({ appointmentId, currentStatus, appointment, size = 'sm' }: AppointmentStatusMenuProps) {
+  const updateStatus = useUpdateAppointmentStatus();
+  const role = useAuthStore((s) => s.user?.role);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [endSessionOpen, setEndSessionOpen] = useState(false);
+
+  // Only a company admin (or above) may reopen a closed session; the backend enforces the same.
+  const actions = getStatusMenuActions(currentStatus, isOrgAdmin(role));
   if (actions.length === 0) return null;
 
-  function applyStatus(status: AppointmentStatusOption) {
-    updateStatus.mutate({ id: appointmentId, status });
-  }
-
-  function handleSelect(status: AppointmentStatusOption) {
-    if (status === 'cancelled' || status === 'no-show') {
-      setConfirmAction(status);
+  function handleSelect(action: StatusMenuAction) {
+    if (action === 'cancelled' || action === 'no-show' || action === 'reopen') {
+      setConfirmAction(action);
+    } else if (action === 'end-session') {
+      if (appointment) setEndSessionOpen(true);
+      // Without the appointment there is no dialog to show, so close it the old way.
+      else updateStatus.mutate({ id: appointmentId, status: 'completed' });
     } else {
-      applyStatus(status);
+      updateStatus.mutate({ id: appointmentId, status: action });
     }
   }
+
+  function applyConfirmed() {
+    if (confirmAction === 'reopen') {
+      // Back to "arrived": the session happened, it just is not finished any more.
+      updateStatus.mutate({ id: appointmentId, status: 'arrived' });
+    } else if (confirmAction) {
+      updateStatus.mutate({ id: appointmentId, status: confirmAction });
+    }
+    setConfirmAction(null);
+  }
+
+  const confirmCopy: Record<ConfirmAction, { title: string; description: string; confirm: string; destructive: boolean }> = {
+    cancelled: {
+      title: 'Cancel Appointment?',
+      description: 'Are you sure you want to cancel this appointment? This action cannot be undone.',
+      confirm: 'Cancel Appointment',
+      destructive: true,
+    },
+    'no-show': {
+      title: 'Mark as No-show?',
+      description: 'Are you sure this customer did not show up for their appointment? This action cannot be undone.',
+      confirm: 'Mark No-show',
+      destructive: true,
+    },
+    reopen: {
+      title: 'Reopen this session?',
+      description: 'It goes back to Arrived so it can be ended again with the right outcome. Payments already recorded are kept.',
+      confirm: 'Reopen session',
+      destructive: false,
+    },
+  };
+  const copy = confirmAction ? confirmCopy[confirmAction] : null;
 
   return (
     <>
@@ -57,7 +108,7 @@ export function AppointmentStatusMenu({ appointmentId, currentStatus, size = 'sm
               className={cn('cursor-pointer', (action === 'cancelled' || action === 'no-show') && 'text-destructive')}
               onClick={() => handleSelect(action)}
             >
-              Mark as {APPOINTMENT_STATUS_LABELS[action] ?? action}
+              {ACTION_LABELS[action]}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -66,22 +117,24 @@ export function AppointmentStatusMenu({ appointmentId, currentStatus, size = 'sm
       <ConfirmDialog
         open={!!confirmAction}
         onOpenChange={(v) => !v && setConfirmAction(null)}
-        title={confirmAction === 'cancelled' ? 'Cancel Appointment?' : 'Mark as No-show?'}
-        description={
-          confirmAction === 'cancelled'
-            ? 'Are you sure you want to cancel this appointment? This action cannot be undone.'
-            : 'Are you sure this customer did not show up for their appointment? This action cannot be undone.'
-        }
-        cancelLabel="Keep Appointment"
-        confirmLabel={confirmAction === 'cancelled' ? 'Cancel Appointment' : 'Mark No-show'}
+        title={copy?.title ?? ''}
+        description={copy?.description ?? ''}
+        cancelLabel="Keep as is"
+        confirmLabel={copy?.confirm ?? 'Confirm'}
         confirmingLabel="Updating…"
-        destructive
+        destructive={copy?.destructive}
         isConfirming={updateStatus.isPending}
-        onConfirm={() => {
-          if (confirmAction) applyStatus(confirmAction);
-          setConfirmAction(null);
-        }}
+        onConfirm={applyConfirmed}
       />
+
+      {appointment && (
+        <RecordAppointmentPaymentDialog
+          open={endSessionOpen}
+          onOpenChange={setEndSessionOpen}
+          appointment={appointment}
+          endSession
+        />
+      )}
     </>
   );
 }

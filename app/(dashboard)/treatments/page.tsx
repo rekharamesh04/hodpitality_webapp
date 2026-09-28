@@ -473,7 +473,7 @@ export default function TreatmentBoardPage() {
               {selected.notes && <p className="rounded bg-muted px-3 py-2 text-sm">{selected.notes}</p>}
 
               <div className="flex flex-wrap items-center gap-2">
-                <AppointmentStatusMenu appointmentId={selected.id} currentStatus={selected.status} />
+                <AppointmentStatusMenu appointmentId={selected.id} currentStatus={selected.status} appointment={selected} />
                 {unpaid && (
                   <Button
                     size="sm"

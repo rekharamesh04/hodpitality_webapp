@@ -4,7 +4,30 @@ import { API_ENDPOINTS } from '@/constants';
 import { uploadService } from './upload.service';
 import type { CheckIn, CheckInStats, TableFilters } from '@/types';
 
-export interface CheckInFilters extends TableFilters {}
+export interface CheckInFilters extends TableFilters {
+  /** One person's visits — their history on the profile page. */
+  guestId?: string;
+}
+
+/** A person whose enrolled face matched, as the backend describes them. */
+export interface FaceMatch {
+  id: string;
+  entityType: 'GUEST' | 'CUSTOMER';
+  name: string;
+  email?: string;
+  phone?: string;
+  similarity: number;
+  photoUrl?: string;
+}
+
+export interface FaceLookupResult {
+  success: boolean;
+  guestId?: string;
+  guestName?: string;
+  matchConfidence?: number;
+  /** Best first. More than one means the same person was registered twice. */
+  matches: FaceMatch[];
+}
 
 export interface FacialCheckInResult {
   success: boolean;
@@ -21,6 +44,7 @@ function buildParams(filters: CheckInFilters): URLSearchParams {
   const p = new URLSearchParams();
   if (filters.status) p.set('status', filters.status);
   if (filters.search) p.set('search', filters.search);
+  if (filters.guestId) p.set('guestId', filters.guestId);
   p.set('limit', String(filters.limit ?? FULL_LIST_LIMIT));
   if (filters.page) p.set('page', String(filters.page));
   return p;
@@ -78,6 +102,19 @@ export const checkInService = {
       eventId: payload.eventId,
     });
     return data;
+  },
+
+  /**
+   * Who does this face belong to? Same endpoint as facial check-in with `lookupOnly`, so
+   * nothing is written — no visit is logged. 404 means nobody here has this face enrolled.
+   */
+  async findByFace(image: string): Promise<FaceLookupResult> {
+    const s3Key = await uploadService.uploadImageDataUrl(image, 'face_lookup');
+    const { data } = await api.post(`${API_ENDPOINTS.CHECK_INS}/facial-recognition`, {
+      s3_key: s3Key,
+      lookupOnly: true,
+    });
+    return { ...data, matches: Array.isArray(data?.matches) ? data.matches : [] };
   },
 
   /** Only flags the record as printed — the browser does the actual printing. */

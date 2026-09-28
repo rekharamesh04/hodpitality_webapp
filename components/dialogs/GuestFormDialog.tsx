@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
+import { FacePhotoField } from '@/components/faces/FacePhotoField';
 import { isValidEmail, isValidPhone } from '@/lib/utils';
 import { guestCategoryOptions } from '@/constants';
 import { useIndustry, useTerminology } from '@/hooks';
@@ -83,23 +84,32 @@ interface GuestFormDialogProps {
   guest?: Guest | null;
   isSubmitting?: boolean;
   submitError?: string | null;
-  onSubmit: (payload: CreateGuestPayload | UpdateGuestPayload) => void;
+  /** `photo` is only ever set when creating — an optional face photo to enrol once saved. */
+  onSubmit: (payload: CreateGuestPayload | UpdateGuestPayload, photo?: string | null) => void;
+  /** A problem with the photo reported by the caller (e.g. no face found in it). */
+  photoError?: string | null;
 }
 
 export function GuestFormDialog({
-  open, onOpenChange, guest, isSubmitting, submitError, onSubmit,
+  open, onOpenChange, guest, isSubmitting, submitError, onSubmit, photoError,
 }: GuestFormDialogProps) {
   const t = useTerminology();
   const industry = t.slug;
   const isEditing = !!guest;
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   // Reset the form only when the dialog transitions to open, so a failed submit doesn't wipe what the user typed.
   useEffect(() => {
     if (open) {
       setForm(guest ? toFormState(guest) : EMPTY_FORM);
       setFieldErrors({});
+      setPhoto(null);
+      setConsent(false);
+      setConsentError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, guest?.id]);
@@ -119,7 +129,11 @@ export function GuestFormDialog({
       setFieldErrors(errors);
       return;
     }
-    onSubmit(toPayload(form, isEditing));
+    if (!isEditing && photo && !consent) {
+      setConsentError('Tick the consent box, or remove the photo to save without one.');
+      return;
+    }
+    onSubmit(toPayload(form, isEditing), isEditing ? null : photo);
   }
 
   return (
@@ -139,6 +153,20 @@ export function GuestFormDialog({
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{submitError}</AlertDescription>
               </Alert>
+            )}
+
+            {!isEditing && (
+              <div className="sm:col-span-2">
+                <FacePhotoField
+                  photo={photo}
+                  onPhotoChange={(p) => { setPhoto(p); setConsentError(null); }}
+                  consent={consent}
+                  onConsentChange={(c) => { setConsent(c); setConsentError(null); }}
+                  personLabel={t.person.one.toLowerCase()}
+                  error={consentError ?? (photo ? photoError : null)}
+                  disabled={isSubmitting}
+                />
+              </div>
             )}
 
             <div className="space-y-1.5 sm:col-span-2">
@@ -216,7 +244,7 @@ export function GuestFormDialog({
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting}>
-              {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : 'Add Guest'}
+              {isSubmitting ? 'Saving…' : isEditing ? 'Save Changes' : `Add ${t.person.one}`}
             </Button>
           </DialogFooter>
         </form>

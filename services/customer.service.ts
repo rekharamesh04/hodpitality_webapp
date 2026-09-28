@@ -2,7 +2,8 @@ import api from '@/lib/axios';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import { uploadService } from './upload.service';
-import type { FaceEnrollResult } from './guest.service';
+import { faceEnrollFlags } from './guest.service';
+import type { FaceEnrollResult, FaceEnrollOptions } from './guest.service';
 import type { PaginatedResponse, TableFilters } from '@/types';
 import { debugLog, maskEmail } from '@/utils/debugLog';
 
@@ -107,7 +108,7 @@ export const customerService = {
   },
 
   /** Enrols the captured photo as this customer's face — S3 upload first, then index by `s3_key`. Re-enrolling replaces the previous face. */
-  async enrollFace(customerId: string, imageDataUrl: string): Promise<FaceEnrollResult> {
+  async enrollFace(customerId: string, imageDataUrl: string, options: FaceEnrollOptions = {}): Promise<FaceEnrollResult> {
     console.log('[CUSTOMER-FACE] Step 1: Starting face enrollment for customer:', customerId);
 
     let s3Key: string;
@@ -122,7 +123,7 @@ export const customerService = {
     try {
       const endpoint = `${API_ENDPOINTS.CUSTOMERS}/${customerId}/face`;
       console.log('[CUSTOMER-FACE] Step 3: Calling POST', endpoint, '{ s3_key:', s3Key, '}');
-      const { data } = await api.post(endpoint, { s3_key: s3Key });
+      const { data } = await api.post(endpoint, { s3_key: s3Key, ...faceEnrollFlags(options) });
       console.log('[CUSTOMER-FACE] Step 4: API response ✅', JSON.stringify(data));
       return data;
     } catch (err: any) {

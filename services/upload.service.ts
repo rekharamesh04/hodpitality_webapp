@@ -55,12 +55,25 @@ async function putToS3(uploadUrl: string, body: Blob | File, contentType: string
 
 export const uploadService = {
   /** Request a pre-signed S3 upload URL. Use the returned `uploadUrl` to PUT the file directly to S3. */
-  async getPresignedUrl(fileName: string, contentType: string): Promise<PresignedUrlResponse> {
+  async getPresignedUrl(fileName: string, contentType: string, purpose?: 'document'): Promise<PresignedUrlResponse> {
     const { data } = await api.post<PresignedUrlResponse>(
       API_ENDPOINTS.UPLOADS.PRESIGNED_URL,
-      { fileName, contentType }
+      purpose ? { fileName, contentType, purpose } : { fileName, contentType }
     );
     return data;
+  },
+
+  /**
+   * Uploads a report or document (PDF or image) and returns its object key. Documents are
+   * presigned with purpose "document", the only upload the backend accepts a PDF for.
+   */
+  async uploadDocument(file: File): Promise<string> {
+    const contentType = resolveContentType(file.type);
+    const presigned = await uploadService.getPresignedUrl(file.name, contentType, 'document');
+    if (isRealUploadUrl(presigned.uploadUrl)) {
+      await putToS3(presigned.uploadUrl, file, contentType, presigned.maxBytes);
+    }
+    return readObjectKey(presigned);
   },
 
   /** Get URL then upload file directly to S3 via PUT. Returns the public fileUrl. */

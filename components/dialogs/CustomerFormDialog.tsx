@@ -13,6 +13,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
+import { FacePhotoField } from '@/components/faces/FacePhotoField';
 import { isValidEmail, isValidPhone } from '@/lib/utils';
 import { customerTierOptions, PREFERRED_CONTACT_OPTIONS } from '@/constants';
 import { useTerminology } from '@/hooks';
@@ -96,23 +97,32 @@ interface CustomerFormDialogProps {
   customer?: Customer | null;
   isSubmitting?: boolean;
   submitError?: string | null;
-  onSubmit: (payload: CreateCustomerPayload | UpdateCustomerPayload) => void;
+  /** `photo` is only ever set when creating — an optional face photo to enrol once saved. */
+  onSubmit: (payload: CreateCustomerPayload | UpdateCustomerPayload, photo?: string | null) => void;
+  /** A problem with the photo reported by the caller (e.g. no face found in it). */
+  photoError?: string | null;
 }
 
 export function CustomerFormDialog({
-  open, onOpenChange, customer, isSubmitting, submitError, onSubmit,
+  open, onOpenChange, customer, isSubmitting, submitError, onSubmit, photoError,
 }: CustomerFormDialogProps) {
   const t = useTerminology();
   const industry = t.slug;
   const isEditing = !!customer;
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  const [consentError, setConsentError] = useState<string | null>(null);
 
   // Reset the form only when the dialog transitions to open, so a failed submit doesn't wipe what the user typed.
   useEffect(() => {
     if (open) {
       setForm(customer ? toFormState(customer) : EMPTY_FORM);
       setFieldErrors({});
+      setPhoto(null);
+      setConsent(false);
+      setConsentError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, customer?.id]);
@@ -132,7 +142,11 @@ export function CustomerFormDialog({
       setFieldErrors(errors);
       return;
     }
-    onSubmit(toPayload(form, isEditing));
+    if (!isEditing && photo && !consent) {
+      setConsentError('Tick the consent box, or remove the photo to save without one.');
+      return;
+    }
+    onSubmit(toPayload(form, isEditing), isEditing ? null : photo);
   }
 
   return (
@@ -152,6 +166,20 @@ export function CustomerFormDialog({
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{submitError}</AlertDescription>
               </Alert>
+            )}
+
+            {!isEditing && (
+              <div className="sm:col-span-2">
+                <FacePhotoField
+                  photo={photo}
+                  onPhotoChange={(p) => { setPhoto(p); setConsentError(null); }}
+                  consent={consent}
+                  onConsentChange={(c) => { setConsent(c); setConsentError(null); }}
+                  personLabel={t.account.one.toLowerCase()}
+                  error={consentError ?? (photo ? photoError : null)}
+                  disabled={isSubmitting}
+                />
+              </div>
             )}
 
             <div className="space-y-1.5 sm:col-span-2">

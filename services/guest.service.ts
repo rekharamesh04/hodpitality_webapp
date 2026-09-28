@@ -13,6 +13,20 @@ export interface FaceEnrollResult {
   face_photo_url?: string;
 }
 
+export interface FaceEnrollOptions {
+  /** Company admin only: enrol even though this face already belongs to another record. */
+  allowDuplicate?: boolean;
+  /** The person agreed to face recognition just now (otherwise recorded as staff-attested). */
+  consent?: boolean;
+}
+
+export function faceEnrollFlags(options: FaceEnrollOptions): Record<string, boolean> {
+  const flags: Record<string, boolean> = {};
+  if (options.allowDuplicate) flags.allowDuplicate = true;
+  if (options.consent) flags.consent = true;
+  return flags;
+}
+
 export interface GuestFilters extends TableFilters {
   category?: string;
 }
@@ -102,7 +116,7 @@ export const guestService = {
    * Enrolls the captured photo as this guest's face. The image goes to S3 first and is indexed
    * by its `s3_key`; re-enrolling replaces the previous face rather than adding a second one.
    */
-  async enrollFace(guestId: string, imageDataUrl: string): Promise<FaceEnrollResult> {
+  async enrollFace(guestId: string, imageDataUrl: string, options: FaceEnrollOptions = {}): Promise<FaceEnrollResult> {
     console.log('[GUEST-FACE] Step 1: Starting face enrollment for guest:', guestId);
 
     let s3Key: string;
@@ -117,7 +131,7 @@ export const guestService = {
     try {
       const endpoint = `${API_ENDPOINTS.GUESTS}/${guestId}/face`;
       console.log('[GUEST-FACE] Step 3: Calling POST', endpoint, '{ s3_key:', s3Key, '}');
-      const { data } = await api.post(endpoint, { s3_key: s3Key });
+      const { data } = await api.post(endpoint, { s3_key: s3Key, ...faceEnrollFlags(options) });
       console.log('[GUEST-FACE] Step 4: API response ✅', JSON.stringify(data));
       return data;
     } catch (err: any) {

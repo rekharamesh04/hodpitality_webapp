@@ -116,6 +116,9 @@ const STATUS_TONE_MAP: Record<string, keyof typeof STATUS_TONES> = {
   failed: 'danger',
   refunded: 'info',
   partially_refunded: 'brand',
+  // A session that ended early, and a fee the desk chose not to charge.
+  incomplete: 'warning',
+  waived: 'neutral',
 };
 
 /** Light + dark badge classes for any record/payment status. */
@@ -214,6 +217,40 @@ export function getFriendlyErrorMessage(error: unknown, fallback = 'Something we
   if (typeof status === 'number' && status >= 500) return 'The server encountered an error. Please try again shortly.';
   if (!err?.response && err?.request) return 'Network error — please check your connection and try again.';
   return fallback;
+}
+
+/** The face in a photo already belongs to someone in this company (409 DUPLICATE_FACE). */
+export interface DuplicateFaceMatch {
+  id: string;
+  entityType: 'GUEST' | 'CUSTOMER';
+  name: string;
+  email?: string;
+  phone?: string;
+  similarity?: number;
+  photoUrl?: string;
+}
+
+export interface DuplicateFaceConflict {
+  message: string;
+  duplicateOf: DuplicateFaceMatch;
+  matches: DuplicateFaceMatch[];
+  /** The caller is a company admin (or above) and may enrol anyway. */
+  canOverride: boolean;
+}
+
+export function getDuplicateFaceConflict(error: unknown): DuplicateFaceConflict | null {
+  const response = (error as { response?: { status?: number; data?: unknown } } | undefined)?.response;
+  if (response?.status !== 409) return null;
+  const data = (response.data ?? {}) as Record<string, unknown>;
+  if (data.code !== 'DUPLICATE_FACE') return null;
+  const duplicateOf = data.duplicateOf as DuplicateFaceMatch | undefined;
+  if (!duplicateOf?.id) return null;
+  return {
+    message: typeof data.error === 'string' ? data.error : 'This face is already registered to someone else.',
+    duplicateOf,
+    matches: Array.isArray(data.matches) ? (data.matches as DuplicateFaceMatch[]) : [duplicateOf],
+    canOverride: data.canOverride === true,
+  };
 }
 
 export interface DuplicatePersonConflict {

@@ -5,11 +5,11 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CreditCard } from 'lucide-react';
+import { CheckCircle2, CreditCard } from 'lucide-react';
 import { AppointmentStatusMenu } from '@/components/appointments/AppointmentStatusMenu';
 import { RecordAppointmentPaymentDialog } from '@/components/dialogs/RecordAppointmentPaymentDialog';
 import { cn, formatDate, formatTimeLabel, addMinutesToTime, getRelativeTime, formatCurrency, getStatusColor } from '@/lib/utils';
-import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
+import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS, TERMINAL_APPOINTMENT_STATUSES } from '@/constants/appointment';
 import { tierBadgeClass } from '@/constants/customer';
 import { useIndustry } from '@/hooks';
 import { debugLog } from '@/utils/debugLog';
@@ -24,6 +24,7 @@ interface AppointmentDetailDialogProps {
 export function AppointmentDetailDialog({ appointment, open, onOpenChange }: AppointmentDetailDialogProps) {
   const industry = useIndustry();
   const [payDialogOpen, setPayDialogOpen] = useState(false);
+  const [endSession, setEndSession] = useState(false);
 
   useEffect(() => {
     if (!open || !appointment) return;
@@ -45,6 +46,15 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
   const customerLabel = a.customerName ?? a.guestName ?? 'Guest';
   const serviceLabel = a.serviceName ?? a.service;
   const id = a.id ?? a.PK ?? '';
+  const sessionOpen = !TERMINAL_APPOINTMENT_STATUSES.has(status);
+  // A closed session can still be owed; a cancelled, missed or no-charge one cannot.
+  const canTakePayment = (status === 'completed' || status === 'incomplete')
+    && paymentStatus !== 'paid' && paymentStatus !== 'waived';
+
+  function openPayment(asEndSession: boolean) {
+    setEndSession(asEndSession);
+    setPayDialogOpen(true);
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -82,20 +92,34 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
           <DetailRow label="Created" value={a.createdAt ? getRelativeTime(a.createdAt) : undefined} />
           <DetailRow label="Arrived At" value={a.arrivedAt ? formatDate(a.arrivedAt, 'MMM dd, yyyy HH:mm') : undefined} />
           <DetailRow label="Checked Out" value={a.checkoutAt ? formatDate(a.checkoutAt, 'MMM dd, yyyy HH:mm') : undefined} />
+          <DetailRow label="Session Ended" value={a.sessionClosedAt ? `${formatDate(a.sessionClosedAt, 'MMM dd, yyyy HH:mm')}${a.sessionClosedBy ? ` · ${a.sessionClosedBy}` : ''}` : undefined} />
+          <DetailRow label={status === 'incomplete' ? 'Reason' : 'Session Note'} value={a.sessionNote} destructive={status === 'incomplete'} />
         </div>
 
         {id && (
           <div className="flex items-center justify-between gap-2 pt-2">
-            {paymentStatus !== 'paid' ? (
-              <Button variant="outline" size="sm" onClick={() => setPayDialogOpen(true)}>
+            {sessionOpen ? (
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => openPayment(true)}>
+                  <CheckCircle2 className="mr-2 h-4 w-4" /> End session
+                </Button>
+                {/* Some desks take the fee up front; the session is still ended afterwards. */}
+                {paymentStatus !== 'paid' && paymentStatus !== 'waived' && status !== 'cancelled' && (
+                  <Button variant="ghost" size="sm" onClick={() => openPayment(false)}>
+                    <CreditCard className="mr-2 h-4 w-4" /> Advance payment
+                  </Button>
+                )}
+              </div>
+            ) : canTakePayment ? (
+              <Button variant="outline" size="sm" onClick={() => openPayment(false)}>
                 <CreditCard className="mr-2 h-4 w-4" /> Record Payment
               </Button>
             ) : <span />}
-            <AppointmentStatusMenu appointmentId={id} currentStatus={a.status} />
+            <AppointmentStatusMenu appointmentId={id} currentStatus={a.status} appointment={a} />
           </div>
         )}
       </DialogContent>
-      <RecordAppointmentPaymentDialog open={payDialogOpen} onOpenChange={setPayDialogOpen} appointment={a} />
+      <RecordAppointmentPaymentDialog open={payDialogOpen} onOpenChange={setPayDialogOpen} appointment={a} endSession={endSession} />
     </Dialog>
   );
 }

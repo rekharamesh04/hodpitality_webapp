@@ -17,11 +17,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ErrorState } from '@/components/common/ErrorState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog';
-import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+import { FaceEnrollDialog } from '@/components/faces/FaceEnrollDialog';
+import { PersonHistory } from '@/components/people/PersonHistory';
+import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 import { PatientPrescriptionsCard } from '@/components/prescriptions/PatientPrescriptionsCard';
 
 import {
-  useCustomer, useUpdateCustomer, useDeleteCustomer, useEnrollCustomerFace, useUnenrollCustomerFace,
+  useCustomer, useUpdateCustomer, useDeleteCustomer, useUnenrollCustomerFace,
 } from '@/hooks/useCustomers';
 import { cn, formatCurrency, formatDate, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { tierBadgeClass } from '@/constants';
@@ -41,12 +43,12 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const { data: customer, isLoading, isError, error, refetch } = useCustomer(id);
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
-  const enrollFace = useEnrollCustomerFace();
   const unenrollFace = useUnenrollCustomerFace();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [faceOpen, setFaceOpen] = useState(false);
+  const [bookOpen, setBookOpen] = useState(false);
 
   function handleUpdate(payload: UpdateCustomerPayload) {
     updateMutation.mutate({ id, data: payload }, { onSuccess: () => setEditOpen(false) });
@@ -59,10 +61,6 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         router.push('/customers');
       },
     });
-  }
-
-  function handleFaceSubmit(image: string) {
-    enrollFace.mutate({ customerId: id, image }, { onSuccess: () => setFaceOpen(false) });
   }
 
   if (isLoading) {
@@ -225,6 +223,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                     </Button>
                   )}
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  New email or phone? Use <span className="font-medium text-foreground">Edit</span> — the face and full
+                  history stay on this record. Don&apos;t register them again.
+                </p>
               </CardContent>
             </Card>
 
@@ -243,6 +245,9 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
             )}
           </div>
         </div>
+
+        {/* Current, upcoming and past visits, payments and reports */}
+        <PersonHistory entity="customer" personId={resolvedId} onBook={() => setBookOpen(true)} />
 
         {/* Prescriptions */}
         {t.has('prescriptions') && <PatientPrescriptionsCard guest={customer} guestId={resolvedId} />}
@@ -271,14 +276,19 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         />
 
         {/* Face enrollment */}
-        <CameraCaptureDialog
+        <FaceEnrollDialog
+          entity="customer"
+          personId={resolvedId}
           open={faceOpen}
           onOpenChange={setFaceOpen}
           title="Enroll Face"
           description={`Capture a clear front-facing photo to enroll this ${t.account.one.toLowerCase()}.`}
-          submitLabel="Enroll"
-          isSubmitting={enrollFace.isPending}
-          onSubmit={handleFaceSubmit}
+        />
+
+        <CreateAppointmentDialog
+          open={bookOpen}
+          onOpenChange={setBookOpen}
+          defaultCustomer={{ id: resolvedId, name: customer.name }}
         />
 
       </div>

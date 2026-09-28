@@ -3,7 +3,8 @@ import { popup } from '@/lib/popup';
 import { customerService } from "@/services/customer.service";
 import type { CustomerFilters, CreateCustomerPayload, UpdateCustomerPayload, Customer } from "@/services/customer.service";
 import { QUERY_KEYS } from "@/constants";
-import { getFriendlyErrorMessage, getDuplicatePersonConflict } from "@/lib/utils";
+import { getFriendlyErrorMessage, getDuplicatePersonConflict, getDuplicateFaceConflict } from "@/lib/utils";
+import type { FaceEnrollOptions } from "@/services/guest.service";
 import type { PaginatedResponse } from "@/types";
 
 export const customerKeys = {
@@ -88,8 +89,8 @@ function resolveCustomerId(c: Partial<Customer> | undefined | null): string {
 export function useEnrollCustomerFace() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ customerId, image }: { customerId: string; image: string }) =>
-      customerService.enrollFace(customerId, image),
+    mutationFn: ({ customerId, image, options }: { customerId: string; image: string; options?: FaceEnrollOptions }) =>
+      customerService.enrollFace(customerId, image, options),
     onSuccess: (result, { customerId, image }) => {
       if (result?.success === false) {
         popup.error(result.message ?? "Face enrollment failed");
@@ -108,7 +109,11 @@ export function useEnrollCustomerFace() {
       });
       popup.success("Face enrolled successfully");
     },
-    onError: (err: any) => popup.error(err?.backendMessage ?? err?.response?.data?.error ?? "Face enrollment failed"),
+    onError: (err: any) => {
+      // FaceEnrollDialog shows the existing record instead of a toast.
+      if (getDuplicateFaceConflict(err)) return;
+      popup.error(err?.backendMessage ?? err?.response?.data?.error ?? "Face enrollment failed");
+    },
   });
 }
 

@@ -15,6 +15,9 @@ export interface AppointmentFilters {
   guestId?: string;
   customerId?: string;
   staffId?: string;
+  /** Inclusive YYYY-MM-DD range — the week calendar. */
+  from?: string;
+  to?: string;
 }
 
 export interface CreateAppointmentPayload {
@@ -36,10 +39,14 @@ export interface CreateAppointmentPayload {
 }
 
 export interface UpdateAppointmentPaymentPayload {
-  paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded';
+  /** "waived" closes the fee with no charge and records no payment. */
+  paymentStatus: 'paid' | 'pending' | 'failed' | 'refunded' | 'waived';
   amount?: number;
   method?: string;
   transactionId?: string;
+  /** Closes the session in the same write as the payment. */
+  sessionStatus?: 'completed' | 'incomplete';
+  sessionNote?: string;
 }
 
 export const appointmentService = {
@@ -49,6 +56,8 @@ export const appointmentService = {
     if (filters.guestId)    p.set('guestId', filters.guestId);
     if (filters.customerId) p.set('customerId', filters.customerId);
     if (filters.staffId)    p.set('staffId', filters.staffId);
+    if (filters.from)       p.set('from', filters.from);
+    if (filters.to)         p.set('to', filters.to);
     p.set('limit', String(FULL_LIST_LIMIT));
     debugLog('[ADMIN][APPOINTMENTS][LIST][REQUEST]', { endpoint: API_ENDPOINTS.APPOINTMENTS });
     const response = await api.get(`${API_ENDPOINTS.APPOINTMENTS}?${p}`);
@@ -108,8 +117,9 @@ export const appointmentService = {
   },
 
   /** The backend owns every status side-effect (arrivedAt/checkinId on arrival, checkoutAt on completion, schedule-lock release on cancel/no-show) — this only ever sends the target status. */
-  async updateAppointmentStatus(id: string, status: AppointmentStatusValue): Promise<Appointment> {
-    const { data } = await api.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS}/${id}/status`, { status });
+  async updateAppointmentStatus(id: string, status: AppointmentStatusValue, sessionNote?: string): Promise<Appointment> {
+    const body = sessionNote ? { status, sessionNote } : { status };
+    const { data } = await api.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS}/${id}/status`, body);
     return data;
   },
 

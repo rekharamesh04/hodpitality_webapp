@@ -1,5 +1,10 @@
 'use client';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ScanFace, UserPlus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FindByFaceDialog } from '@/components/faces/FindByFaceDialog';
 import { WelcomeHeader } from '@/components/dashboard/WelcomeHeader';
 import { DashboardStatsGrid } from '@/components/dashboard/DashboardStatsGrid';
 import { QuickActions } from '@/components/dashboard/QuickActions';
@@ -23,6 +28,8 @@ import { useNotifications, useMarkAllNotificationsRead } from '@/hooks/use-notif
 
 export default function DashboardPage() {
   const t = useTerminology();
+  const router = useRouter();
+  const [findByFaceOpen, setFindByFaceOpen] = useState(false);
   const workflow = getWorkflow(t.slug);
   const hasPayments = t.has('payments');
 
@@ -39,7 +46,21 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <WelcomeHeader />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <WelcomeHeader />
+        {/* The two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
+            <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
+            Find by face
+          </Button>
+          <Button size="sm" onClick={() => router.push('/guests?action=add')}>
+            <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+            Add {t.person.one}
+          </Button>
+        </div>
+      </div>
+      <FindByFaceDialog open={findByFaceOpen} onOpenChange={setFindByFaceOpen} />
 
       {/* With a workflow, the flow itself is the set of quick actions. */}
       {workflow.length > 0 && <WorkflowGuide steps={workflow} />}

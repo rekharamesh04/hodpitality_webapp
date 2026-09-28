@@ -1,6 +1,6 @@
 /** Canonical appointment statuses this app surfaces (backend may also send legacy 'in-progress' / 'no_show'). */
 export const APPOINTMENT_STATUSES = [
-  'scheduled', 'confirmed', 'pending', 'arrived', 'completed', 'cancelled', 'no-show',
+  'scheduled', 'confirmed', 'pending', 'arrived', 'completed', 'incomplete', 'cancelled', 'no-show',
 ] as const;
 
 export type AppointmentStatusOption = (typeof APPOINTMENT_STATUSES)[number];
@@ -12,6 +12,7 @@ export const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
   arrived: 'Arrived',
   'in-progress': 'Arrived',
   completed: 'Completed',
+  incomplete: 'Incomplete',
   cancelled: 'Cancelled',
   'no-show': 'No-show',
   no_show: 'No-show',
@@ -24,23 +25,41 @@ export const APPOINTMENT_STATUS_STYLES: Record<string, string> = {
   arrived:       'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800',
   'in-progress': 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800',
   completed:     'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800',
+  incomplete:    'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800',
   cancelled:     'bg-red-100 text-red-700 border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800',
   'no-show':     'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800',
   no_show:       'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-800',
 };
 
-/** Terminal states — the backend doesn't allow moving out of these, so no manual actions are offered. */
-export const TERMINAL_APPOINTMENT_STATUSES = new Set(['completed', 'cancelled', 'no-show', 'no_show']);
+/** Terminal states — no desk actions are offered once an appointment reaches one. */
+export const TERMINAL_APPOINTMENT_STATUSES = new Set(['completed', 'incomplete', 'cancelled', 'no-show', 'no_show']);
 
 /**
- * Manual status actions a staff/admin can trigger from the UI, keyed by current status.
- * "arrived" is intentionally never offered here — the backend sets it automatically when a
- * guest checks in, and the frontend must not override that transition.
+ * How a session ended. Both are closed states; once closed, only a company admin (or above)
+ * may reopen or change one — the backend returns 403 to anyone else.
  */
-export function getManualStatusActions(current?: string): AppointmentStatusOption[] {
+export const SESSION_OUTCOMES = ['completed', 'incomplete'] as const;
+export type SessionOutcome = (typeof SESSION_OUTCOMES)[number];
+
+export function isClosedSession(status?: string): boolean {
+  return !!status && (SESSION_OUTCOMES as readonly string[]).includes(status);
+}
+
+/**
+ * What the Update Status menu offers.
+ *
+ * "end-session" opens the End Session dialog, which records the outcome (completed or
+ * incomplete) together with the payment, so a session is never closed without the desk
+ * deciding about the fee. "reopen" is for a company admin correcting a closed session.
+ * "arrived" is never offered as a manual action — the backend sets it on check-in.
+ */
+export type StatusMenuAction = 'confirmed' | 'end-session' | 'cancelled' | 'no-show' | 'reopen';
+
+export function getStatusMenuActions(current?: string, canReopen = false): StatusMenuAction[] {
+  if (isClosedSession(current)) return canReopen ? ['reopen'] : [];
   if (!current || TERMINAL_APPOINTMENT_STATUSES.has(current)) return [];
-  const actions: AppointmentStatusOption[] = [];
+  const actions: StatusMenuAction[] = [];
   if (current === 'scheduled' || current === 'pending') actions.push('confirmed');
-  actions.push('completed', 'cancelled', 'no-show');
+  actions.push('end-session', 'cancelled', 'no-show');
   return actions;
 }

@@ -44,11 +44,14 @@ export function useCreateAppointment() {
 export function useUpdateAppointmentStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: AppointmentStatusValue }) =>
-      appointmentService.updateAppointmentStatus(id, status),
+    mutationFn: ({ id, status, sessionNote }: { id: string; status: AppointmentStatusValue; sessionNote?: string }) =>
+      appointmentService.updateAppointmentStatus(id, status, sessionNote),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CALENDAR });
+      // Visits and balance on the person's record are derived from session status.
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.CUSTOMERS });
       popup.success("Appointment updated");
     },
     onError: (err: any) => {
@@ -63,12 +66,18 @@ export function useUpdateAppointmentPayment() {
     /** Calls POST /appointments/{id}/payment; the backend syncs a linked Payment record (type: "consultation"). */
     mutationFn: ({ id, ...payload }: { id: string } & UpdateAppointmentPaymentPayload) =>
       appointmentService.updatePaymentStatus(id, payload),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: QUERY_KEYS.APPOINTMENTS });
       qc.invalidateQueries({ queryKey: QUERY_KEYS.CALENDAR });
       qc.invalidateQueries({ queryKey: paymentKeys.all });
       qc.invalidateQueries({ queryKey: paymentKeys.stats });
-      popup.success("Payment recorded");
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.GUESTS });
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.CUSTOMERS });
+      popup.success(
+        vars.sessionStatus
+          ? `Session marked ${vars.sessionStatus}${vars.paymentStatus === "paid" ? " and payment recorded" : ""}`
+          : "Payment recorded"
+      );
     },
     onError: (err: any) => {
       popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to record payment"));

@@ -521,9 +521,9 @@ export interface Appointment {
   /** Minutes — defaults to 30 server-side if omitted */
   duration?: number;
   room?: string;
-  status?: 'scheduled' | 'confirmed' | 'pending' | 'arrived' | 'in-progress' | 'completed' | 'cancelled' | 'no-show' | 'no_show';
-  /** Consultation fee status — separate from `status`, set by POST /appointments/{id}/payment. Never merge into one badge. */
-  paymentStatus?: 'paid' | 'pending' | 'failed' | 'refunded';
+  status?: 'scheduled' | 'confirmed' | 'pending' | 'arrived' | 'in-progress' | 'completed' | 'incomplete' | 'cancelled' | 'no-show' | 'no_show';
+  /** Consultation fee status — separate from `status`, set by POST /appointments/{id}/payment. Never merge into one badge. "waived" = closed with no charge. */
+  paymentStatus?: 'paid' | 'pending' | 'failed' | 'refunded' | 'waived';
   /** Consultation fee amount. */
   amount?: number;
   notes?: string;
@@ -534,6 +534,12 @@ export interface Appointment {
   checkinId?: string;
   /** Set by the backend automatically when status becomes "completed" — never write this from the frontend */
   checkoutAt?: string;
+  /** Set by the backend when the session is closed as completed or incomplete. */
+  sessionClosedAt?: string;
+  sessionClosedBy?: string;
+  /** Why an incomplete session ended early, or any note left when closing it. */
+  sessionNote?: string;
+  incompleteAt?: string;
 }
 
 // ============ Calendar types ============

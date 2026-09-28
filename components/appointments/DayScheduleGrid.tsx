@@ -4,37 +4,10 @@ import { Users2 } from 'lucide-react';
 import { AppointmentCard } from '@/components/appointments/AppointmentCard';
 import { EmptyState } from '@/components/common/EmptyState';
 import { cn } from '@/lib/utils';
+import { assignLanes, computeTimeRange, formatHourLabel, toMinutes } from '@/lib/calendar-range';
 import type { CalendarDayView, Appointment } from '@/types';
 
 const PX_PER_MIN = 2.2;
-const DEFAULT_START = 8 * 60;
-const DEFAULT_END = 18 * 60;
-
-function toMinutes(t: string): number {
-  const [h, m] = t.split(':').map(Number);
-  return h * 60 + m;
-}
-
-function formatHourLabel(mins: number): string {
-  const h = Math.floor(mins / 60);
-  const ampm = h < 12 ? 'AM' : 'PM';
-  const dh = h % 12 === 0 ? 12 : h % 12;
-  return `${dh} ${ampm}`;
-}
-
-function computeRange(staffColumns: CalendarDayView['staffColumns']): { start: number; end: number } {
-  const all = staffColumns.flatMap((c) => c.appointments ?? []);
-  const points = all.flatMap((a) => {
-    if (!a.startTime) return [];
-    const s = toMinutes(a.startTime);
-    return [s, s + (a.duration ?? 30)];
-  });
-  let start = points.length ? Math.min(...points) : DEFAULT_START;
-  let end = points.length ? Math.max(...points) : DEFAULT_END;
-  start = Math.min(Math.floor(start / 60) * 60, DEFAULT_START);
-  end = Math.max(Math.ceil(end / 60) * 60, DEFAULT_END);
-  return { start, end };
-}
 
 interface DayScheduleGridProps {
   staffColumns: CalendarDayView['staffColumns'];
@@ -52,11 +25,20 @@ export function DayScheduleGrid({ staffColumns, onSelectAppointment }: DaySchedu
     );
   }
 
-  const { start, end } = computeRange(staffColumns);
+  // Only the hours that matter: an hour before the first appointment to an hour after the last.
+  const range = computeTimeRange(staffColumns.flatMap((c) => c.appointments ?? []));
+  if (!range) {
+    return (
+      <div className="rounded-lg border p-6 text-center">
+        <p className="text-sm font-medium">No appointments scheduled</p>
+        <p className="text-xs text-muted-foreground">There are no appointments for this day.</p>
+      </div>
+    );
+  }
+  const { start, end } = range;
   const heightPx = (end - start) * PX_PER_MIN;
   const hourMarks: number[] = [];
   for (let t = start; t <= end; t += 60) hourMarks.push(t);
-  const hasAnyAppointments = staffColumns.some((c) => (c.appointments?.length ?? 0) > 0);
 
   return (
     <div className="rounded-lg border">
@@ -105,29 +87,32 @@ export function DayScheduleGrid({ staffColumns, onSelectAppointment }: DaySchedu
                     style={{ top: (t - start) * PX_PER_MIN }}
                   />
                 ))}
-                {(col.appointments ?? []).map((a) => {
+                {(() => {
+                  const appts = col.appointments ?? [];
+                  const lanes = assignLanes(appts);
+                  return appts.map((a, i) => {
                   if (!a.startTime) return null;
                   const s = toMinutes(a.startTime);
                   const dur = a.duration ?? 30;
                   const top = Math.max(0, (s - start) * PX_PER_MIN);
                   const height = Math.max(68, dur * PX_PER_MIN - 2);
+                  const { lane, lanes: laneCount } = lanes[i];
                   return (
-                    <div key={a.id} className="absolute left-1 right-1 z-[1]" style={{ top, height }}>
+                    <div
+                      key={a.id}
+                      className="absolute z-[1] px-1"
+                      style={{ top, height, left: `${(lane / laneCount) * 100}%`, width: `${100 / laneCount}%` }}
+                    >
                       <AppointmentCard appointment={a} onClick={() => onSelectAppointment(a)} className="h-full" />
                     </div>
                   );
-                })}
+                  });
+                })()}
               </div>
             </div>
           ))}
         </div>
       </div>
-      {!hasAnyAppointments && (
-        <div className="border-t p-6 text-center">
-          <p className="text-sm font-medium">No appointments scheduled</p>
-          <p className="text-xs text-muted-foreground">There are no appointments for this day.</p>
-        </div>
-      )}
     </div>
   );
 }

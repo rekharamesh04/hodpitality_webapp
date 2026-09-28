@@ -99,6 +99,15 @@ export function canManageStaff(role: string | undefined): boolean {
   return !!role && (STAFF_MANAGER_ROLES as readonly string[]).includes(role);
 }
 
+/**
+ * Company admin and above. Besides managing staff, these roles may override a
+ * duplicate-face warning, reopen or correct a closed session, and delete any
+ * document on a person's record — the backend enforces the same list.
+ */
+export function isOrgAdmin(role: string | undefined): boolean {
+  return canManageStaff(role);
+}
+
 /** A manager may only edit or remove staff whose role they could have assigned. */
 export function canManageStaffMember(managerRole: string | undefined, targetRole: unknown): boolean {
   if (!canManageStaff(managerRole)) return false;

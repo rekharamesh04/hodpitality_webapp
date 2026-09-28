@@ -1,9 +1,9 @@
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { popup } from '@/lib/popup';
 import { guestService } from '@/services/guest.service';
-import type { GuestFilters, CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
+import type { GuestFilters, CreateGuestPayload, UpdateGuestPayload, FaceEnrollOptions } from '@/services/guest.service';
 import { QUERY_KEYS } from '@/constants';
-import { getFriendlyErrorMessage, getDuplicatePersonConflict } from '@/lib/utils';
+import { getFriendlyErrorMessage, getDuplicatePersonConflict, getDuplicateFaceConflict } from '@/lib/utils';
 import type { PaginatedResponse, Guest } from '@/types';
 
 export const guestKeys = {
@@ -102,8 +102,8 @@ function resolveGuestId(g: Partial<Guest> | undefined | null): string {
 export function useEnrollFace() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ guestId, image }: { guestId: string; image: string }) =>
-      guestService.enrollFace(guestId, image),
+    mutationFn: ({ guestId, image, options }: { guestId: string; image: string; options?: FaceEnrollOptions }) =>
+      guestService.enrollFace(guestId, image, options),
     onSuccess: (result, { guestId, image }) => {
       if (result?.success === false) {
         popup.error(result.message ?? 'Face enrollment failed');
@@ -122,7 +122,11 @@ export function useEnrollFace() {
       });
       popup.success('Face enrolled successfully');
     },
-    onError: (err: any) => popup.error(err?.backendMessage ?? err?.response?.data?.error ?? 'Face enrollment failed'),
+    onError: (err: any) => {
+      // FaceEnrollDialog shows the existing record instead of a toast.
+      if (getDuplicateFaceConflict(err)) return;
+      popup.error(err?.backendMessage ?? err?.response?.data?.error ?? 'Face enrollment failed');
+    },
   });
 }
 
