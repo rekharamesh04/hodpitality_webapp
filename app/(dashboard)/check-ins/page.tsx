@@ -414,7 +414,7 @@ function CheckInsPageInner() {
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <p className="text-sm font-semibold truncate text-muted-foreground">
-                                        {ci.guestId ? `Guest #${ci.guestId.slice(-6)}` : 'Guest'}
+                                        {ci.guestId ? `${t.person.one} #${ci.guestId.slice(-6)}` : t.person.one}
                                       </p>
                                     </TooltipTrigger>
                                     {ci.guestId && <TooltipContent>{ci.guestId}</TooltipContent>}

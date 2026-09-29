@@ -4,15 +4,32 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UserPlus, CheckCircle, Hotel, Calendar, FileText, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store';
+import { canManageStaff } from '@/constants/roles';
+import type { IndustryModule } from '@/constants/industry';
+import { useTerminology } from '@/hooks';
+
+interface QuickAction {
+  icon: typeof UserPlus;
+  label: string;
+  description: string;
+  onClick: () => void;
+  module?: IndustryModule;
+  show?: boolean;
+}
 
 export function QuickActions() {
   const router = useRouter();
+  const t = useTerminology();
+  const role = useAuthStore((st) => st.user?.role);
 
-  const actions = [
+  // Only what this industry is offered, in its own words. "Manage Staff" is
+  // for the roles that can; everyone else still reaches the list from People.
+  const all: QuickAction[] = [
     {
       icon: UserPlus,
-      label: 'Add Guest',
-      description: 'Register new guest',
+      label: `Add ${t.person.one}`,
+      description: `Register new ${t.person.one.toLowerCase()}`,
       onClick: () => router.push('/guests?action=add'),
     },
     {
@@ -23,14 +40,16 @@ export function QuickActions() {
     },
     {
       icon: Hotel,
-      label: 'Hospitality',
+      label: `${t.place.one} Services`,
       description: 'Book service',
+      module: 'hospitality',
       onClick: () => router.push('/hospitality?action=add'),
     },
     {
       icon: Calendar,
       label: 'New Event',
       description: 'Create event',
+      module: 'events',
       onClick: () => router.push('/events?action=add'),
     },
     {
@@ -43,9 +62,11 @@ export function QuickActions() {
       icon: Users,
       label: 'Manage Staff',
       description: 'View team',
+      show: canManageStaff(role),
       onClick: () => router.push('/staff'),
     },
   ];
+  const actions = all.filter((a) => (!a.module || t.has(a.module)) && a.show !== false);
 
   return (
     <Card>

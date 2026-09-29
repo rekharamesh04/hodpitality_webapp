@@ -17,6 +17,7 @@ import { useUpdateAppointmentPayment, useUpdateAppointmentStatus } from '@/hooks
 import { TERMINAL_APPOINTMENT_STATUSES, type SessionOutcome } from '@/constants/appointment';
 import { cn, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
 import type { Appointment, PaymentMethodType } from '@/types';
+import { useTerminology } from '@/hooks';
 
 const PAYMENT_METHODS: PaymentMethodType[] = ['cash', 'card', 'credit_card', 'upi', 'bank_transfer', 'online', 'other'];
 const METHOD_LABELS: Record<PaymentMethodType, string> = {
@@ -48,6 +49,7 @@ interface RecordAppointmentPaymentDialogProps {
  * show the session as completed without anyone updating the status separately.
  */
 export function RecordAppointmentPaymentDialog({ open, onOpenChange, appointment, endSession }: RecordAppointmentPaymentDialogProps) {
+  const t = useTerminology();
   const [outcome, setOutcome] = useState<SessionOutcome>('completed');
   const [sessionNote, setSessionNote] = useState('');
   const [fee, setFee] = useState<FeeChoice>('collect');
@@ -145,7 +147,7 @@ export function RecordAppointmentPaymentDialog({ open, onOpenChange, appointment
         <DialogHeader>
           <DialogTitle>{closingSession ? 'End session' : 'Record Payment'}</DialogTitle>
           <DialogDescription>
-            {appointment.customerName ?? appointment.guestName ?? 'Guest'} — {appointment.serviceName ?? appointment.service ?? 'Consultation'}
+            {appointment.customerName ?? appointment.guestName ?? t.person.one} — {appointment.serviceName ?? appointment.service ?? 'Consultation'}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} noValidate>
@@ -174,7 +176,7 @@ export function RecordAppointmentPaymentDialog({ open, onOpenChange, appointment
                       id="rap-note"
                       value={sessionNote}
                       onChange={(e) => setSessionNote(e.target.value)}
-                      placeholder="e.g. Patient felt unwell and left early"
+                      placeholder={`e.g. ${t.person.one} felt unwell and left early`}
                       rows={2}
                     />
                   </div>

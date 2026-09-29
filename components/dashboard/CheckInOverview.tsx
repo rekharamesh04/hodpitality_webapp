@@ -108,7 +108,7 @@ export function CheckInOverview({ checkIns, stats, isLoading, isError, error, on
                     <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium leading-none">{ci.guestName || ci.guestId || 'Guest'}</p>
+                    <p className="truncate text-sm font-medium leading-none">{ci.guestName || ci.guestId || t.person.one}</p>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                       <span className="capitalize">{CHECKIN_METHOD_LABELS[method] ?? method.replace(/_/g, ' ')}</span>
                       {ci.venue && (

@@ -99,11 +99,22 @@ interface StaffFormDialogProps {
   onSubmit: (payload: CreateStaffPayload | UpdateStaffPayload) => void;
 }
 
+/** Legacy role id → the industry-neutral id with the same label and permissions. */
+const LEGACY_ROLE_ALIASES: Record<string, string> = { doctor: 'practitioner', nurse: 'assistant' };
+
 export function StaffFormDialog({
   open, onOpenChange, staff, isSubmitting, submitError, roleOptions, hospitalOptions = [], departmentOptions, onSubmit,
 }: StaffFormDialogProps) {
   const industry = useIndustry();
   const isEditing = !!staff;
+  // doctor/nurse and practitioner/assistant carry the same label in every
+  // industry, so offering all four listed "Doctor" and "Nurse" twice. New
+  // staff get the neutral ids; a legacy id is kept only for someone who
+  // already holds it, so their current role still shows.
+  const currentRole = typeof staff?.role === 'string' ? staff.role : '';
+  const visibleRoleOptions = roleOptions.filter(
+    (r) => !(r in LEGACY_ROLE_ALIASES) || r === currentRole || !roleOptions.includes(LEGACY_ROLE_ALIASES[r]),
+  );
   const needsHospital = !isEditing && hospitalOptions.length > 0;
   const [form, setForm] = useState<FormState>(emptyForm());
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -218,7 +229,7 @@ export function StaffFormDialog({
               <Select value={form.role || undefined} onValueChange={(v) => update('role', v)}>
                 <SelectTrigger id="staff-role" aria-invalid={!!fieldErrors.role}><SelectValue placeholder="Choose a role" /></SelectTrigger>
                 <SelectContent>
-                  {roleOptions.map((r) => <SelectItem key={r} value={r}>{roleLabel(r, industry)}</SelectItem>)}
+                  {visibleRoleOptions.map((r) => <SelectItem key={r} value={r}>{roleLabel(r, industry)}</SelectItem>)}
                 </SelectContent>
               </Select>
               {fieldErrors.role && <p className="text-xs text-destructive">{fieldErrors.role}</p>}

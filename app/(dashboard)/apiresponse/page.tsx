@@ -2,6 +2,8 @@
 
 import { useState, useCallback, useRef, Fragment } from 'react';
 import api from '@/lib/axios';
+import { ErrorState } from '@/components/common/ErrorState';
+import { useAuthStore } from '@/store';
 import {
   CheckCircle2,
   XCircle,
@@ -357,7 +359,31 @@ function ResponsePreview({ result }: { result: TestResult | undefined }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
+// A developer tool, not a product screen. "Run all" writes to live data —
+// it renames the caller's profile and organisation and creates test records —
+// so only a super admin may open it; every other role gets the same
+// access-denied state as the other admin-only pages.
 export default function ApiResponsePage() {
+  const { user } = useAuthStore();
+
+  if (user?.role !== 'super_admin') {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold sm:text-3xl">API Tester</h1>
+        </div>
+        <ErrorState
+          title="Access denied"
+          message="The API tester is restricted to platform admins."
+        />
+      </div>
+    );
+  }
+
+  return <ApiResponsePageInner />;
+}
+
+function ApiResponsePageInner() {
   const allIds = ENDPOINT_GROUPS.flatMap(g => g.endpoints.map(e => e.id));
   const [results, setResults] = useState<Record<string, TestResult>>(
     () => Object.fromEntries(allIds.map(id => [id, { status: 'idle' }]))

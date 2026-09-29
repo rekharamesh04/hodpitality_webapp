@@ -12,19 +12,29 @@ import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive } from '@/constants/navigation';
 import { getWorkflow } from '@/constants/workflow';
+import { industryPack, type IndustryModule } from '@/constants/industry';
 import { useIndustry } from '@/hooks';
 import { cn } from '@/lib/utils';
 import { BrandMark } from '@/components/layout/AppHeader';
 
 interface TabItem { label: string; short?: string; href: string; icon: LucideIcon }
 
-/** Most-used front-desk destinations, one tap away on phones. */
-const DEFAULT_TAB_ITEMS: TabItem[] = [
-  { label: 'Home',       href: '/dashboard',     icon: LayoutDashboard },
-  { label: 'Check-ins',  href: '/check-ins',     icon: CheckCircle2 },
-  { label: 'Guests',     href: '/guests',        icon: Users },
-  { label: 'Registrations', short: 'Sign-ups', href: '/registrations', icon: ClipboardList },
-];
+/**
+ * Most-used front-desk destinations, one tap away on phones, in the tenant's
+ * vocabulary. Registrations is left out for an industry not offered it (a
+ * retailer), as its nav entry is.
+ */
+function defaultTabItems(industry: unknown): TabItem[] {
+  const t = industryPack(industry);
+  return [
+    { label: 'Home',       href: '/dashboard',     icon: LayoutDashboard },
+    { label: 'Check-ins',  href: '/check-ins',     icon: CheckCircle2 },
+    { label: t.person.many, href: '/guests',       icon: Users },
+    ...((t.modules as readonly IndustryModule[]).includes('registrations')
+      ? [{ label: 'Registrations', short: 'Sign-ups', href: '/registrations', icon: ClipboardList }]
+      : []),
+  ];
+}
 
 /**
  * With a workflow, the tabs are the two busiest steps of it — the last two
@@ -33,11 +43,12 @@ const DEFAULT_TAB_ITEMS: TabItem[] = [
  */
 function tabItemsFor(industry: unknown): TabItem[] {
   const workflow = getWorkflow(industry);
-  if (workflow.length === 0) return DEFAULT_TAB_ITEMS;
+  const defaults = defaultTabItems(industry);
+  if (workflow.length === 0) return defaults;
   const middle = workflow.filter((s) => !s.optional && s.href !== '/guests' && s.href !== '/payments').slice(-2);
   const payments = workflow.find((s) => s.href === '/payments');
   return [
-    DEFAULT_TAB_ITEMS[0],
+    defaults[0],
     ...middle.map((s) => ({ label: s.label, short: s.short, href: s.href, icon: s.icon })),
     ...(payments ? [{ label: 'Payments', href: payments.href, icon: CreditCard }] : []),
   ];

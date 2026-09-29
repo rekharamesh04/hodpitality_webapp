@@ -29,6 +29,7 @@ import { Plus, Trash2 } from 'lucide-react';
 import { eventService } from '@/services/event.service';
 import type { Event } from '@/types';
 import { toLocalDateInput } from '@/lib/utils';
+import { useTerminology } from '@/hooks';
 
 interface CompleteRegistrationDialogProps {
   open: boolean;
@@ -43,6 +44,7 @@ interface HospitalityRequest {
 }
 
 export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegistrationDialogProps) {
+  const t = useTerminology();
   const { completeRegistration, loading } = useWorkflow();
   const qc = useQueryClient();
   const [events, setEvents] = useState<Event[]>([]);
@@ -136,7 +138,7 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
           <div className="grid gap-6 py-4">
             {/* Guest Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Guest Information</h3>
+              <h3 className="text-lg font-medium">{t.person.one} Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="guestName">Full Name *</Label>

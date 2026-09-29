@@ -14,6 +14,7 @@ import {
 import { useUpdateRegistration } from '@/hooks/useRegistrations';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import type { Registration } from '@/types';
+import { useTerminology } from '@/hooks';
 
 interface RegistrationEditDialogProps {
   open: boolean;
@@ -44,6 +45,7 @@ function toFormState(r: Registration): FormState {
 }
 
 export function RegistrationEditDialog({ open, onOpenChange, registration }: RegistrationEditDialogProps) {
+  const t = useTerminology();
   const [form, setForm] = useState<FormState | null>(null);
   const updateMutation = useUpdateRegistration();
 
@@ -94,7 +96,7 @@ export function RegistrationEditDialog({ open, onOpenChange, registration }: Reg
               </Alert>
             )}
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="reg-name">Guest Name</Label>
+              <Label htmlFor="reg-name">{t.person.one} Name</Label>
               <Input id="reg-name" value={form.guestName} onChange={(e) => update('guestName', e.target.value)} />
             </div>
             <div className="space-y-1.5">

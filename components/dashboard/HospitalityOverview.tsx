@@ -10,6 +10,7 @@ import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import type { Hospitality } from '@/types';
 import Link from 'next/link';
+import { useTerminology } from '@/hooks';
 
 interface HospitalityOverviewProps {
   bookings: Hospitality[];
@@ -36,6 +37,7 @@ function HospitalitySkeleton() {
 }
 
 export function HospitalityOverview({ bookings, isLoading, isError, error, onRetry }: HospitalityOverviewProps) {
+  const t = useTerminology();
   const safeBookings = Array.isArray(bookings) ? bookings : [];
   const recent = [...safeBookings]
     .sort((a, b) => new Date(b.bookingDate ?? b.serviceDate ?? 0).getTime() - new Date(a.bookingDate ?? a.serviceDate ?? 0).getTime())
@@ -71,7 +73,7 @@ export function HospitalityOverview({ bookings, isLoading, isError, error, onRet
                   <Hotel className="h-4 w-4 text-primary" aria-hidden="true" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium leading-none">{booking.guestName || 'Guest'}</p>
+                  <p className="truncate text-sm font-medium leading-none">{booking.guestName || t.person.one}</p>
                   <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                     <span>{booking.type}</span>
                     {booking.venue && (

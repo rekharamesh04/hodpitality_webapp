@@ -447,7 +447,7 @@ function PaymentsPageInner() {
       exportToCSV(
         rows.map((p) => ({
           'Payment ID': (p.id || '').replace('PAYMENT#', ''),
-          Guest: p.guestName ?? '',
+          [t.person.one]: p.guestName ?? '',
           Email: p.guestEmail ?? '',
           Type: p.type ?? (p.appointmentId ? 'consultation' : 'event'),
           'Event / Service': p.event ?? p.service ?? '',

@@ -11,7 +11,7 @@ import { RecordAppointmentPaymentDialog } from '@/components/dialogs/RecordAppoi
 import { cn, formatDate, formatTimeLabel, addMinutesToTime, getRelativeTime, formatCurrency, getStatusColor } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS, TERMINAL_APPOINTMENT_STATUSES } from '@/constants/appointment';
 import { tierBadgeClass } from '@/constants/customer';
-import { useIndustry } from '@/hooks';
+import { useIndustry, useTerminology } from '@/hooks';
 import { debugLog } from '@/utils/debugLog';
 import type { Appointment } from '@/types';
 
@@ -22,6 +22,7 @@ interface AppointmentDetailDialogProps {
 }
 
 export function AppointmentDetailDialog({ appointment, open, onOpenChange }: AppointmentDetailDialogProps) {
+  const t = useTerminology();
   const industry = useIndustry();
   const [payDialogOpen, setPayDialogOpen] = useState(false);
   const [endSession, setEndSession] = useState(false);
@@ -43,7 +44,7 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
   const status = a.status ?? 'scheduled';
   const paymentStatus = a.paymentStatus ?? 'pending';
   const endTime = a.endTime ?? (a.startTime && a.duration ? addMinutesToTime(a.startTime, a.duration) : undefined);
-  const customerLabel = a.customerName ?? a.guestName ?? 'Guest';
+  const customerLabel = a.customerName ?? a.guestName ?? t.person.one;
   const serviceLabel = a.serviceName ?? a.service;
   const id = a.id ?? a.PK ?? '';
   const sessionOpen = !TERMINAL_APPOINTMENT_STATUSES.has(status);

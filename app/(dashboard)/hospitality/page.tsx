@@ -338,9 +338,9 @@ function HospitalityPageInner() {
               </Alert>
             )}
             <div className="space-y-1.5 sm:col-span-2">
-              <Label htmlFor="guestName">Guest *</Label>
+              <Label htmlFor="guestName">{t.person.one} *</Label>
               {manualGuest ? (
-                <Input id="guestName" placeholder="Guest full name" value={form.guestName} onChange={(e) => setForm((f) => ({ ...f, guestName: e.target.value }))} />
+                <Input id="guestName" placeholder={`${t.person.one} full name`} value={form.guestName} onChange={(e) => setForm((f) => ({ ...f, guestName: e.target.value }))} />
               ) : (
                 <GuestCombobox selected={selectedGuest} onSelectGuest={setSelectedGuest} disabled={createBookingMutation.isPending} />
               )}
@@ -349,7 +349,7 @@ function HospitalityPageInner() {
                 className="rounded-sm text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => { setManualGuest((m) => !m); setSelectedGuest(null); setForm((f) => ({ ...f, guestName: '' })); }}
               >
-                {manualGuest ? 'Choose an existing guest instead' : 'Guest not in the list? Enter a name'}
+                {manualGuest ? `Choose an existing ${t.person.one.toLowerCase()} instead` : `${t.person.one} not in the list? Enter a name`}
               </button>
             </div>
             <div className="space-y-1.5">

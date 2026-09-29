@@ -11,27 +11,37 @@ import {
   CommandList,
   CommandSeparator,
 } from '@/components/ui/command';
-import { useUIStore } from '@/store';
-import { getFlatNav } from '@/constants/navigation';
-import { useIndustry } from '@/hooks';
+import { useAuthStore, useUIStore } from '@/store';
+import { getVisibleNavSections } from '@/constants/navigation';
+import type { IndustryModule } from '@/constants/industry';
+import { useTerminology, type Terminology } from '@/hooks';
 import {
   UserPlus, UserCheck, ClipboardList, CreditCard, Hotel, CalendarPlus, FileText,
 } from 'lucide-react';
 
 // Each target page opens the matching dialog for `?action=…` (see hooks/useActionParam.ts).
-const QUICK_ACTIONS = [
-  { label: 'Add New Guest',            href: '/guests?action=add',         icon: UserPlus },
-  { label: 'Check In a Guest',         href: '/check-ins?action=checkin',  icon: UserCheck },
-  { label: 'Complete a Registration',  href: '/registrations?action=add',  icon: ClipboardList },
-  { label: 'Record a Payment',         href: '/payments?action=add',       icon: CreditCard },
-  { label: 'New Hospitality Request',  href: '/hospitality?action=add',    icon: Hotel },
-  { label: 'Create New Event',         href: '/events?action=add',         icon: CalendarPlus },
-  { label: 'Generate Report',          href: '/reports?action=generate',   icon: FileText },
-];
+// An action whose module the tenant's industry is not offered is left out, as
+// its nav entry is: a pharmacy is not offered events or room service.
+function quickActions(t: Terminology) {
+  const actions: { label: string; href: string; icon: typeof UserPlus; module?: IndustryModule }[] = [
+    { label: `Add New ${t.person.one}`,       href: '/guests?action=add',         icon: UserPlus },
+    { label: `Check In a ${t.person.one}`,    href: '/check-ins?action=checkin',  icon: UserCheck },
+    { label: 'Complete a Registration',       href: '/registrations?action=add',  icon: ClipboardList, module: 'registrations' },
+    { label: 'Record a Payment',              href: '/payments?action=add',       icon: CreditCard,    module: 'payments' },
+    { label: `New ${t.place.one} Service Request`, href: '/hospitality?action=add', icon: Hotel,       module: 'hospitality' },
+    { label: 'Create New Event',              href: '/events?action=add',         icon: CalendarPlus,  module: 'events' },
+    { label: 'Generate Report',               href: '/reports?action=generate',   icon: FileText },
+  ];
+  return actions.filter((a) => !a.module || t.has(a.module));
+}
 
 export function CommandPalette() {
-  const industry = useIndustry();
+  const t = useTerminology();
+  const role = useAuthStore((st) => st.user?.role);
   const router = useRouter();
+  // The same entries the header offers this role in this industry — never an
+  // admin-only page to a receptionist, or a module the tenant does not have.
+  const navItems = getVisibleNavSections(role, t.slug).flatMap((section) => section.items);
   const { commandPaletteOpen, closeCommandPalette } = useUIStore();
   const [search, setSearch] = useState('');
 
@@ -59,7 +69,7 @@ export function CommandPalette() {
         <CommandEmpty>No results found.</CommandEmpty>
         
         <CommandGroup heading="Navigation">
-          {getFlatNav(industry).map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <CommandItem
@@ -77,7 +87,7 @@ export function CommandPalette() {
         <CommandSeparator />
 
         <CommandGroup heading="Quick Actions">
-          {QUICK_ACTIONS.map((action) => {
+          {quickActions(t).map((action) => {
             const Icon = action.icon;
             return (
               <CommandItem key={action.href} value={action.label} onSelect={() => handleSelect(action.href)}>

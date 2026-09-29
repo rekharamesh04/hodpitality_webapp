@@ -4,7 +4,7 @@ import { Clock, AlertTriangle, User } from 'lucide-react';
 import { cn, formatTimeLabel, addMinutesToTime } from '@/lib/utils';
 import { APPOINTMENT_STATUS_STYLES, APPOINTMENT_STATUS_LABELS } from '@/constants/appointment';
 import { tierBadgeClass } from '@/constants/customer';
-import { useIndustry } from '@/hooks';
+import { useIndustry, useTerminology } from '@/hooks';
 import type { Appointment } from '@/types';
 
 interface AppointmentCardProps {
@@ -15,10 +15,11 @@ interface AppointmentCardProps {
 }
 
 export function AppointmentCard({ appointment: a, onClick, className, showStaff = false }: AppointmentCardProps) {
+  const t = useTerminology();
   const industry = useIndustry();
   const status = a.status ?? 'scheduled';
   const endTime = a.endTime ?? (a.startTime && a.duration ? addMinutesToTime(a.startTime, a.duration) : undefined);
-  const customerLabel = a.customerName ?? a.guestName ?? 'Guest';
+  const customerLabel = a.customerName ?? a.guestName ?? t.person.one;
   const serviceLabel = a.serviceName ?? a.service ?? 'Appointment';
 
   return (

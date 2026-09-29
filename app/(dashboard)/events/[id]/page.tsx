@@ -306,7 +306,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
       {/* Attendees (from GET /events/{id}/attendees) */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Checked-in Guests</CardTitle>
+          <CardTitle className="text-base">Checked-in {t.person.many}</CardTitle>
         </CardHeader>
         <CardContent>
           {attendeesLoading ? (
@@ -343,7 +343,7 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                         </AvatarFallback>
                       </Avatar>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{ci.guestName || ci.guestId || 'Guest'}</p>
+                        <p className="truncate text-sm font-medium">{ci.guestName || ci.guestId || t.person.one}</p>
                         <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
                           <span>{formatCheckInTimestamp(ci.timestamp ?? ci.checkInTime)}</span>
                           <span aria-hidden="true">•</span>

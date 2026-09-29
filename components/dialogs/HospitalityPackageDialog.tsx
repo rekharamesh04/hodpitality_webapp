@@ -17,6 +17,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { popup } from '@/lib/popup';
 import { Hotel, Car, Utensils, Plane, Star } from 'lucide-react';
+import { useTerminology } from '@/hooks';
 
 interface HospitalityPackageDialogProps {
   open: boolean;
@@ -65,6 +66,7 @@ export function HospitalityPackageDialog({
   guestId, 
   guestName 
 }: HospitalityPackageDialogProps) {
+  const t = useTerminology();
   const { createHospitalityPackage, loading } = useWorkflow();
   
   const [selectedPackage, setSelectedPackage] = useState<'standard' | 'speaker' | 'vip'>('standard');
@@ -159,7 +161,7 @@ export function HospitalityPackageDialog({
             <h4 className="font-medium mb-2">Package Summary</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span>Guest:</span>
+                <span>{t.person.one}:</span>
                 <span className="font-medium">{guestName}</span>
               </div>
               <div className="flex justify-between">

@@ -19,12 +19,14 @@ import {
   useRegistrations, useConfirmRegistration, useDeleteRegistration,
 } from '@/hooks/useRegistrations';
 import { formatDate, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
+import { useTerminology } from '@/hooks';
 
 /** There is no GET /registrations/{id} on the backend — only PUT/DELETE at that path.
  * This page fetches the full (unfiltered) list, same as the Registrations list page, and
  * finds the matching record client-side. Same approach the Resellers/Companies "view" panels
  * use, just as a full route here since the task specifically asked for /registrations/{id}. */
 export default function RegistrationDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTerminology();
   const { id } = use(params);
   const router = useRouter();
 
@@ -123,7 +125,7 @@ export default function RegistrationDetailPage({ params }: { params: Promise<{ i
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Guest Information</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">{t.person.one} Information</CardTitle></CardHeader>
           <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <InfoRow icon={Mail} label="Email" value={registration.guestEmail} />
             <InfoRow icon={Phone} label="Phone" value={registration.phone} />

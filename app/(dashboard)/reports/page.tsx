@@ -21,18 +21,28 @@ import { useActionParam } from '@/hooks/useActionParam';
 import { useDashboardStats, useRevenueTrendChart } from '@/hooks/useReports';
 import { exportToCSV, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { DashboardStats } from '@/types';
-import { useTerminology } from '@/hooks';
+import { useTerminology, type Terminology } from '@/hooks';
 
-const METRIC_LABELS: Record<keyof DashboardStats, string> = {
-  todayCheckIns: "Today's Check-ins",
-  guestsArrived: 'Guests Arrived',
-  pendingGuests: 'Pending Guests',
-  hospitalityBookings: 'Hospitality Bookings',
-  venueOccupancy: 'Venue Occupancy',
-  totalGuests: 'Total Guests',
-  totalEvents: 'Total Events',
-  activeStaff: 'Active Staff',
-};
+/** The metric names, in the tenant's vocabulary — the same words as the dashboard tiles. */
+function metricLabels(t: Terminology): Record<keyof DashboardStats, string> {
+  return {
+    todayCheckIns: "Today's Check-ins",
+    guestsArrived: `${t.person.many} Arrived`,
+    pendingGuests: `Pending ${t.person.many}`,
+    hospitalityBookings: `${t.place.one} Service Bookings`,
+    venueOccupancy: `${t.place.one} Occupancy`,
+    totalGuests: `Total ${t.person.many}`,
+    totalEvents: 'Total Events',
+    activeStaff: 'Active Staff',
+  };
+}
+
+/** Metrics for a module the industry is not offered are left out, as on the dashboard. */
+function metricKeys(t: Terminology, keys: (keyof DashboardStats)[]): (keyof DashboardStats)[] {
+  return keys.filter(
+    (k) => !(k === 'hospitalityBookings' && !t.has('hospitality')) && !(k === 'totalEvents' && !t.has('events')),
+  );
+}
 
 // Venue Occupancy is a percentage, not a count — charting it alongside raw counts on the same
 // axis would be misleading, so it's excluded from the comparison chart and shown as its own stat.
@@ -54,19 +64,21 @@ function ReportsPageInner() {
   useActionParam({ generate: () => setGenerateOpen(true) });
   const { data: stats, isLoading, isError, error, refetch, isFetching } = useDashboardStats();
 
+  const labels = useMemo(() => metricLabels(t), [t]);
+
   const chartData = useMemo(
-    () => CHART_METRIC_KEYS.map((key) => ({ name: METRIC_LABELS[key], value: stats?.[key] ?? 0 })),
-    [stats]
+    () => metricKeys(t, CHART_METRIC_KEYS).map((key) => ({ name: labels[key], value: stats?.[key] ?? 0 })),
+    [stats, t, labels]
   );
 
   const tableRows = useMemo(
-    () => (Object.keys(METRIC_LABELS) as (keyof DashboardStats)[]).map((key) => ({
+    () => metricKeys(t, Object.keys(labels) as (keyof DashboardStats)[]).map((key) => ({
       key,
-      label: METRIC_LABELS[key],
+      label: labels[key],
       value: stats?.[key],
       display: stats?.[key] == null ? '—' : key === 'venueOccupancy' ? `${stats[key]}%` : String(stats[key]),
     })),
-    [stats]
+    [stats, t, labels]
   );
 
   function handleExport() {

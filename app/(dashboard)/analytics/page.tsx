@@ -343,7 +343,7 @@ function AnalyticsPageInner() {
 
       {/* Events & Guests */}
       <section aria-labelledby="analytics-events-heading" className="space-y-6">
-        <h2 id="analytics-events-heading" className="text-lg font-semibold">Events &amp; Guests</h2>
+        <h2 id="analytics-events-heading" className="text-lg font-semibold">Events &amp; {t.person.many}</h2>
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <ChartCard title="Events by Status" description="Current events grouped by status" isLoading={events.isLoading} isError={events.isError} error={events.error} onRetry={() => events.refetch()} empty={eventStatusData.length === 0}>
             {/* Too many distinct statuses make a donut unreadable — fall back to a bar chart. */}
@@ -371,7 +371,7 @@ function AnalyticsPageInner() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Guest Activity</CardTitle>
+            <CardTitle>{t.person.one} Activity</CardTitle>
             <CardDescription>Current {t.person.one.toLowerCase()} status snapshot</CardDescription>
           </CardHeader>
           <CardContent>

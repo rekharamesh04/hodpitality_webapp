@@ -49,6 +49,13 @@ function formErrorMessage(err: unknown): string | null {
   return backendMsg || getFriendlyErrorMessage(err, 'Unable to save staff member.');
 }
 
+/** Legacy doctor/nurse ids read as their neutral equivalents — see ROLE_ALIASES in the backend. */
+function canonicalRole(role: unknown): string {
+  if (role === 'doctor') return 'practitioner';
+  if (role === 'nurse') return 'assistant';
+  return typeof role === 'string' ? role : '';
+}
+
 export default function StaffPage() {
   return (
     <Suspense fallback={<StaffPageSkeleton />}>
@@ -108,8 +115,12 @@ function StaffPageInner() {
     [allStaff]
   );
   // Roles present in the current data set — used only to populate the "filter by role" dropdown.
+  // doctor/nurse are folded into practitioner/assistant: same label, same
+  // access, so one "Doctor" entry that matches both.
   const existingRoleValues = useMemo(
-    () => Array.from(new Set(allStaff.map((s) => s.role).filter((r): r is string => !!r && typeof r === 'string'))) as string[],
+    () => Array.from(new Set(
+      allStaff.map((s) => s.role).filter((r): r is string => !!r && typeof r === 'string').map(canonicalRole),
+    )) as string[],
     [allStaff]
   );
   // Roles the logged-in user may hand out — the same rule the backend enforces.
@@ -118,7 +129,7 @@ function StaffPageInner() {
   const filtered = useMemo(() => {
     return allStaff.filter((s) => {
       if (department && s.department !== department) return false;
-      if (role && s.role !== role) return false;
+      if (role && canonicalRole(s.role) !== canonicalRole(role)) return false;
       return true;
     });
   }, [allStaff, department, role]);
