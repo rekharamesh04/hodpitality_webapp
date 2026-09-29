@@ -54,7 +54,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
   const [faceOpen, setFaceOpen] = useState(false);
   const [bookOpen, setBookOpen] = useState(false);
 
-  const { data: appointmentsData } = useAppointments({ guestId: id }, { enabled: !!guest });
+  const { data: appointmentsData } = useAppointments({ guestId: id }, { enabled: !!guest && t.has('appointments') });
   const relatedAppointments = appointmentsData ?? [];
   const { data: hospitalityData, isLoading: hospitalityLoading } = useGuestHospitality(id, { enabled: !!guest && t.has('hospitality') });
   const hospitalityRequests = hospitalityData ?? [];

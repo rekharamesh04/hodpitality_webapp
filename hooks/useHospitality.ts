@@ -14,10 +14,11 @@ export const hospitalityKeys = {
   guest: (guestId: string) => ["hospitality", "guest", guestId] as const,
 };
 
-export function useHospitalityBookings(filters: FilterOptions = {}) {
+export function useHospitalityBookings(filters: FilterOptions = {}, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: hospitalityKeys.list(filters),
     queryFn: () => hospitalityService.getBookings(filters),
+    enabled: options?.enabled ?? true,
   });
 }
 

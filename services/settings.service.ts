@@ -24,8 +24,10 @@ export const settingsService = {
   },
 
   async changePassword(payload: { currentPassword: string; newPassword: string }): Promise<{ message: string }> {
-    // Cognito requires the Access Token (not the ID Token) to authorise a password change
-    const { data } = await api.put<{ message: string }>(API_ENDPOINTS.SETTINGS.PASSWORD, payload, { useAccessToken: true });
+    // Sent like every other request. The backend checks the current password for the signed-in
+    // email and gets the access token Cognito's change_password needs itself — login never hands
+    // one out, so asking for it here always failed.
+    const { data } = await api.put<{ message: string }>(API_ENDPOINTS.SETTINGS.PASSWORD, payload);
     return data;
   },
 };

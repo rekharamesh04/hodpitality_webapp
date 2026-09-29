@@ -6,6 +6,7 @@ import { MobileNavDrawer, MobileTabBar } from '@/components/layout/MobileNav';
 import { CommandPalette } from '@/components/common/CommandPalette';
 import { WorkflowTrail } from '@/components/workflow/WorkflowTrail';
 import { Loading } from '@/components/common/Loading';
+import { ModuleGate } from '@/components/layout/ModuleGate';
 import { useAuthStore } from '@/store';
 import { useSyncIdentity } from '@/hooks';
 import { useRouter } from 'next/navigation';
@@ -45,7 +46,7 @@ export default function DashboardLayout({
           className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8"
         >
           <WorkflowTrail />
-          {children}
+          <ModuleGate>{children}</ModuleGate>
         </motion.div>
       </main>
 

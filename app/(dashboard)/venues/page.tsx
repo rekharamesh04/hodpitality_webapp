@@ -86,7 +86,7 @@ function VenuesPageInner() {
   // list-filtering helper checks both). `type` isn't confirmed, so it's applied client-side
   // over this fetched set — which also keeps its dropdown options stable as other filters change.
   const { data: venuesData, isLoading, isError, error, refetch } = useVenues({ search: search || undefined, status: status || undefined });
-  const { data: eventsData } = useEvents();
+  const { data: eventsData } = useEvents({}, { enabled: t.has('events') });
 
   const createMutation = useCreateVenue();
   const updateMutation = useUpdateVenue();

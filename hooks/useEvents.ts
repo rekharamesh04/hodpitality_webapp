@@ -13,11 +13,12 @@ export const eventKeys = {
   upcoming:  QUERY_KEYS.UPCOMING_EVENTS,
 };
 
-export function useEvents(filters: EventFilters = {}) {
+export function useEvents(filters: EventFilters = {}, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: eventKeys.list(filters),
     queryFn:  () => eventService.getEvents(filters),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -38,10 +39,11 @@ export function useEventAttendees(id: string) {
   });
 }
 
-export function useUpcomingEvents() {
+export function useUpcomingEvents(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: eventKeys.upcoming,
     queryFn:  () => eventService.getUpcomingEvents(),
+    enabled: options?.enabled ?? true,
   });
 }
 

@@ -41,7 +41,7 @@ export function PersonHistory({ entity, personId, personName, onBook }: PersonHi
   const [selected, setSelected] = useState<Appointment | null>(null);
   const [payOpen, setPayOpen] = useState(false);
 
-  const appointmentsQuery = useAppointments({ guestId: personId }, { enabled: !!personId });
+  const appointmentsQuery = useAppointments({ guestId: personId }, { enabled: !!personId && t.has('appointments') });
   const visitsQuery = useCheckIns({ guestId: personId });
   const paymentsQuery = usePayments({ guestId: personId, limit: 200 }, { enabled: !!personId && t.has('payments') });
 

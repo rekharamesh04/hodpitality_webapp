@@ -39,10 +39,9 @@ export interface NavItem {
    * The area of the product this entry belongs to. An industry that does not
    * list the module is not offered the entry.
    *
-   * This is presentation only. The API still serves every module to every
-   * tenant, so a hidden entry is tidiness rather than a permission — real
-   * per-industry authorisation would have to be enforced in the backend route
-   * table as its own change.
+   * The page itself is guarded too (ModuleGate, via moduleForPath), so typing
+   * the URL does not open it. The real permission is the backend's
+   * ENFORCE_INDUSTRY_MODULES route gate; this keeps the UI from ever asking.
    */
   module?: IndustryModule;
   /** Position in the industry's workflow (1-based). Unset for tools outside it. */
@@ -205,4 +204,14 @@ export function getVisibleNavSections(role: string | undefined, industry?: unkno
 /** True when `pathname` is the item's page or one of its detail pages (e.g. /guests/123). */
 export function isNavItemActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+/**
+ * The industry module a page belongs to, or undefined when every industry has
+ * it. Read from the navigation itself so a page and its menu entry can never
+ * disagree about which module they are. Routes are the same in every
+ * industry, so the neutral nav (which lists every module) is enough.
+ */
+export function moduleForPath(pathname: string): IndustryModule | undefined {
+  return FLAT_NAV.find((item) => item.module && isNavItemActive(pathname, item.href))?.module;
 }

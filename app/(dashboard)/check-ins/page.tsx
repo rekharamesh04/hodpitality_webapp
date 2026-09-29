@@ -105,10 +105,10 @@ function CheckInsPageInner() {
   // (and the badge counts) stable as any single filter changes.
   const { data: checkIns, isLoading, isError, error, refetch } = useCheckIns({ search: search || undefined });
   const { data: stats } = useCheckInStats();
-  const { data: events } = useEvents();
+  const { data: events } = useEvents({}, { enabled: t.has('events') });
   // The backend only auto-links a check-in to an appointment for the SAME day, so appointment
   // data is only ever fetched (and only ever shown) for the date currently being viewed.
-  const { data: appointments } = useAppointments({ date: date || todayIso() });
+  const { data: appointments } = useAppointments({ date: date || todayIso() }, { enabled: t.has('appointments') });
 
   const quickCheckIn = useCheckIn();
   const qrCheckIn = useQrCheckIn();

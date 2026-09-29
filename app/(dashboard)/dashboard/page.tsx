@@ -35,12 +35,12 @@ export default function DashboardPage() {
 
   const stats = useDashboardStats();
   const activity = useDashboardActivity();
-  const upcomingEvents = useUpcomingEvents();
+  const upcomingEvents = useUpcomingEvents({ enabled: t.has('events') });
   const checkIns = useCheckIns();
   const checkInStats = useCheckInStats();
   const guests = useGuests({ limit: 5 });
   const payments = usePayments({ limit: 20 }, { enabled: hasPayments });
-  const hospitality = useHospitalityBookings();
+  const hospitality = useHospitalityBookings({}, { enabled: t.has('hospitality') });
   const notifications = useNotifications({ limit: 5 });
   const markAllRead = useMarkAllNotificationsRead();
 
