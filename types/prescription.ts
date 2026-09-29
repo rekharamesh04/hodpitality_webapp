@@ -40,6 +40,27 @@ export type MedicineEntry = Medicine | string;
  */
 export type PrescriptionStatus = 'active' | 'completed' | 'cancelled';
 
+/**
+ * A photo (or PDF) of the paper prescription. It is a person document with
+ * category "prescription" that also names its prescription, so it is listed
+ * under the patient's documents too. `url` is signed on every read and
+ * expires — never store it.
+ */
+export interface PrescriptionAttachment {
+  id: string;
+  prescriptionId: string;
+  personId?: string;
+  title?: string;
+  fileName?: string;
+  contentType?: string;
+  size?: number;
+  url?: string;
+  uploadedBy?: string;
+  uploadedById?: string;
+  created_at?: string;
+  createdAt?: string;
+}
+
 export interface Prescription {
   id: string;
   PK?: string;
@@ -52,11 +73,14 @@ export interface Prescription {
   /** Same value as customerName; the backend writes both. */
   patientName?: string;
 
-  /** The prescriber, as a STAFF row rather than an external NPI. */
+  /** The prescriber's STAFF row. Empty when the prescriber is an outside doctor. */
   staffId: string;
+  /** The prescriber's name — a staff member's, or the outside doctor's as typed. */
   staffName?: string;
   /** Same value as staffName; the backend writes both. */
   doctorName?: string;
+  /** True when the prescriber is a doctor outside this organisation (no STAFF row). */
+  externalPrescriber?: boolean;
 
   /** The visit this was written at, when there was one. */
   appointmentId?: string;
@@ -68,6 +92,8 @@ export interface Prescription {
   /** "paid" once a payment covering this prescription is recorded (POST /payments with prescriptionIds). */
   paymentStatus?: string;
   paymentId?: string;
+  /** Photos of the paper prescription, oldest (page 1) first. Always present on reads. */
+  attachments?: PrescriptionAttachment[];
 
   created_at?: string;
   createdAt?: string;
@@ -83,8 +109,10 @@ export interface PrescriptionFilters {
 export interface CreatePrescriptionPayload {
   /** The backend accepts `customerId` or `patientId`; it requires one of them. */
   customerId: string;
-  /** The backend accepts `staffId` or `doctorId`; it requires one of them. */
-  staffId: string;
+  /** A staff prescriber. The backend requires this or `prescriberName`. */
+  staffId?: string;
+  /** An outside doctor, by name, when the prescriber is not on the staff. */
+  prescriberName?: string;
   appointmentId?: string;
   medicines?: MedicineEntry[];
   diagnosis?: string;
@@ -114,6 +142,26 @@ export function medicinesOf(p: Prescription): MedicineEntry[] {
   return Array.isArray(p.medicines) ? p.medicines : [];
 }
 
+/** Lines that actually name a medicine — the same test the backend applies before completing. */
+export function typedMedicinesOf(p: Prescription): MedicineEntry[] {
+  return medicinesOf(p).filter((m) => {
+    const name = typeof m === 'string' ? m : m.name;
+    return typeof name === 'string' && name.trim() !== '';
+  });
+}
+
+/**
+ * Saved from a photo of the paper and not typed up yet. It cannot be handed
+ * over or completed until it is — the backend refuses with MEDICINES_NOT_TYPED.
+ */
+export function awaitingTyping(p: Prescription): boolean {
+  return typedMedicinesOf(p).length === 0;
+}
+
+export function attachmentsOf(p: Prescription): PrescriptionAttachment[] {
+  return Array.isArray(p.attachments) ? p.attachments : [];
+}
+
 /** When the prescription was written, whichever field the row carries. */
 export function writtenAt(p: Prescription): string | undefined {
   return p.created_at ?? p.createdAt;
@@ -135,8 +183,9 @@ export function prescriptionsFor(all: readonly Prescription[], patientId: string
 /**
  * Waiting to be collected. The record has no dispensing states, so "active"
  * — written and not yet released at the counter — is what ready means here;
- * releasing one sets it to completed.
+ * releasing one sets it to completed. One still awaiting typing is not ready:
+ * there is nothing checked to hand over.
  */
 export function isReadyForPickup(p: Prescription): boolean {
-  return p.status === 'active';
+  return p.status === 'active' && !awaitingTyping(p);
 }

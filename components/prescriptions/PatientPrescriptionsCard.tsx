@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ChevronRight, PackageCheck, Pill, Plus } from 'lucide-react';
+import { Camera, ChevronRight, PackageCheck, Pill, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -13,7 +13,8 @@ import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { useTerminology } from '@/hooks';
 import { getFriendlyErrorMessage, getRelativeTime } from '@/lib/utils';
 import {
-  isReadyForPickup, medicineLabel, medicinesOf, prescriberNameOf, prescriptionsFor, writtenAt,
+  attachmentsOf, awaitingTyping, isReadyForPickup, medicineLabel, medicinesOf, prescriberNameOf,
+  prescriptionsFor, writtenAt,
 } from '@/types/prescription';
 import type { Guest } from '@/types';
 
@@ -82,6 +83,7 @@ export function PatientPrescriptionsCard({ guest, guestId }: { guest: Prescripti
               {theirs.slice(0, SHOWN).map((p) => {
                 const meds = medicinesOf(p);
                 const when = writtenAt(p);
+                const photoCount = attachmentsOf(p).length;
                 return (
                   <li key={p.id}>
                     <button
@@ -94,10 +96,13 @@ export function PatientPrescriptionsCard({ guest, guestId }: { guest: Prescripti
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
-                          {meds.length ? medicineLabel(meds[0]) : 'Prescription'}
-                          {meds.length > 1 && <span className="font-normal text-muted-foreground"> +{meds.length - 1} more</span>}
+                          {awaitingTyping(p)
+                            ? (photoCount ? <span className="text-amber-700 dark:text-amber-400">Not typed yet</span> : 'Prescription')
+                            : medicineLabel(meds[0])}
+                          {!awaitingTyping(p) && meds.length > 1 && <span className="font-normal text-muted-foreground"> +{meds.length - 1} more</span>}
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                          {photoCount > 0 && <Camera className="h-3 w-3 shrink-0" aria-label={`${photoCount} photo${photoCount === 1 ? '' : 's'}`} />}
                           {prescriberNameOf(p)}{when ? ` · ${getRelativeTime(when)}` : ''}
                         </p>
                       </div>

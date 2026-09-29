@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Pill, Plus, RefreshCw, MoreHorizontal, Eye, Stethoscope, Trash2 } from 'lucide-react';
+import { Pill, Plus, RefreshCw, MoreHorizontal, Eye, Stethoscope, Trash2, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -29,7 +29,7 @@ import { useActionParam } from '@/hooks/useActionParam';
 import { PRESCRIPTION_QUEUES } from '@/constants/prescription';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials, getRelativeTime } from '@/lib/utils';
 import {
-  medicineLabel, medicinesOf, patientNameOf, prescriberNameOf,
+  attachmentsOf, awaitingTyping, medicineLabel, medicinesOf, patientNameOf, prescriberNameOf,
   type Prescription,
 } from '@/types/prescription';
 
@@ -233,6 +233,7 @@ function PrescriptionsPageInner() {
                 <TableBody>
                   {pageItems.map((p) => {
                     const meds = medicinesOf(p);
+                    const photoCount = attachmentsOf(p).length;
                     const created = p.created_at ?? p.createdAt;
                     return (
                       <TableRow
@@ -252,8 +253,10 @@ function PrescriptionsPageInner() {
                         </TableCell>
 
                         <TableCell className="max-w-[260px]">
-                          {meds.length === 0 ? (
-                            <span className="text-sm text-muted-foreground">None recorded</span>
+                          {awaitingTyping(p) ? (
+                            <span className={cn('text-sm', photoCount ? 'font-medium text-amber-700 dark:text-amber-400' : 'text-muted-foreground')}>
+                              {photoCount ? 'Not typed yet' : 'None recorded'}
+                            </span>
                           ) : (
                             <div className="min-w-0">
                               <p className="truncate text-sm">{medicineLabel(meds[0])}</p>
@@ -263,6 +266,12 @@ function PrescriptionsPageInner() {
                                 </p>
                               )}
                             </div>
+                          )}
+                          {photoCount > 0 && (
+                            <p className="mt-0.5 inline-flex items-center gap-1 text-xs text-muted-foreground">
+                              <Camera className="h-3 w-3" aria-hidden="true" />
+                              {photoCount} photo{photoCount === 1 ? '' : 's'}
+                            </p>
                           )}
                         </TableCell>
 

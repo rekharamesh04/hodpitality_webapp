@@ -1,7 +1,10 @@
 import api from '@/lib/axios';
 import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Prescription, PrescriptionFilters, CreatePrescriptionPayload } from '@/types/prescription';
+import { uploadService } from './upload.service';
+import type {
+  Prescription, PrescriptionAttachment, PrescriptionFilters, CreatePrescriptionPayload,
+} from '@/types/prescription';
 
 /**
  * The prescriptions API.
@@ -44,5 +47,21 @@ export const prescriptionService = {
 
   async deletePrescription(id: string): Promise<void> {
     await api.delete(`${API_ENDPOINTS.PRESCRIPTIONS}/${id}`);
+  },
+
+  /** A photo or PDF of the paper prescription: the file to S3 first, then the record of it. */
+  async addAttachment(id: string, file: File): Promise<PrescriptionAttachment> {
+    const s3Key = await uploadService.uploadDocument(file);
+    const { data } = await api.post<PrescriptionAttachment>(`${API_ENDPOINTS.PRESCRIPTIONS}/${id}/attachments`, {
+      s3_key: s3Key,
+      fileName: file.name,
+      contentType: file.type,
+      size: file.size,
+    });
+    return data;
+  },
+
+  async removeAttachment(id: string, attachmentId: string): Promise<void> {
+    await api.delete(`${API_ENDPOINTS.PRESCRIPTIONS}/${id}/attachments/${attachmentId}`);
   },
 };

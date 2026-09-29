@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, ArrowRight, Check, ScanFace, Phone, Mail, UserCheck, EyeOff,
-  ShieldCheck, ShieldX, PackageCheck, RotateCcw, Clock, Search,
+  ShieldCheck, ShieldX, PackageCheck, RotateCcw, Clock, Search, Keyboard,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
+import { PrescriptionPhotos } from '@/components/prescriptions/PrescriptionPhotos';
 import { RecordPatientPaymentDialog, type PaymentPerson } from '@/components/dialogs/RecordPatientPaymentDialog';
 import { useGuest, useGuests } from '@/hooks/use-guests';
 import { useCustomer } from '@/hooks/useCustomers';
@@ -31,7 +32,9 @@ import { useTerminology } from '@/hooks';
 import { checkInService } from '@/services/checkin.service';
 import { popup } from '@/lib/popup';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
-import { isReadyForPickup, medicineLabel, medicinesOf, prescriptionsFor } from '@/types/prescription';
+import {
+  attachmentsOf, awaitingTyping, isReadyForPickup, medicineLabel, medicinesOf, prescriptionsFor,
+} from '@/types/prescription';
 import type { Guest } from '@/types';
 
 /**
@@ -146,12 +149,16 @@ function PickupPageInner() {
 
   const verified = attempts.some((a) => a.ok);
 
-  const { data: prescriptions, isLoading: rxLoading } = usePrescriptions({});
-  const theirs = useMemo(() => {
+  const { data: prescriptions, isLoading: rxLoading, refetch: refetchRx } = usePrescriptions({});
+  const theirActive = useMemo(() => {
     if (!activeGuest) return [];
     const gid = guestIdOf(activeGuest);
-    return prescriptionsFor(prescriptions ?? [], gid).filter(isReadyForPickup);
+    return prescriptionsFor(prescriptions ?? [], gid).filter((p) => p.status === 'active');
   }, [prescriptions, activeGuest]);
+  const theirs = theirActive.filter(isReadyForPickup);
+  // Saved from a photo and not typed yet: shown, but not releasable — there is
+  // nothing checked to hand over until someone types what the paper says.
+  const untyped = theirActive.filter(awaitingTyping);
 
   const updateRx = useUpdatePrescription();
   const chosen = theirs.filter((p) => selected.has(p.id));
@@ -533,7 +540,9 @@ function PickupPageInner() {
                   <EmptyState
                     icon={PackageCheck}
                     title="Nothing to collect"
-                    description={`${activeGuest.name} has no active prescriptions.`}
+                    description={untyped.length
+                      ? `${activeGuest.name}'s prescriptions still need their medicines typed in.`
+                      : `${activeGuest.name} has no active prescriptions.`}
                   />
                 ) : (
                   theirs.map((p) => {
@@ -568,10 +577,43 @@ function PickupPageInner() {
                             <p className="mt-0.5 text-xs text-muted-foreground">+{meds.length - 1} more</p>
                           )}
                           {p.diagnosis && <p className="mt-0.5 text-xs text-muted-foreground">{p.diagnosis}</p>}
+                          {attachmentsOf(p).length > 0 && (
+                            <div className="mt-2">
+                              <p className="mb-1 text-[11px] text-muted-foreground">Check against the original:</p>
+                              <PrescriptionPhotos
+                                prescriptionId={p.id}
+                                attachments={attachmentsOf(p)}
+                                onReload={() => refetchRx()}
+                                size="sm"
+                                allowRemove={false}
+                              />
+                            </div>
+                          )}
                         </div>
                       </label>
                     );
                   })
+                )}
+
+                {!rxLoading && untyped.length > 0 && (
+                  <div className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/20">
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-300">
+                      {untyped.length} not ready — medicines not typed yet
+                    </p>
+                    {untyped.map((p) => (
+                      <div key={p.id} className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs text-amber-800/80 dark:text-amber-400/80">
+                          {attachmentsOf(p).length
+                            ? `${attachmentsOf(p).length} photo${attachmentsOf(p).length === 1 ? '' : 's'}`
+                            : 'No photo'}
+                          {p.staffName || p.doctorName ? ` · ${p.staffName || p.doctorName}` : ''}
+                        </p>
+                        <Button size="sm" variant="outline" onClick={() => router.push(`/prescriptions/${p.id}`)}>
+                          <Keyboard className="mr-2 h-4 w-4" /> Type medicines
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 )}
 
                 {theirs.length > 0 && (

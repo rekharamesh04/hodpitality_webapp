@@ -3,7 +3,7 @@
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Pill, Pencil, Trash2, Stethoscope, User, CalendarClock, CheckCircle2, XCircle,
+  ArrowLeft, Pill, Pencil, Trash2, Stethoscope, User, CalendarClock, CheckCircle2, XCircle, Camera, Keyboard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,12 +14,15 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
 import { PrescriptionFormDialog } from '@/components/dialogs/PrescriptionFormDialog';
+import { PrescriptionPhotos } from '@/components/prescriptions/PrescriptionPhotos';
 import {
   usePrescription, useUpdatePrescription, useDeletePrescription,
 } from '@/hooks/usePrescriptions';
 import { useTerminology } from '@/hooks';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
-import { medicineLabel, medicinesOf, patientNameOf, prescriberNameOf } from '@/types/prescription';
+import {
+  attachmentsOf, awaitingTyping, medicineLabel, medicinesOf, patientNameOf, prescriberNameOf,
+} from '@/types/prescription';
 
 /**
  * One prescription.
@@ -75,6 +78,8 @@ export default function PrescriptionDetailPage({
   }
 
   const meds = medicinesOf(rx);
+  const photos = attachmentsOf(rx);
+  const untyped = awaitingTyping(rx);
   const created = rx.created_at ?? rx.createdAt;
   const isActive = rx.status === 'active';
 
@@ -119,6 +124,8 @@ export default function PrescriptionDetailPage({
                     variant="outline"
                     onClick={() => setStatus('completed')}
                     loading={updateMutation.isPending}
+                    disabled={untyped}
+                    title={untyped ? 'Type the medicines first' : undefined}
                   >
                     <CheckCircle2 className="mr-2 h-4 w-4" /> Complete
                   </Button>
@@ -139,6 +146,39 @@ export default function PrescriptionDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {untyped && isActive && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
+          <div>
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">Not typed yet</p>
+            <p className="text-xs text-amber-800/80 dark:text-amber-400/80">
+              {photos.length
+                ? 'Read the medicines from the photo and type them in. It cannot be handed over or completed until then.'
+                : 'No medicines are recorded. Type them in before it can be handed over or completed.'}
+            </p>
+          </div>
+          <Button size="sm" onClick={() => setEditOpen(true)}>
+            <Keyboard className="mr-2 h-4 w-4" /> Type medicines
+          </Button>
+        </div>
+      )}
+
+      {photos.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Camera className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              Original prescription
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              {photos.length} photo{photos.length === 1 ? '' : 's'} of the written prescription. Open one to zoom and rotate.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <PrescriptionPhotos prescriptionId={rx.id} attachments={photos} onReload={() => refetch()} />
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Medicines */}
@@ -222,7 +262,11 @@ export default function PrescriptionDetailPage({
             <CardHeader><CardTitle className="text-base">Details</CardTitle></CardHeader>
             <CardContent>
               <dl className="space-y-3">
-                <Field label={t.practitioner} value={prescriberNameOf(rx)} icon={Stethoscope} />
+                <Field
+                  label={t.practitioner}
+                  value={rx.externalPrescriber ? `${prescriberNameOf(rx)} (outside)` : prescriberNameOf(rx)}
+                  icon={Stethoscope}
+                />
                 <Field label="Written" value={created ? formatDate(created, 'MMM dd, yyyy HH:mm') : '—'} icon={CalendarClock} />
                 <Field label="Status" value={rx.status ? String(rx.status) : '—'} />
                 {rx.appointmentId ? <Field label={t.visit.one} value={rx.appointmentId} mono /> : null}
@@ -243,7 +287,7 @@ export default function PrescriptionDetailPage({
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
         title="Delete this prescription?"
-        description={`The prescription for ${patientNameOf(rx)} will be removed. This cannot be undone.`}
+        description={`The prescription for ${patientNameOf(rx)}${photos.length ? ` and its ${photos.length} photo${photos.length === 1 ? '' : 's'}` : ''} will be removed. This cannot be undone.`}
         confirmLabel="Delete"
         destructive
         isConfirming={deleteMutation.isPending}

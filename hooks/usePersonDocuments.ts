@@ -3,6 +3,7 @@ import { popup } from '@/lib/popup';
 import { documentService } from '@/services/document.service';
 import type { PersonEntity, UploadDocumentInput } from '@/services/document.service';
 import { getFriendlyErrorMessage } from '@/lib/utils';
+import { QUERY_KEYS } from '@/constants';
 
 export const documentKeys = {
   person: (entity: PersonEntity, personId: string) => ['person-documents', entity, personId] as const,
@@ -36,6 +37,8 @@ export function useDeletePersonDocument(entity: PersonEntity, personId: string) 
     mutationFn: (documentId: string) => documentService.remove(entity, personId, documentId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: documentKeys.person(entity, personId) });
+      // The document may be a photo attached to one of their prescriptions.
+      qc.invalidateQueries({ queryKey: QUERY_KEYS.PRESCRIPTIONS });
       popup.success('Document deleted');
     },
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Failed to delete document')),

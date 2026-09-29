@@ -5,6 +5,9 @@ import { QUERY_KEYS } from '@/constants';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreatePrescriptionPayload, Prescription, PrescriptionFilters } from '@/types/prescription';
 
+/** Prescription photos are person documents too, so their Documents lists go stale with them. */
+const PERSON_DOCUMENTS_KEY = ['person-documents'] as const;
+
 export const prescriptionKeys = {
   all: QUERY_KEYS.PRESCRIPTIONS,
   list: (filters: PrescriptionFilters) => [...QUERY_KEYS.PRESCRIPTIONS, 'list', filters] as const,
@@ -56,12 +59,58 @@ export function useUpdatePrescription() {
   });
 }
 
+/**
+ * Uploads photos of the paper prescription one at a time, in page order.
+ *
+ * Resolves with the files that failed rather than throwing, because by now the
+ * prescription itself is saved: the caller says which pages to add again
+ * instead of reporting the whole save as failed.
+ */
+export function useAddPrescriptionAttachments() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, files }: { id: string; files: File[] }) => {
+      const failed: { file: File; error: string }[] = [];
+      for (const file of files) {
+        try {
+          await prescriptionService.addAttachment(id, file);
+        } catch (err: any) {
+          failed.push({ file, error: err?.backendMessage ?? getFriendlyErrorMessage(err, 'Upload failed') });
+        }
+      }
+      return { added: files.length - failed.length, failed };
+    },
+    onSettled: (_res, _err, vars) => {
+      qc.invalidateQueries({ queryKey: prescriptionKeys.all });
+      qc.invalidateQueries({ queryKey: prescriptionKeys.detail(vars.id) });
+      qc.invalidateQueries({ queryKey: PERSON_DOCUMENTS_KEY });
+    },
+  });
+}
+
+export function useRemovePrescriptionAttachment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, attachmentId }: { id: string; attachmentId: string }) =>
+      prescriptionService.removeAttachment(id, attachmentId),
+    onSuccess: (_res, vars) => {
+      qc.invalidateQueries({ queryKey: prescriptionKeys.all });
+      qc.invalidateQueries({ queryKey: prescriptionKeys.detail(vars.id) });
+      qc.invalidateQueries({ queryKey: PERSON_DOCUMENTS_KEY });
+      popup.success('Photo removed');
+    },
+    onError: (err: any) =>
+      popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not remove the photo')),
+  });
+}
+
 export function useDeletePrescription() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => prescriptionService.deletePrescription(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: prescriptionKeys.all });
+      qc.invalidateQueries({ queryKey: PERSON_DOCUMENTS_KEY });
       popup.success('Prescription deleted');
     },
     onError: (err: any) =>
