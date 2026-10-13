@@ -110,6 +110,8 @@ export const API_ENDPOINTS = {
   REGISTRATIONS: '/registrations',
   PRESCRIPTIONS: '/prescriptions',
   SERVICES: '/services',
+  /** Smart-glasses photos, taken by the signed-in user's own phone (see services/glasses.service.ts). */
+  GLASSES_CAPTURES: '/glasses-captures',
 } as const;
 
 // Query Keys

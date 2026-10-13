@@ -87,6 +87,7 @@ export function FacePhotoField({
         title="Face photo"
         description="Capture a clear, front-facing photo."
         submitLabel="Use photo"
+        glasses={{ purpose: 'enroll' }}
         onSubmit={(image) => {
           onPhotoChange(image);
           setCameraOpen(false);

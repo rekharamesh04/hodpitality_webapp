@@ -65,7 +65,11 @@ export const checkInService = {
     return data;
   },
 
-  async checkIn(payload: { guestId?: string; method?: string; venue?: string; event?: string }): Promise<CheckIn> {
+  /**
+   * POST /check-ins. With `appointmentId` the visit is matched to that booking, which the
+   * backend marks arrived and stamps with the arrival time — the OPD queue's token order.
+   */
+  async checkIn(payload: { guestId?: string; method?: string; venue?: string; event?: string; appointmentId?: string }): Promise<CheckIn> {
     const { data } = await api.post<CheckIn>(API_ENDPOINTS.CHECK_INS, {
       ...payload,
       checkInMethod: payload.method ?? 'Manual',

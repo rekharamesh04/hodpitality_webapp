@@ -11,11 +11,15 @@ export const appointmentKeys = {
   list: (filters: AppointmentFilters) => [...QUERY_KEYS.APPOINTMENTS, "list", filters] as const,
 };
 
-export function useAppointments(filters: AppointmentFilters = {}, options?: { enabled?: boolean }) {
+export function useAppointments(
+  filters: AppointmentFilters = {},
+  options?: { enabled?: boolean; /** Poll while the page is visible, e.g. a live queue. */ refetchInterval?: number },
+) {
   return useQuery({
     queryKey: appointmentKeys.list(filters),
     queryFn:  () => appointmentService.getAppointments(filters),
     enabled:  options?.enabled ?? true,
+    refetchInterval: options?.refetchInterval,
   });
 }
 

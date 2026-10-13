@@ -101,6 +101,8 @@ export interface CheckIn {
   notes?: string;
   /** Present on records created via facial recognition (confirmed in the backend's own check-in creation payload); not guaranteed on every check-in method. */
   status?: string;
+  /** The appointment this visit was matched to on arrival; empty for a walk-in with no booking. */
+  appointmentId?: string;
 }
 
 export interface CheckInStats {
@@ -540,12 +542,46 @@ export interface Appointment {
   checkinId?: string;
   /** Set by the backend automatically when status becomes "completed" — never write this from the frontend */
   checkoutAt?: string;
+  /** Set by the backend when the patient is called in (status "in-progress") — never write this from the frontend. */
+  consultStartedAt?: string;
+  /** List enrichment: the person's category, e.g. "Emergency" in a hospital. */
+  customerCategory?: string;
+  /** List enrichment: whether the tenant's industry treats this person as priority. */
+  isPriority?: boolean;
+  /** Set at triage. Overrides the person's standing priority for this one visit. */
+  visitPriority?: VisitPriority;
+  /** Vitals recorded at triage, stored on the visit. */
+  triage?: Triage;
   /** Set by the backend when the session is closed as completed or incomplete. */
   sessionClosedAt?: string;
   sessionClosedBy?: string;
   /** Why an incomplete session ended early, or any note left when closing it. */
   sessionNote?: string;
   incompleteAt?: string;
+}
+
+/** How urgently this visit must be seen, decided at triage. */
+export type VisitPriority = 'emergency' | 'urgent' | 'routine';
+
+/**
+ * Vitals taken by the nurse before the consultation. Every field is optional:
+ * triage records what was measured, and an empty field means "not taken", never zero.
+ */
+export interface Triage {
+  /** "120/80" — systolic/diastolic, mmHg. */
+  bp?: string;
+  /** Beats per minute. */
+  pulse?: number;
+  /** Degrees Fahrenheit. */
+  temperature?: number;
+  /** Oxygen saturation, percent. */
+  spo2?: number;
+  /** Kilograms. */
+  weight?: number;
+  /** The reason for the visit, in the patient's words. */
+  complaint?: string;
+  recordedAt?: string;
+  recordedBy?: string;
 }
 
 // ============ Calendar types ============

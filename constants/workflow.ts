@@ -8,6 +8,7 @@ import {
   ConciergeBell,
   Hotel,
   CreditCard,
+  Stethoscope,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { industryPack, normalizeIndustry, type IndustryModule, type IndustrySlug } from './industry';
@@ -20,7 +21,7 @@ import { industryPack, normalizeIndustry, type IndustryModule, type IndustrySlug
  * arrives, what is done for them, how it is paid for. Each step is a page that
  * already exists; this file only decides the order and the words.
  *
- * Only the three built-out industries (AVAILABLE_INDUSTRIES) have a workflow.
+ * Only the built-out industries (AVAILABLE_INDUSTRIES) have a workflow.
  * The rest keep the plain grouped navigation, because a flow drawn over
  * screens they are missing would be a promise the product cannot keep.
  */
@@ -43,7 +44,7 @@ export interface WorkflowStep {
   module?: IndustryModule;
 }
 
-type WorkflowIndustry = Extract<IndustrySlug, 'pharmacy' | 'wellness' | 'hospitality'>;
+type WorkflowIndustry = Extract<IndustrySlug, 'pharmacy' | 'wellness' | 'hospitality' | 'healthcare'>;
 
 function buildWorkflow(slug: WorkflowIndustry): WorkflowStep[] {
   const t = industryPack(slug);
@@ -170,11 +171,53 @@ function buildWorkflow(slug: WorkflowIndustry): WorkflowStep[] {
         },
         pay,
       ];
+
+    case 'healthcare':
+      return [
+        register,
+        {
+          href: '/calendar',
+          label: `Book ${visit}`,
+          description: `Pick the ${t.practitioner.toLowerCase()} and the slot. Walk-ins skip this and join the queue directly.`,
+          short: t.visit.many,
+          icon: CalendarDays,
+          optional: true,
+          module: 'appointments',
+          action: { label: `New ${visit}`, href: '/calendar?action=add' },
+        },
+        {
+          href: '/opd',
+          label: 'OPD Queue',
+          short: 'Queue',
+          description: `Check the ${person} in for a token, record triage, and call them in to the ${t.practitioner.toLowerCase()}.`,
+          icon: Stethoscope,
+          module: 'opd',
+        },
+        {
+          href: '/prescriptions',
+          label: 'Prescriptions',
+          description: `What the ${t.practitioner.toLowerCase()} prescribed, ready for the pharmacy.`,
+          icon: Pill,
+          optional: true,
+          module: 'prescriptions',
+          action: { label: 'New prescription', href: '/prescriptions?action=add' },
+        },
+        {
+          href: '/pickup',
+          label: 'Pharmacy',
+          description: `Verify the ${person} and hand over the medicines.`,
+          icon: PackageCheck,
+          optional: true,
+          module: 'prescriptions',
+          action: { label: 'Start a collection', href: '/pickup' },
+        },
+        pay,
+      ];
   }
 }
 
 function hasWorkflow(slug: IndustrySlug): slug is WorkflowIndustry {
-  return slug === 'pharmacy' || slug === 'wellness' || slug === 'hospitality';
+  return slug === 'pharmacy' || slug === 'wellness' || slug === 'hospitality' || slug === 'healthcare';
 }
 
 /**

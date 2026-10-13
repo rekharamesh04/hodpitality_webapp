@@ -562,6 +562,7 @@ function CheckInsPageInner() {
         submitLabel="Check In"
         isSubmitting={facialCheckIn.isPending}
         onSubmit={handleFaceCheckIn}
+        glasses={{ purpose: 'identify' }}
       >
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1">

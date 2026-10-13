@@ -18,13 +18,15 @@ interface FaceEnrollDialogProps {
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
+  /** Shown on the phone when the photo is taken with smart glasses: "Look at <name>'s face". */
+  personName?: string;
 }
 
 /**
  * Capture and enrol a person's face. If the face already belongs to someone else here, shows
  * that record instead (and, for a company admin, an "enrol anyway" for twins or a false match).
  */
-export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, description }: FaceEnrollDialogProps) {
+export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, description, personName }: FaceEnrollDialogProps) {
   const enrollGuest = useEnrollFace();
   const enrollCustomer = useEnrollCustomerFace();
   const [conflict, setConflict] = useState<DuplicateFaceConflict | null>(null);
@@ -69,6 +71,7 @@ export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, 
         submitLabel="Enroll"
         isSubmitting={isPending}
         onSubmit={(image) => enroll(image)}
+        glasses={{ purpose: 'enroll', subjectLabel: personName }}
       />
       <DuplicateFaceDialog
         conflict={conflict}

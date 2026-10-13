@@ -343,6 +343,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
           onOpenChange={setFaceOpen}
           title="Enroll Face"
           description={`Capture a clear front-facing photo to enroll this ${t.person.one.toLowerCase()}.`}
+          personName={guest?.name}
         />
 
       </div>

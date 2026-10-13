@@ -1,4 +1,7 @@
-/** Canonical appointment statuses this app surfaces (backend may also send legacy 'in-progress' / 'no_show'). */
+/**
+ * Canonical appointment statuses this app surfaces (backend may also send 'no_show').
+ * 'in-progress' is set by the hospital OPD queue and the treatment board when the session starts.
+ */
 export const APPOINTMENT_STATUSES = [
   'scheduled', 'confirmed', 'pending', 'arrived', 'completed', 'incomplete', 'cancelled', 'no-show',
 ] as const;
@@ -10,7 +13,7 @@ export const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
   confirmed: 'Confirmed',
   pending: 'Pending',
   arrived: 'Arrived',
-  'in-progress': 'Arrived',
+  'in-progress': 'In progress',
   completed: 'Completed',
   incomplete: 'Incomplete',
   cancelled: 'Cancelled',
@@ -23,7 +26,7 @@ export const APPOINTMENT_STATUS_STYLES: Record<string, string> = {
   confirmed:     'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-800',
   pending:       'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800',
   arrived:       'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800',
-  'in-progress': 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800',
+  'in-progress': 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-800',
   completed:     'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800',
   incomplete:    'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-950/30 dark:text-yellow-400 dark:border-yellow-800',
   cancelled:     'bg-red-100 text-red-700 border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800',

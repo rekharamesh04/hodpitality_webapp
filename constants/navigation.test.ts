@@ -8,6 +8,7 @@ describe('the module a page belongs to', () => {
     expect(moduleForPath('/pickup')).toBe('prescriptions');
     expect(moduleForPath('/treatments')).toBe('treatments');
     expect(moduleForPath('/front-desk')).toBe('frontdesk');
+    expect(moduleForPath('/opd')).toBe('opd');
     expect(moduleForPath('/events/42')).toBe('events');
     expect(moduleForPath('/registrations')).toBe('registrations');
     expect(moduleForPath('/payments')).toBe('payments');

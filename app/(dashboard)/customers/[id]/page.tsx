@@ -282,6 +282,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           onOpenChange={setFaceOpen}
           title="Enroll Face"
           description={`Capture a clear front-facing photo to enroll this ${t.account.one.toLowerCase()}.`}
+          personName={customer?.name}
         />
 
         <CreateAppointmentDialog

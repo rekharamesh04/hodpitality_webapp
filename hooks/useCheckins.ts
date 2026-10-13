@@ -13,11 +13,16 @@ export const checkInKeys = {
   stats: QUERY_KEYS.CHECKIN_STATS,
 };
 
-export function useCheckIns(filters: CheckInFilters = {}) {
+export function useCheckIns(
+  filters: CheckInFilters = {},
+  options?: { enabled?: boolean; /** Poll while the page is visible, e.g. arrivals feeding a live queue. */ refetchInterval?: number },
+) {
   return useQuery({
     queryKey: checkInKeys.list(filters),
     queryFn:  () => checkInService.getCheckIns(filters),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled ?? true,
+    refetchInterval: options?.refetchInterval,
   });
 }
 

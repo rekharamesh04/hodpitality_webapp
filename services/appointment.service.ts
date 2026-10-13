@@ -1,7 +1,7 @@
 import api from '@/lib/axios';
 import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Appointment } from '@/types';
+import type { Appointment, Triage, VisitPriority } from '@/types';
 import { debugLog } from '@/utils/debugLog';
 
 /** Reasonable page-size ceiling for itemized [LIST][ITEM] logging — above this we log a small sample + count only, to avoid spamming the console for large result sets. */
@@ -36,6 +36,18 @@ export interface CreateAppointmentPayload {
   notes?: string;
   /** Consultation fee — backend defaults paymentStatus to "pending" on create. */
   amount?: number;
+}
+
+/**
+ * Fields the desk may change on an existing appointment. Status, arrival and session
+ * stamps are deliberately absent: they go through their own endpoints, and the backend
+ * ignores them here.
+ */
+export interface UpdateAppointmentPayload {
+  notes?: string;
+  room?: string;
+  visitPriority?: VisitPriority;
+  triage?: Triage;
 }
 
 export interface UpdateAppointmentPaymentPayload {
@@ -114,6 +126,12 @@ export const appointmentService = {
       });
       throw err;
     }
+  },
+
+  /** PUT /appointments/{id} — returns the stored row. */
+  async updateAppointment(id: string, patch: UpdateAppointmentPayload): Promise<Appointment> {
+    const { data } = await api.put<Appointment>(`${API_ENDPOINTS.APPOINTMENTS}/${id}`, patch);
+    return data;
   },
 
   /** The backend owns every status side-effect (arrivedAt/checkinId on arrival, checkoutAt on completion, schedule-lock release on cancel/no-show) — this only ever sends the target status. */

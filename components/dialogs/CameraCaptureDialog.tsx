@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Camera, RotateCcw, Upload } from 'lucide-react';
+import { Camera, Glasses, Loader2, RotateCcw, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
+import { useGlassesCapture } from '@/hooks/useGlassesCapture';
+import { cn } from '@/lib/utils';
+import type { GlassesCapturePurpose } from '@/services/glasses.service';
 
 interface CameraCaptureDialogProps {
   open: boolean;
@@ -18,6 +21,12 @@ interface CameraCaptureDialogProps {
   children?: React.ReactNode;
   /** Called with a base64 data URL (image/jpeg) when the user confirms the capture. */
   onSubmit: (imageDataUrl: string) => void;
+  /**
+   * Also offer the user's HeyCyan smart glasses as the camera, taken through their phone's
+   * Desk Link. `purpose` tells the wearer what the photo is for, `subjectLabel` whose face to
+   * look at when that is known. The photo comes back as a data URL like any other capture.
+   */
+  glasses?: { purpose: GlassesCapturePurpose; subjectLabel?: string };
 }
 
 /** Longest edge of a re-encoded upload — keeps a 12MP phone photo well under the presign's size cap. */
@@ -28,7 +37,7 @@ const MAX_UPLOAD_EDGE = 1600;
  * back to a plain file upload when camera permission is unavailable/denied.
  */
 export function CameraCaptureDialog({
-  open, onOpenChange, title, description, submitLabel = 'Submit', isSubmitting, children, onSubmit,
+  open, onOpenChange, title, description, submitLabel = 'Submit', isSubmitting, children, onSubmit, glasses,
 }: CameraCaptureDialogProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -37,10 +46,16 @@ export function CameraCaptureDialog({
 
   const [captured, setCaptured] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const glassesCapture = useGlassesCapture((dataUrl) => {
+    stopStream();
+    setCaptured(dataUrl);
+  });
+  const glassesActive = glassesCapture.state.phase !== 'idle';
 
   useEffect(() => {
     if (!open) {
       stopStream();
+      glassesCapture.cancel();
       setCaptured(null);
       setCameraError(null);
       return;
@@ -81,6 +96,20 @@ export function CameraCaptureDialog({
 
   function handleRetake() {
     setCaptured(null);
+    startCamera();
+  }
+
+  /** The glasses take the photo, so the webcam is switched off while the phone works. */
+  function handleUseGlasses() {
+    if (!glasses) return;
+    stopStream();
+    setCaptured(null);
+    setCameraError(null);
+    glassesCapture.start(glasses.purpose, glasses.subjectLabel);
+  }
+
+  function handleBackToWebcam() {
+    glassesCapture.cancel();
     startCamera();
   }
 
@@ -140,10 +169,26 @@ export function CameraCaptureDialog({
             ) : (
               <video ref={videoRef} autoPlay muted playsInline className="h-full w-full object-cover" />
             )}
-            {cameraError && !captured && (
+            {cameraError && !captured && !glassesActive && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted/95 p-4 text-center">
                 <Camera className="h-6 w-6 text-muted-foreground" />
                 <p className="text-xs text-muted-foreground">{cameraError}</p>
+              </div>
+            )}
+            {glassesActive && !captured && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-muted p-4 text-center"
+              >
+                {glassesCapture.state.phase === 'failed' ? (
+                  <Glasses className="h-6 w-6 text-destructive" aria-hidden="true" />
+                ) : (
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" aria-hidden="true" />
+                )}
+                <p className={cn('max-w-xs text-xs', glassesCapture.state.phase === 'failed' ? 'text-destructive' : 'text-muted-foreground')}>
+                  {glassesCapture.state.message}
+                </p>
               </div>
             )}
           </div>
@@ -157,8 +202,23 @@ export function CameraCaptureDialog({
             onChange={handleFileChange}
           />
 
-          <div className="flex justify-center gap-2">
-            {!captured ? (
+          <div className="flex flex-wrap justify-center gap-2">
+            {glassesActive && !captured ? (
+              glassesCapture.state.phase === 'failed' ? (
+                <>
+                  <Button type="button" size="sm" onClick={handleUseGlasses}>
+                    <Glasses className="mr-2 h-4 w-4" /> Try again
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={handleBackToWebcam}>
+                    <Camera className="mr-2 h-4 w-4" /> Use webcam
+                  </Button>
+                </>
+              ) : (
+                <Button type="button" size="sm" variant="outline" onClick={handleBackToWebcam}>
+                  Cancel glasses photo
+                </Button>
+              )
+            ) : !captured ? (
               <>
                 <Button type="button" size="sm" onClick={handleCapture} disabled={!!cameraError}>
                   <Camera className="mr-2 h-4 w-4" /> Capture
@@ -166,6 +226,17 @@ export function CameraCaptureDialog({
                 <Button type="button" size="sm" variant="outline" onClick={() => fileInputRef.current?.click()}>
                   <Upload className="mr-2 h-4 w-4" /> Upload Photo
                 </Button>
+                {glasses && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={handleUseGlasses}
+                    title="Takes the photo with your HeyCyan glasses, through Desk Link on your phone"
+                  >
+                    <Glasses className="mr-2 h-4 w-4" /> Smart glasses
+                  </Button>
+                )}
               </>
             ) : (
               <Button type="button" size="sm" variant="outline" onClick={handleRetake}>

@@ -564,6 +564,7 @@ function GuestsPageInner() {
         onOpenChange={(v) => !v && setEnrollTarget(null)}
         title={`Enroll Face — ${enrollTarget?.name ?? ''}`}
         description="Capture a clear front-facing photo for facial recognition check-in."
+        personName={enrollTarget?.name}
       />
     </div>
   );

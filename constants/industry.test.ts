@@ -189,15 +189,23 @@ describe('category and tier options', () => {
 
 describe('navigation', () => {
   it('labels the directory and the account page differently', () => {
-    const people = getNavSections('healthcare').find((s) => s.menuLabel === 'People')!;
-    const labels = people.items.map((i) => i.label);
-    expect(labels).toContain('Patients');
-    expect(new Set(labels).size).toBe(labels.length);
+    // Without a workflow the directory sits under People; with one it becomes
+    // the first step. Either way the two must never share a label.
+    for (const slug of ['education', 'healthcare'] as const) {
+      const items = getNavSections(slug).flatMap((s) => s.items);
+      const directory = items.find((i) => i.href === '/guests')!;
+      const accounts = items.find((i) => i.href === '/customers')!;
+      expect(directory.label, slug).not.toBe(accounts.label);
+      expect(new Set(items.map((i) => i.label)).size, slug).toBe(items.length);
+    }
+    const people = getNavSections('education').find((s) => s.menuLabel === 'People')!;
+    expect(people.items.map((i) => i.label)).toContain('Students');
   });
 
   it('keeps routes stable across industries', () => {
     // Renaming URLs per tenant would break bookmarks and notification links.
-    const hrefs = (slug: string) => getNavSections(slug).flatMap((s) => s.items.map((i) => i.href));
+    // A workflow may reorder the menu, never rename a route.
+    const hrefs = (slug: string) => getNavSections(slug).flatMap((s) => s.items.map((i) => i.href)).sort();
     expect(hrefs('healthcare')).toEqual(hrefs('retail'));
   });
 
@@ -246,7 +254,7 @@ describe('navigation', () => {
   });
 
   it('only offers the industries that have screens behind them', () => {
-    expect([...AVAILABLE_INDUSTRIES].sort()).toEqual(['hospitality', 'pharmacy', 'wellness']);
+    expect([...AVAILABLE_INDUSTRIES].sort()).toEqual(['healthcare', 'hospitality', 'pharmacy', 'wellness']);
     for (const slug of AVAILABLE_INDUSTRIES) expect(isIndustryAvailable(slug)).toBe(true);
     expect(isIndustryAvailable('retail')).toBe(false);
     expect(isIndustryAvailable('other')).toBe(false);

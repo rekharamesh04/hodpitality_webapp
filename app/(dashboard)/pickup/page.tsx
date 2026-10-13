@@ -755,6 +755,7 @@ function PickupPageInner() {
         submitLabel="Match face"
         isSubmitting={matching}
         onSubmit={handleFaceSubmit}
+        glasses={{ purpose: 'identify' }}
       />
 
       <RecordPatientPaymentDialog

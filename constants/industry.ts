@@ -61,6 +61,7 @@ export type IndustryModule =
   | 'prescriptions'
   | 'treatments'
   | 'frontdesk'
+  | 'opd'
   | 'payments'
   | 'registrations';
 
@@ -78,7 +79,7 @@ export const INDUSTRIES = {
     tiers: ['Priority', 'Standard'],
     priority: ['Emergency', 'Priority'],
     requestTypes: ['Ward Service', 'Meal', 'Transport', 'Porter', 'Special Request'],
-    modules: ['appointments', 'events', 'hospitality', 'prescriptions', 'payments', 'registrations'],
+    modules: ['appointments', 'opd', 'events', 'hospitality', 'prescriptions', 'payments', 'registrations'],
     services: [
       { id: 'svc-consultation', name: 'Consultation', duration: 30, category: 'clinic' },
       { id: 'svc-follow-up', name: 'Follow-up Visit', duration: 15, category: 'clinic' },
@@ -410,7 +411,7 @@ export const INDUSTRIES = {
     tiers: ['Founding', 'Signature', 'Standard'],
     priority: ['VIP', 'Founding', 'Signature'],
     requestTypes: ['Room Service', 'Transport', 'Meal', 'Special Request'],
-    modules: ['appointments', 'events', 'hospitality', 'prescriptions', 'treatments', 'frontdesk', 'payments', 'registrations'],
+    modules: ['appointments', 'events', 'hospitality', 'prescriptions', 'treatments', 'frontdesk', 'opd', 'payments', 'registrations'],
     services: [
       { id: 'svc-check-in', name: 'Visitor Check-in', duration: 15, category: 'front-desk' },
       { id: 'svc-consultation', name: 'Consultation', duration: 30, category: 'general' },
@@ -429,9 +430,9 @@ export const INDUSTRY_SLUGS = Object.keys(INDUSTRIES) as IndustrySlug[];
  * The industries that have been built out, and may therefore be chosen.
  *
  * Every industry in this file has a complete vocabulary, so any of them will
- * *label* the product correctly. What only these three have is the screens
+ * *label* the product correctly. What only these four have is the screens
  * behind that vocabulary — a pharmacy's prescriptions and collection counter,
- * a spa's treatment board, a hotel's front desk.
+ * a spa's treatment board, a hotel's front desk, a hospital's OPD queue.
  *
  * Choosing one of the others would give a tenant the right words over a
  * product missing the part that matters to them, which reads as a half-built
@@ -442,7 +443,7 @@ export const INDUSTRY_SLUGS = Object.keys(INDUSTRIES) as IndustrySlug[];
  * Add a slug here in the same change that ships its screens, never before.
  */
 export const AVAILABLE_INDUSTRIES = [
-  'pharmacy', 'wellness', 'hospitality',
+  'pharmacy', 'wellness', 'hospitality', 'healthcare',
 ] as const satisfies readonly IndustrySlug[];
 
 /** Whether an industry can be chosen today, as opposed to merely existing. */

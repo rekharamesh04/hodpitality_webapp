@@ -20,6 +20,7 @@ import {
   PackageCheck,
   Sparkles,
   ConciergeBell,
+  Stethoscope,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_INDUSTRY, industryPack, type IndustryModule } from "./industry";
@@ -122,6 +123,7 @@ function getGroupedNavSections(industry?: unknown): NavSection[] {
         { label: "Pickup", href: "/pickup", icon: PackageCheck, description: "Identity verification and release at the counter", module: "prescriptions" },
         { label: `${t.visit.one} Board`, href: "/treatments", icon: Sparkles, description: `${t.place.one} occupancy, therapists and turnaround`, module: "treatments" },
         { label: "Front Desk", href: "/front-desk", icon: ConciergeBell, description: `Arrivals, departures and ${t.place.one.toLowerCase()} readiness`, module: "frontdesk" },
+        { label: "OPD Queue", href: "/opd", icon: Stethoscope, description: `Tokens, triage and each ${t.practitioner.toLowerCase()}'s queue`, module: "opd" },
         { label: "Payments", href: "/payments", icon: CreditCard, description: "Revenue, refunds and statuses", module: "payments" },
         { label: t.visit.many, href: "/calendar", icon: CalendarDays, description: `${t.visit.many} and staff schedule`, module: "appointments" },
         { label: `${t.place.one} Services`, href: "/hospitality", icon: Hotel, description: `${t.place.one} service and VIP care`, module: "hospitality" },

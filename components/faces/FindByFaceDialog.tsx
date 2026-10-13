@@ -80,6 +80,7 @@ export function FindByFaceDialog({ open, onOpenChange, registerHref = '/guests?a
         submitLabel="Search"
         isSubmitting={lookup.isPending}
         onSubmit={(image) => lookup.mutate(image)}
+        glasses={{ purpose: 'identify' }}
       />
 
       <Dialog open={!!result || notFound} onOpenChange={(v) => !v && closeResults()}>

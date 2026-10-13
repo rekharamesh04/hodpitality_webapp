@@ -56,6 +56,7 @@ export function PrescriptionFormDialog({
   onOpenChange,
   existing,
   defaultGuest,
+  defaultStaffId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -63,6 +64,8 @@ export function PrescriptionFormDialog({
   existing?: Prescription;
   /** Pre-selects the patient — e.g. when writing from their profile. */
   defaultGuest?: Guest | null;
+  /** Pre-selects the prescriber — e.g. the doctor whose consultation this came from. */
+  defaultStaffId?: string;
 }) {
   const t = useTerminology();
   const create = useCreatePrescription();
@@ -102,11 +105,11 @@ export function PrescriptionFormDialog({
       );
       setMedicines(meds.length ? meds : [emptyMedicine()]);
     } else {
-      setGuest(defaultGuest ?? null); setStaffId(''); setDiagnosis(''); setNotes('');
+      setGuest(defaultGuest ?? null); setStaffId(defaultStaffId ?? ''); setDiagnosis(''); setNotes('');
       setPrescriberMode('staff'); setOutsideName('');
       setMedicines([emptyMedicine()]);
     }
-    // defaultGuest is read only when the dialog opens, so a parent re-render
+    // defaultGuest and defaultStaffId are read only when the dialog opens, so a parent re-render
     // cannot wipe a patient the user has since changed. Keyed on the id, not
     // the object: every read re-signs the photo links, so a background refetch
     // hands back a new object and would otherwise wipe medicines being typed.
