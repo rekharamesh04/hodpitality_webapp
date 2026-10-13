@@ -262,7 +262,17 @@ export interface Event {
   image?: string;
 }
 
-export interface Staff {
+/**
+ * Which organisation a row belongs to. The API adds these to list rows for super admins and
+ * resellers only, whose lists span many companies; nobody else ever receives them.
+ */
+export interface TenantTag {
+  tenantName?: string;
+  /** The organisation's industry slug, normalised by the API. */
+  tenantIndustry?: string;
+}
+
+export interface Staff extends TenantTag {
   id: string;
   PK?: string;
   entity_type?: string;

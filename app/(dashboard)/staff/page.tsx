@@ -33,8 +33,10 @@ import { cn, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { useAuthStore } from '@/store';
 import { useCompanies } from '@/hooks/useCompanies';
 import {
-  assignableRoles, canManageStaff as canRoleManageStaff, canManageStaffMember, roleLabel,
+  assignableRoles, canManageStaff as canRoleManageStaff, canManageStaffMember, isPlatformRole, roleLabel,
 } from '@/constants/roles';
+import { industryLabel, normalizeIndustry, type IndustrySlug } from '@/constants/industry';
+import { usePlatformScopeStore } from '@/store/platform-scope-store';
 import { useIndustry } from '@/hooks';
 import { useActionParam } from '@/hooks/useActionParam';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
@@ -82,9 +84,19 @@ function StaffPageInner() {
   const hospitalOptions = useMemo(
     () => (picksHospital ? (companies ?? []) : [])
       .filter((c) => !!c.tenant_id)
-      .map((c) => ({ value: c.tenant_id as string, label: c.name || (c.tenant_id as string) })),
+      .map((c) => ({
+        value: c.tenant_id as string,
+        label: `${c.name || (c.tenant_id as string)} · ${industryLabel(c.industry)}`,
+        industry: normalizeIndustry(c.industry),
+      })),
     [companies, picksHospital]
   );
+  // Super admins and resellers see staff from many companies: say whose each one is.
+  const isPlatform = isPlatformRole(userRole);
+  const scope = usePlatformScopeStore((s) => s.scope);
+  const setScope = usePlatformScopeStore((s) => s.setScope);
+  /** A row's role, named in its own company's words. */
+  const rowIndustry = (s: Staff): IndustrySlug => (s.tenantIndustry ? normalizeIndustry(s.tenantIndustry) : industry);
 
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [status, setStatus] = useState(searchParams.get('status') ?? '');
@@ -137,6 +149,17 @@ function StaffPageInner() {
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / limit));
   const pageItems = filtered.slice((page - 1) * limit, page * limit);
+
+  /** Staff per industry, for a platform user looking at everything. */
+  const industryCounts = useMemo(() => {
+    if (!isPlatform) return [];
+    const counts = new Map<string, number>();
+    for (const s of allStaff) {
+      const key = s.tenantIndustry ? normalizeIndustry(s.tenantIndustry) : '';
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [allStaff, isPlatform]);
 
   function syncUrl(next: { search?: string; status?: string; department?: string; role?: string; page?: number; limit?: number }) {
     const s = next.search ?? search;
@@ -202,7 +225,15 @@ function StaffPageInner() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold sm:text-3xl">Staff</h1>
-          <p className="text-muted-foreground">Manage your team members</p>
+          <p className="text-muted-foreground">
+            {!isPlatform
+              ? 'Manage your team members'
+              : scope.kind === 'company'
+              ? `Team at ${scope.name}`
+              : scope.kind === 'industry'
+              ? `Teams across every ${industryLabel(scope.industry).toLowerCase()} organisation`
+              : 'Teams across every organisation — pick an industry to narrow it'}
+          </p>
         </div>
         {canManageStaff && (
           <Button size="sm" onClick={openCreate}>
@@ -211,6 +242,27 @@ function StaffPageInner() {
           </Button>
         )}
       </div>
+
+      {isPlatform && scope.kind === 'all' && industryCounts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2" aria-label="Staff by industry">
+          <span className="text-sm text-muted-foreground">By industry:</span>
+          {industryCounts.map(([slug, count]) => (
+            slug ? (
+              <Button
+                key={slug}
+                size="sm"
+                variant="outline"
+                onClick={() => setScope({ kind: 'industry', industry: slug as IndustrySlug })}
+                title={`Show only ${industryLabel(slug)} organisations`}
+              >
+                {industryLabel(slug)} <span className="ml-1.5 tabular-nums text-muted-foreground">{count}</span>
+              </Button>
+            ) : (
+              <span key="none" className="text-xs text-muted-foreground">No organisation: {count}</span>
+            )
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <SearchInput
@@ -290,6 +342,7 @@ function StaffPageInner() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Staff</TableHead>
+                    {isPlatform && <TableHead className="hidden lg:table-cell">Organisation</TableHead>}
                     <TableHead className="hidden sm:table-cell">Contact</TableHead>
                     <TableHead className="hidden md:table-cell">Department</TableHead>
                     <TableHead className="hidden md:table-cell">Role</TableHead>
@@ -313,12 +366,18 @@ function StaffPageInner() {
                             <p className="text-sm font-semibold truncate max-w-[180px]">{s.name || 'Unnamed'}</p>
                           </div>
                         </TableCell>
+                        {isPlatform && (
+                          <TableCell className="hidden lg:table-cell">
+                            <p className="text-sm truncate max-w-[180px]">{s.tenantName || 'No organisation'}</p>
+                            <p className="text-xs text-muted-foreground">{s.tenantIndustry ? industryLabel(s.tenantIndustry) : '—'}</p>
+                          </TableCell>
+                        )}
                         <TableCell className="hidden sm:table-cell">
                           <p className="text-sm truncate max-w-[180px]">{s.email || '—'}</p>
                           <p className="text-xs text-muted-foreground">{s.phone || '—'}</p>
                         </TableCell>
                         <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{s.department || '—'}</TableCell>
-                        <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{roleLabel(s.role, industry)}</TableCell>
+                        <TableCell className="hidden md:table-cell whitespace-nowrap text-sm">{roleLabel(s.role, rowIndustry(s))}</TableCell>
                         <TableCell className="whitespace-nowrap">
                           <StatusBadge status={s.status} className="whitespace-nowrap" />
                         </TableCell>
@@ -382,6 +441,7 @@ function StaffPageInner() {
         submitError={formSubmitError}
         roleOptions={dialogRoleOptions}
         hospitalOptions={hospitalOptions}
+        defaultTenantId={scope.kind === 'company' ? scope.tenantId : undefined}
         departmentOptions={departmentOptions}
         onSubmit={handleFormSubmit}
       />

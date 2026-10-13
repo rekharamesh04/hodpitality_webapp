@@ -139,7 +139,7 @@ pharmacy face verification, OPD face check-in) offers **Smart glasses** next to 
   through an existing guarded endpoint, except the glasses relay, which is scoped to one *user*.
 - **Module gating:** `/opd` belongs to the new `opd` module, which is granted to `healthcare` and
   `other`. The page refuses to render for any other industry (`ModuleGate`). The API's route gate
-  covers `opd` too, behind `ENFORCE_INDUSTRY_MODULES`.
+  covers `opd` too. `ENFORCE_INDUSTRY_MODULES` is **on** in the live function, so that gate is real.
 - **Privacy:** the waiting-room screen shows no names. The relay's upload file names carry a
   request id, never a patient name.
 - **Phones:** the board works at 390 px wide with no horizontal scroll. The bottom tab bar shows
@@ -236,4 +236,3 @@ Each needs a decision or data the product does not have yet. The queue works wit
 6. **Insurance / TPA** pre-authorisation and claims.
 7. **The same queue in the staff mobile app.** Today the mobile app carries the vocabulary and
    the glasses Desk Link. A doctor's own queue on the phone is the obvious next screen.
-8. **Turning on `ENFORCE_INDUSTRY_MODULES`** once every tenant is classified (see backend README §6.4).

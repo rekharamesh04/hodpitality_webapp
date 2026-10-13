@@ -94,7 +94,10 @@ interface StaffFormDialogProps {
   submitError?: string | null;
   roleOptions: string[];
   /** Hospitals to choose from — only passed for super_admin / reseller callers. */
-  hospitalOptions?: { value: string; label: string }[];
+  /** `industry` lets role labels follow the chosen company (a spa's "doctor" is a Therapist). */
+  hospitalOptions?: { value: string; label: string; industry?: string }[];
+  /** Pre-selects the company for a new staff member — the one a platform user is viewing. */
+  defaultTenantId?: string;
   departmentOptions: string[];
   onSubmit: (payload: CreateStaffPayload | UpdateStaffPayload) => void;
 }
@@ -104,8 +107,9 @@ const LEGACY_ROLE_ALIASES: Record<string, string> = { doctor: 'practitioner', nu
 
 export function StaffFormDialog({
   open, onOpenChange, staff, isSubmitting, submitError, roleOptions, hospitalOptions = [], departmentOptions, onSubmit,
+  defaultTenantId,
 }: StaffFormDialogProps) {
-  const industry = useIndustry();
+  const ownIndustry = useIndustry();
   const isEditing = !!staff;
   // doctor/nurse and practitioner/assistant carry the same label in every
   // industry, so offering all four listed "Doctor" and "Nurse" twice. New
@@ -121,11 +125,17 @@ export function StaffFormDialog({
 
   useEffect(() => {
     if (open) {
-      setForm(staff ? toFormState(staff) : emptyForm());
+      setForm(staff
+        ? toFormState(staff)
+        : { ...emptyForm(), tenantId: hospitalOptions.some((h) => h.value === defaultTenantId) ? defaultTenantId ?? '' : '' });
       setFieldErrors({});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, staff?.id]);
+
+  // Role names in the words of the company this person belongs to.
+  const industry = (hospitalOptions.find((h) => h.value === form.tenantId)?.industry
+    || staff?.tenantIndustry || ownIndustry) as Parameters<typeof roleLabel>[1];
 
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));

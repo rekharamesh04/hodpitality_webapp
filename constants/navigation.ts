@@ -21,6 +21,7 @@ import {
   Sparkles,
   ConciergeBell,
   Stethoscope,
+  Globe2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_INDUSTRY, industryPack, type IndustryModule } from "./industry";
@@ -158,6 +159,7 @@ function getGroupedNavSections(industry?: unknown): NavSection[] {
       label: "Administration",
       menuLabel: "Admin",
       items: [
+        { label: "Platform overview", href: "/platform", icon: Globe2, description: "Every organisation, by industry", roles: ADMIN_AND_RESELLER },
         // Resellers tab: Admin only
         { label: "Resellers", href: "/resellers", icon: Building2, description: "Partner organisations", roles: ADMIN_ONLY },
         // Companies tab: Admin + Reseller Admin (manage) + Company Admin (their own company)

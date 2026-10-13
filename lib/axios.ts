@@ -2,6 +2,7 @@ import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'ax
 import { STORAGE_KEYS, API_ENDPOINTS } from '@/constants';
 import { getJwtExpiryMs } from './jwt';
 import { useAuthStore } from '@/store/auth-store';
+import { SCOPE_PARAM_NAMES, scopeQueryParams, usePlatformScopeStore } from '@/store/platform-scope-store';
 import { debugLog } from '@/utils/debugLog';
 import { DEV_BYPASS_ENABLED } from '@/lib/dev-session';
 
@@ -21,6 +22,8 @@ declare module 'axios' {
     _retry?: boolean;
     /** Marks the refresh call itself, so its own 401 doesn't recursively try to refresh again. */
     _isAuthRefreshCall?: boolean;
+    /** Set once a request has been retried after its stale platform scope was dropped. */
+    _scopeRetry?: boolean;
   }
 }
 
@@ -196,6 +199,13 @@ api.interceptors.request.use(
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+      // A super admin or reseller looking at one organisation or industry. The API honours
+      // these for platform roles only; /auth never takes them, so a stale scope cannot sign
+      // anyone out.
+      if (!(config.url ?? '').startsWith('/auth')) {
+        const scope = scopeQueryParams(useAuthStore.getState().user?.role, usePlatformScopeStore.getState().scope);
+        if (Object.keys(scope).length > 0) config.params = { ...scope, ...(config.params ?? {}) };
+      }
     }
     // Never log request bodies — they carry passwords, OTPs and personal data.
     debugLog(`[API] ${config.method?.toUpperCase()} ${config.url}`);
@@ -225,6 +235,19 @@ api.interceptors.response.use(
     const backendMsg = error.response?.data?.error ?? error.response?.data?.message;
     if (backendMsg && error.message !== backendMsg) {
       (error as any).backendMessage = backendMsg;
+    }
+
+    // The organisation a super admin was looking at is gone (deleted, or no longer theirs).
+    // Drop the scope and repeat the request across everything they may see, once.
+    if ((error.response?.data as { scopeInvalid?: boolean } | undefined)?.scopeInvalid && originalConfig && !originalConfig._scopeRetry) {
+      usePlatformScopeStore.getState().clear();
+      originalConfig._scopeRetry = true;
+      if (originalConfig.params) {
+        const params = { ...originalConfig.params };
+        for (const name of SCOPE_PARAM_NAMES) delete params[name];
+        originalConfig.params = params;
+      }
+      return api(originalConfig);
     }
 
     // TEMP: local-only sessions (see lib/axios.ts request interceptor) have no real backend

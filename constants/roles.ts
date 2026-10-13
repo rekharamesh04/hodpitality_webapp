@@ -54,6 +54,16 @@ export const DESK_ROLES: readonly UserRole[] = [
 /** Roles that may add, edit and remove staff. */
 export const STAFF_MANAGER_ROLES: readonly UserRole[] = ['super_admin', 'reseller', 'company_admin'];
 
+/**
+ * Roles that span organisations. They may view one organisation or one industry at a
+ * time (store/platform-scope-store.ts); every other login is already one organisation.
+ */
+export const PLATFORM_ROLES: readonly UserRole[] = ['super_admin', 'reseller'];
+
+export function isPlatformRole(role: string | undefined): boolean {
+  return !!role && (PLATFORM_ROLES as readonly string[]).includes(role);
+}
+
 export function isKnownRole(role: unknown): role is UserRole {
   return typeof role === 'string' && (ROLES as readonly string[]).includes(role);
 }

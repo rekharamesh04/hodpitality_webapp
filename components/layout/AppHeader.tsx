@@ -17,6 +17,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { DevIndustrySwitcher } from '@/components/common/DevIndustrySwitcher';
+import { PlatformScopeSwitcher } from '@/components/layout/PlatformScopeSwitcher';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications, useMarkNotificationRead } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive, type NavItem, type NavSection } from '@/constants/navigation';
@@ -333,6 +334,8 @@ export function AppHeader() {
           </DropdownMenu>
         </div>
       </div>
+      {/* Super admin and reseller only: which organisations every page shows. */}
+      <PlatformScopeSwitcher />
     </header>
   );
 }
