@@ -58,6 +58,8 @@ export interface UpdateAppointmentPaymentPayload {
   transactionId?: string;
   /** Closes the session in the same write as the payment. */
   sessionStatus?: 'completed' | 'incomplete';
+  /** Who paid: "self" today; "insurance" is reserved for a payer integration. */
+  payer?: 'self' | 'insurance';
   sessionNote?: string;
 }
 

@@ -12,6 +12,9 @@ import {
 import { GuestCombobox } from '@/components/common/GuestCombobox';
 import { StaffSelect } from '@/components/common/StaffSelect';
 import { PrescriptionPhotos } from '@/components/prescriptions/PrescriptionPhotos';
+import { PharmacySelect, preferredPharmacyOf } from '@/components/pharmacy/PharmacySelect';
+import { useGuest } from '@/hooks/use-guests';
+import { useSendToPharmacy } from '@/hooks/usePharmacies';
 import {
   useAddPrescriptionAttachments, useCreatePrescription, useUpdatePrescription,
 } from '@/hooks/usePrescriptions';
@@ -77,8 +80,12 @@ export function PrescriptionFormDialog({
   const create = useCreatePrescription();
   const update = useUpdatePrescription();
   const addPhotos = useAddPrescriptionAttachments();
+  const sendToPharmacy = useSendToPharmacy();
   const isEdit = !!existing;
-  const pending = create.isPending || update.isPending || addPhotos.isPending;
+  // A hospital sends the prescription to the patient's own pharmacy (as a US clinic does);
+  // a pharmacy, or a hospital filling it in-house, leaves it here.
+  const canSend = t.slug === 'healthcare' && !isEdit;
+  const pending = create.isPending || update.isPending || addPhotos.isPending || sendToPharmacy.isPending;
 
   const fileRef = useRef<HTMLInputElement>(null);
   const [guest, setGuest] = useState<Guest | null>(null);
@@ -90,10 +97,15 @@ export function PrescriptionFormDialog({
   const [medicines, setMedicines] = useState<Medicine[]>([emptyMedicine()]);
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  /** null until the user picks: until then the patient's preferred pharmacy applies. */
+  const [sendTo, setSendTo] = useState<string | null>(null);
   // Set once a new prescription is saved but some photos failed: a retry then only
   // uploads photos, rather than writing the prescription a second time.
   const [savedId, setSavedId] = useState<string | null>(null);
   const locked = pending || !!savedId;
+  const chosenGuestId = guest?.id ?? (guest?.PK ? guest.PK.replace('GUEST#', '') : '');
+  const { data: chosenPatient } = useGuest(canSend ? chosenGuestId : '');
+  const pharmacyId = sendTo ?? preferredPharmacyOf(chosenPatient).id;
 
   const existingPhotos = existing ? attachmentsOf(existing) : [];
 
@@ -112,6 +124,7 @@ export function PrescriptionFormDialog({
       setMedicines(meds.length ? meds : [emptyMedicine()]);
     } else {
       setGuest(defaultGuest ?? null); setStaffId(defaultStaffId ?? ''); setDiagnosis(''); setNotes('');
+      setSendTo(null);
       setPrescriberMode('staff'); setOutsideName('');
       setMedicines([emptyMedicine()]);
     }
@@ -197,6 +210,11 @@ export function PrescriptionFormDialog({
       const defaultGuestId = defaultGuest?.id ?? (defaultGuest?.PK ? defaultGuest.PK.replace('GUEST#', '') : '');
       const visit = appointmentId && defaultGuestId && customerId === defaultGuestId ? { appointmentId } : {};
       const created = await create.mutateAsync({ customerId, ...prescriber, ...visit, medicines: cleaned, diagnosis, notes });
+      // Sent only once typed: a pharmacy cannot fill a photo it cannot read. A failed send leaves
+      // the prescription saved here, where "Send to the patient's pharmacy" can retry it.
+      if (canSend && pharmacyId && cleaned.length) {
+        await sendToPharmacy.mutateAsync({ prescriptionId: created.id, pharmacyTenantId: pharmacyId }).catch(() => undefined);
+      }
       if (await uploadPhotos(created.id)) onOpenChange(false);
       else setSavedId(created.id);
     } catch {
@@ -409,6 +427,26 @@ export function PrescriptionFormDialog({
               </div>
             ))}
           </div>
+
+          {canSend && (
+            <div className="space-y-1.5">
+              <Label htmlFor="rx-pharmacy">Send to pharmacy</Label>
+              <PharmacySelect
+                id="rx-pharmacy"
+                value={pharmacyId}
+                onChange={(id) => setSendTo(id)}
+                disabled={locked}
+                noneLabel="Don't send — fill here or hand to the patient"
+              />
+              <p className="text-xs text-muted-foreground">
+                {pharmacyId && sendTo === null
+                  ? `The ${t.person.one.toLowerCase()}'s preferred pharmacy. `
+                  : ''}
+                It arrives in their worklist with the {t.person.one.toLowerCase()}&rsquo;s name. A photo-only prescription
+                is sent once its medicines are typed.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="rx-notes">Notes</Label>

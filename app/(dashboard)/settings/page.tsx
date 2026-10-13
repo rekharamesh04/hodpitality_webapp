@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '@/store';
 import { canManageStaff, roleLabel } from '@/constants/roles';
 import { useTerminology } from '@/hooks';
+import { BillingSettingsCard } from '@/components/settings/BillingSettingsCard';
 import {
   useSettingsProfile,
   useUpdateProfile,
@@ -235,6 +236,7 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+          <BillingSettingsCard />
         </TabsContent>
 
         {/* ── Notification Preferences ── */}

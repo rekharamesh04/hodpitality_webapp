@@ -214,7 +214,7 @@ export function isOpenCheckIn(c: Pick<CheckIn, 'status'>): boolean {
 }
 
 /** The business day of an ISO timestamp, in the browser's zone, as YYYY-MM-DD. */
-function localDay(iso?: string): string {
+export function localDay(iso?: string): string {
   const ms = parseTime(iso);
   if (ms === null) return '';
   const d = new Date(ms);

@@ -284,6 +284,14 @@ function PrescriptionsPageInner() {
                             <Stethoscope className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
                             {prescriberNameOf(p)}
                           </span>
+                          {p.sourceTenantName && (
+                            <span className="block text-xs text-muted-foreground">From {p.sourceTenantName}</span>
+                          )}
+                          {p.pharmacyName && (
+                            <span className="block text-xs text-muted-foreground">
+                              → {p.pharmacyName}{p.pharmacyStatus === 'collected' ? ' · collected' : p.pharmacyStatus === 'cancelled' ? ' · cancelled' : ''}
+                            </span>
+                          )}
                         </TableCell>
 
                         <TableCell><PrescriptionStatusBadge status={p.status} /></TableCell>

@@ -19,6 +19,7 @@ import {
   usePrescription, useUpdatePrescription, useDeletePrescription,
 } from '@/hooks/usePrescriptions';
 import { useTerminology } from '@/hooks';
+import { PrescriptionRoutingCard } from '@/components/pharmacy/PrescriptionRoutingCard';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
 import {
   attachmentsOf, awaitingTyping, medicineLabel, medicinesOf, patientNameOf, prescriberNameOf,
@@ -236,6 +237,8 @@ export default function PrescriptionDetailPage({
 
         {/* Side */}
         <div className="space-y-6">
+          {/* A hospital sends to the patient's pharmacy; a pharmacy sees who sent it. */}
+          <PrescriptionRoutingCard prescription={rx} canSend={t.slug === 'healthcare'} />
           <Card>
             <CardHeader><CardTitle className="text-base">{t.person.one}</CardTitle></CardHeader>
             <CardContent className="space-y-4">

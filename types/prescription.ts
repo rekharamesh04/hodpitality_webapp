@@ -61,6 +61,23 @@ export interface PrescriptionAttachment {
   createdAt?: string;
 }
 
+/** Where a prescription sent to a pharmacy has got to. */
+export type PharmacyRouteStatus = 'sent' | 'collected' | 'cancelled';
+
+export const PHARMACY_ROUTE_LABELS: Record<PharmacyRouteStatus, string> = {
+  sent: 'Sent — waiting at the pharmacy',
+  collected: 'Collected by the patient',
+  cancelled: 'Cancelled by the pharmacy',
+};
+
+/** A pharmacy a prescription can be sent to (GET /pharmacies). */
+export interface Pharmacy {
+  tenantId: string;
+  name: string;
+  address?: string;
+  phone?: string;
+}
+
 export interface Prescription {
   id: string;
   PK?: string;
@@ -94,6 +111,21 @@ export interface Prescription {
   paymentId?: string;
   /** Photos of the paper prescription, oldest (page 1) first. Always present on reads. */
   attachments?: PrescriptionAttachment[];
+
+  // ── Sent to the patient's pharmacy (on the prescriber's copy) ──
+  /** The pharmacy this was sent to; set by POST /prescriptions/{id}/send, never by a form. */
+  pharmacyTenantId?: string;
+  pharmacyName?: string;
+  /** How far the pharmacy has got: "sent", then "collected" or "cancelled". */
+  pharmacyStatus?: PharmacyRouteStatus | string;
+  routedAt?: string;
+  pharmacyStatusAt?: string;
+
+  // ── Received from another provider (on the pharmacy's copy) ──
+  sourcePrescriptionId?: string;
+  /** The hospital or clinic that wrote it. */
+  sourceTenantName?: string;
+  receivedAt?: string;
 
   created_at?: string;
   createdAt?: string;

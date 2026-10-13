@@ -77,6 +77,8 @@ export const API_ENDPOINTS = {
     ORGANISATION: '/settings/organisation',
     NOTIFICATIONS: '/settings/notifications',
     PASSWORD: '/settings/password',
+    /** The standard visit fee checkout charges. */
+    BILLING: '/settings/billing',
   },
   INDUSTRIES: '/industries',
   RESELLERS: '/resellers',
@@ -114,6 +116,8 @@ export const API_ENDPOINTS = {
   GLASSES_CAPTURES: '/glasses-captures',
   /** Super admin / reseller: counts by industry and by company. */
   PLATFORM_OVERVIEW: '/platform/overview',
+  /** Pharmacies a prescription can be sent to. */
+  PHARMACIES: '/pharmacies',
 } as const;
 
 // Query Keys

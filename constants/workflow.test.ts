@@ -21,6 +21,14 @@ describe('the workflow', () => {
     }
   });
 
+  it('ends a hospital visit at payment and checkout', () => {
+    const last = getWorkflow('healthcare').at(-1)!;
+    expect(last.href).toBe('/payments');
+    expect(last.label).toBe('Payment & checkout');
+    // The other industries keep their own wording.
+    expect(getWorkflow('pharmacy').at(-1)!.label).toBe('Payments');
+  });
+
   it('lets a hospital walk-in skip booking but never the queue', () => {
     const steps = getWorkflow('healthcare');
     expect(steps.find((s) => s.href === '/calendar')?.optional).toBe(true);

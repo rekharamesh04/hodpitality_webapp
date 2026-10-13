@@ -75,6 +75,11 @@ export interface Guest {
   face_enrolled?: boolean;
   /** Backend-hosted URL of the enrolled face photo. */
   face_photo_url?: string;
+  /** The pharmacy this patient's prescriptions are sent to by default (a hospital's patients). */
+  preferredPharmacyTenantId?: string;
+  preferredPharmacyName?: string;
+  /** Set on a patient a pharmacy received with a prescription: who referred them. */
+  referredBy?: string;
   avatar?: string;
   qrCode?: string;
   notes?: string;

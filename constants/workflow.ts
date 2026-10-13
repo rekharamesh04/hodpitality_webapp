@@ -211,7 +211,13 @@ function buildWorkflow(slug: WorkflowIndustry): WorkflowStep[] {
           module: 'prescriptions',
           action: { label: 'Start a collection', href: '/pickup' },
         },
-        pay,
+        // The visit ends at checkout — the reception kiosk, or the desk — where the fee is taken.
+        {
+          ...pay,
+          label: 'Payment & checkout',
+          short: 'Checkout',
+          description: `Take the visit fee and check the ${person} out — at the desk or the self-service kiosk.`,
+        },
       ];
   }
 }

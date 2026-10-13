@@ -47,7 +47,11 @@ export interface CreateGuestPayload {
   tags?: string[];
 }
 
-export type UpdateGuestPayload = Partial<CreateGuestPayload>;
+export type UpdateGuestPayload = Partial<CreateGuestPayload> & {
+  /** The pharmacy this patient's prescriptions are sent to by default. */
+  preferredPharmacyTenantId?: string;
+  preferredPharmacyName?: string;
+};
 
 export interface GuestExportResult {
   downloadUrl?: string;

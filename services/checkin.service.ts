@@ -121,6 +121,12 @@ export const checkInService = {
     return { ...data, matches: Array.isArray(data?.matches) ? data.matches : [] };
   },
 
+  /** POST /check-ins/checkout — ends every open visit for this person (the kiosk's "Check out"). */
+  async checkOutGuest(guestId: string, note?: string): Promise<{ success?: boolean; closed?: number }> {
+    const { data } = await api.post(`${API_ENDPOINTS.CHECK_INS}/checkout`, note ? { guestId, note } : { guestId });
+    return data ?? {};
+  },
+
   /** Only flags the record as printed — the browser does the actual printing. */
   async printBadge(checkInId: string): Promise<{ printed: boolean }> {
     const { data } = await api.post<{ printed: boolean }>(

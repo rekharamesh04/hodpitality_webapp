@@ -220,6 +220,51 @@ Browser full-screen is one click, and Esc closes it.
 | Backend tests | `tests/test_hospital_opd.py` |
 | Vocabulary parity | `python check_industry_parity.py` (all three copies identical) |
 
+## 5a. US practice model: the patient's pharmacy, the kiosk, and checkout
+
+Added after the October 2026 review with Rekha and Ramesh.
+
+**The patient's own pharmacy.** In the US the doctor's office and the pharmacy are separate
+providers; a CVS on the ground floor is not the hospital's. So:
+
+- A patient has a **preferred pharmacy**, set on their record (patient page → *Preferred pharmacy*),
+  chosen from the platform's pharmacy directory (`GET /pharmacies`).
+- **Write prescription** offers **Send to pharmacy**, defaulting to that pharmacy. An existing
+  prescription has *Send to the patient's pharmacy* on its page.
+- Sending (`POST /prescriptions/{id}/send`) gives the pharmacy **its own copy** in its own company:
+  - the patient is matched by email, then phone, or created at the pharmacy;
+  - the copy goes into the pharmacy's worklist as *From City Hospital*;
+  - a notification goes to the pharmacy.
+
+  Its pickup counter and payments work unchanged. Tenant isolation is untouched: neither side reads
+  the other's records.
+- The hospital's prescription shows **Sent → Collected / Cancelled**, reported back when the
+  pharmacy hands it over.
+- Only a typed, active prescription can be sent, once, and only to a live pharmacy.
+
+**Reception kiosk** (`/kiosk`, menu *Reception Kiosk*). An iPad at the entrance, signed in by
+staff, full screen with no portal menus. The patient taps *Start* and scans their face, and the
+kiosk decides from today's records:
+
+| Their situation | The kiosk |
+|---|---|
+| Not checked in | Checks them in, then shows the doctor and **token** |
+| Checked in, waiting or with the doctor | "You're already checked in" |
+| Consultation finished | **Checkout**: the fee, then *Pay by card* / *Pay at the reception desk*; checks them out |
+| Face not recognised | "Please see the reception desk" |
+
+Only the first name appears on screen. Results clear after 12 s. *Staff* (top right) leaves kiosk
+mode. Lock the iPad to the browser with iOS **Guided Access**.
+
+**Checkout fee.** The visit's own fee when one was set (a booked consultation, a co-pay), otherwise
+the organisation's **standard visit fee** (Settings → Organization → *Checkout & billing*,
+default **100**). Insurance is not calculated. *Insurance — coming soon* is shown disabled, and
+payments carry `payer: "self"`, ready for a payer integration. **There is no card-terminal
+integration yet:** *Pay by card* records the fee as paid by card on the clinic's existing terminal.
+A payment gateway plugs in at one function (`payByCard` in the kiosk page).
+
+**Workflow.** The last hospital step is now **Payment & checkout**.
+
 ## 6. Not built yet, deliberately
 
 Each needs a decision or data the product does not have yet. The queue works without them.

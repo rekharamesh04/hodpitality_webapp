@@ -20,6 +20,7 @@ import { FaceEnrollDialog } from '@/components/faces/FaceEnrollDialog';
 import { PersonHistory } from '@/components/people/PersonHistory';
 import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 import { PatientPrescriptionsCard } from '@/components/prescriptions/PatientPrescriptionsCard';
+import { PreferredPharmacyCard } from '@/components/pharmacy/PreferredPharmacyCard';
 
 import {
   useGuest, useUpdateGuest, useDeleteGuest, useUnenrollFace,
@@ -251,6 +252,8 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                 </p>
               </CardContent>
             </Card>
+            {/* A hospital sends prescriptions to the patient's own pharmacy. */}
+            {t.slug === 'healthcare' && <PreferredPharmacyCard guestId={resolvedId} guest={guest} />}
           </div>
         </div>
 
