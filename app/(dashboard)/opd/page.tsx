@@ -26,6 +26,7 @@ import { WalkInDialog, type WalkInPatient } from '@/components/opd/WalkInDialog'
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCheckIns, useFacialCheckIn } from '@/hooks/useCheckins';
 import { useCallIn, useOpdCheckIn } from '@/hooks/useOpd';
+import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { useStaff } from '@/hooks/useStaff';
 import { useTerminology } from '@/hooks';
 import { useAuthStore } from '@/store';
@@ -35,6 +36,7 @@ import {
 } from '@/constants/opd';
 import { cn, formatCurrency, formatDate, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { Appointment, Guest } from '@/types';
+import { medicinesOf, type Prescription } from '@/types/prescription';
 
 /**
  * The OPD queue — a hospital's flagship screen.
@@ -120,6 +122,16 @@ export default function OpdQueuePage() {
 
   // Read from the live list so a call-in or a payment shows the moment it lands.
   const selected = rows.find((a) => a.id === selectedId) ?? null;
+  // What was prescribed in the selected consultation. Same query as the prescriptions
+  // worklist, so the two share one cached list; fetched only once there can be any.
+  const selectedStage = selected ? opdStageOf(selected) : null;
+  const { data: prescriptions } = usePrescriptions({}, {
+    enabled: t.has('prescriptions') && (selectedStage === 'with_doctor' || selectedStage === 'done'),
+  });
+  const visitPrescriptions = useMemo(
+    () => (selected ? (prescriptions ?? []).filter((rx) => rx.appointmentId === selected.id) : []),
+    [prescriptions, selected],
+  );
   const triageFor = rows.find((a) => a.id === triageId) ?? null;
 
   const scoped = visibleLanes.flatMap((l) => [...l.withDoctor, ...l.waiting, ...l.booked, ...l.done]);
@@ -321,6 +333,8 @@ export default function OpdQueuePage() {
             isToday={isToday}
             busy={busy}
             canPrescribe={t.has('prescriptions')}
+            prescriptions={visitPrescriptions}
+            onOpenPrescription={(id) => router.push(`/prescriptions/${id}`)}
             placeLabel={t.place.one}
             onClose={() => setSelectedId(null)}
             onCheckIn={() => opdCheckIn.mutate(selected)}
@@ -365,6 +379,7 @@ export default function OpdQueuePage() {
           onOpenChange={setRxOpen}
           defaultGuest={selected ? ({ id: selected.customerId || selected.guestId || '', name: selected.customerName || selected.guestName || '' } as Guest) : null}
           defaultStaffId={selected?.staffId}
+          appointmentId={selected?.id}
         />
         {displayOpen && (
           <WaitingRoomDisplay lanes={lanes} tokens={tokens} orgLabel={t.org} onClose={() => setDisplayOpen(false)} />
@@ -550,7 +565,7 @@ function QueueRow({
 // ── The selected visit ───────────────────────────────────────────────────────
 
 function VisitDetail({
-  appointment: a, token, now, isToday, busy, canPrescribe, placeLabel,
+  appointment: a, token, now, isToday, busy, canPrescribe, prescriptions, onOpenPrescription, placeLabel,
   onClose, onCheckIn, onCallIn, onTriage, onPay, onPrescribe, onOpenRecord, onPaymentRecords,
 }: {
   appointment: Appointment;
@@ -559,6 +574,9 @@ function VisitDetail({
   isToday: boolean;
   busy: boolean;
   canPrescribe: boolean;
+  /** Prescriptions written in this consultation. */
+  prescriptions: Prescription[];
+  onOpenPrescription: (id: string) => void;
   placeLabel: string;
   onClose: () => void;
   onCheckIn: () => void;
@@ -633,6 +651,25 @@ function VisitDetail({
         </div>
 
         {a.notes && <p className="rounded bg-muted px-3 py-2 text-sm">{a.notes}</p>}
+
+        {canPrescribe && prescriptions.length > 0 && (
+          <div className="rounded-lg border p-3">
+            <p className="flex items-center gap-2 text-sm font-semibold">
+              <Pill className="h-4 w-4 text-primary" aria-hidden="true" /> Prescribed this visit
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {prescriptions.map((rx) => {
+                const count = medicinesOf(rx).length;
+                return (
+                  <Button key={rx.id} size="sm" variant="outline" onClick={() => onOpenPrescription(rx.id)}>
+                    {count ? `${count} medicine${count === 1 ? '' : 's'}` : 'Photo only — to type up'}
+                    {rx.createdAt ? ` · ${formatDate(rx.createdAt, 'HH:mm')}` : ''}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <Separator />
 

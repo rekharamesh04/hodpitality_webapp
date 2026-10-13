@@ -58,7 +58,7 @@ No new role ids. A new id would mean migrating live Cognito logins (see `constan
 | 3d | Recognised, no booking | Queue → "Checked in, no doctor yet" → **Assign** | As 3c, but the existing check-in is reused, so no second visit is logged |
 | 4 | Triage | Queue → patient → **Triage** | `triage` (BP, pulse, temperature °F, SpO₂, weight, complaint) and `visitPriority` stored on the appointment |
 | 5 | Call in | Lane → **Call next**, or patient → **Call in** | `in-progress`, with `consultStartedAt` stamped (so waiting time is measured) |
-| 6 | Prescribe | Patient → **Write prescription** | Prescription form opens with the patient and the consulting doctor pre-filled |
+| 6 | Prescribe | Patient → **Write prescription** | Prescription form opens with the patient and the consulting doctor pre-filled, and the prescription is linked to this consultation (`appointmentId`). The visit then lists *Prescribed this visit*; the pharmacy fills it at `/pickup` |
 | 7 | End consultation | Patient → Update Status → **End session…** | `completed` or `incomplete`, and the fee in the same step. Only an admin can reopen |
 | 8 | Pay | Patient → **Record payment**, or `/payments` | Consultation payment against the patient |
 | 9 | Pharmacy | `/pickup` | Existing collection counter (healthcare already had the prescriptions module) |
@@ -204,6 +204,7 @@ Browser full-screen is one click, and Esc closes it.
 | Face-recognised walk-in on nobody's list | Invisible to every doctor | "Checked in, no doctor yet" with Assign |
 | Two walk-ins in one minute | The second got 409 from the slot lock | Retries the next minute, up to 5 |
 | `in-progress` read "Arrived" | Calendar and mobile labelled a patient with the doctor as arrived, or grey | Labelled *In progress* on web and mobile |
+| Prescription not tied to the visit | The backend stored `appointmentId`, but the form never sent it | Sent from the OPD, but only while the patient is unchanged; the visit shows its prescriptions |
 | Healthcare not selectable | Vocabulary only, no screens, disabled in the picker | Workflow, flagship screen, enabled |
 
 ## 5. Where it lives

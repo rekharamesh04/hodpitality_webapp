@@ -57,6 +57,7 @@ export function PrescriptionFormDialog({
   existing,
   defaultGuest,
   defaultStaffId,
+  appointmentId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -66,6 +67,11 @@ export function PrescriptionFormDialog({
   defaultGuest?: Guest | null;
   /** Pre-selects the prescriber — e.g. the doctor whose consultation this came from. */
   defaultStaffId?: string;
+  /**
+   * The consultation this prescription is written in, so the two are linked. Sent only while
+   * the patient is still `defaultGuest`: a prescription is never tied to someone else's visit.
+   */
+  appointmentId?: string;
 }) {
   const t = useTerminology();
   const create = useCreatePrescription();
@@ -188,7 +194,9 @@ export function PrescriptionFormDialog({
         return;
       }
 
-      const created = await create.mutateAsync({ customerId, ...prescriber, medicines: cleaned, diagnosis, notes });
+      const defaultGuestId = defaultGuest?.id ?? (defaultGuest?.PK ? defaultGuest.PK.replace('GUEST#', '') : '');
+      const visit = appointmentId && defaultGuestId && customerId === defaultGuestId ? { appointmentId } : {};
+      const created = await create.mutateAsync({ customerId, ...prescriber, ...visit, medicines: cleaned, diagnosis, notes });
       if (await uploadPhotos(created.id)) onOpenChange(false);
       else setSavedId(created.id);
     } catch {
