@@ -26,6 +26,14 @@ describe("a patient's prescriptions", () => {
     expect(prescriptionsFor(all, 'g1').filter(isReadyForPickup).map((p) => p.id)).toEqual(['d', 'a']);
     expect(isReadyForPickup(rx('x', 'g1', 'cancelled', ''))).toBe(false);
   });
+
+  it('are never ready here once sent to another pharmacy that still holds them', () => {
+    const sent = { ...all.find((p) => p.id === 'a')!, pharmacyTenantId: 'tenant-cvs', pharmacyStatus: 'sent' };
+    expect(isReadyForPickup(sent)).toBe(false);
+    expect(isReadyForPickup({ ...sent, pharmacyStatus: 'ready' })).toBe(false);
+    // The pharmacy cancelled it: it is back here, and can be handed over or sent elsewhere.
+    expect(isReadyForPickup({ ...sent, pharmacyStatus: 'cancelled' })).toBe(true);
+  });
 });
 
 describe('a prescription saved from a photo', () => {

@@ -33,6 +33,21 @@ export function useSendToPharmacy({ announce = true }: { announce?: boolean } = 
   });
 }
 
+/** Mark a prescription filled and waiting at the counter. */
+export function useMarkPrescriptionReady() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (prescriptionId: string) => pharmacyService.markReady(prescriptionId),
+    onSuccess: (result) => {
+      qc.invalidateQueries({ queryKey: prescriptionKeys.all });
+      popup.success(result.alreadyReady ? 'Already marked ready' : 'Ready for pickup', {
+        description: result.alreadyReady ? undefined : 'The patient has been told by email, when they have one.',
+      });
+    },
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not mark it ready')),
+  });
+}
+
 /** The standard visit fee checkout charges. Every staff role may read it. */
 export function useBillingSettings(options: { enabled?: boolean } = {}) {
   return useQuery({

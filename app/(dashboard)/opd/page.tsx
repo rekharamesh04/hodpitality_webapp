@@ -26,6 +26,8 @@ import { WalkInDialog, type WalkInPatient } from '@/components/opd/WalkInDialog'
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCheckIns, useFacialCheckIn } from '@/hooks/useCheckins';
 import { useCallIn, useOpdCheckIn } from '@/hooks/useOpd';
+import { useBillingSettings } from '@/hooks/usePharmacies';
+import { visitFee } from '@/constants/kiosk';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { useStaff } from '@/hooks/useStaff';
 import { useTerminology } from '@/hooks';
@@ -591,7 +593,10 @@ function VisitDetail({
   const priority = visitPriorityOf(a);
   const wait = waitingMinutes(a, now);
   const vitals = vitalsSummary(a.triage);
-  const unpaid = a.paymentStatus !== 'paid' && a.paymentStatus !== 'waived' && Number(a.amount ?? 0) > 0;
+  // Its own fee, or the hospital's standard visit fee for a visit booked without one (a walk-in).
+  const { data: billing } = useBillingSettings();
+  const fee = visitFee(a, billing?.standardVisitFee ?? 0);
+  const unpaid = a.paymentStatus !== 'paid' && a.paymentStatus !== 'waived' && fee.amount > 0;
   const arrived = stage === 'waiting' || stage === 'with_doctor' || stage === 'done';
 
   return (
@@ -647,7 +652,10 @@ function VisitDetail({
           <Field label="Arrived" value={a.arrivedAt ? formatDate(a.arrivedAt, 'HH:mm') : '—'} />
           <Field label={stage === 'waiting' ? 'Waiting' : 'Waited'} value={wait === null ? '—' : `${wait} min`} />
           <Field label={placeLabel} value={a.room || '—'} />
-          <Field label="Fee" value={`${formatCurrency(Number(a.amount ?? 0))} · ${a.paymentStatus ?? '—'}`} />
+          <Field
+            label={fee.usesStandardFee ? 'Fee (standard)' : 'Fee'}
+            value={`${formatCurrency(fee.amount)} · ${a.paymentStatus ?? '—'}`}
+          />
         </div>
 
         {a.notes && <p className="rounded bg-muted px-3 py-2 text-sm">{a.notes}</p>}
@@ -710,7 +718,7 @@ function VisitDetail({
         </div>
         {stage === 'done' && unpaid && (
           <p className="text-xs text-amber-700 dark:text-amber-400">
-            Consultation over — {formatCurrency(Number(a.amount ?? 0))} still to collect.
+            Consultation over — {formatCurrency(fee.amount)} still to collect.
           </p>
         )}
       </CardContent>

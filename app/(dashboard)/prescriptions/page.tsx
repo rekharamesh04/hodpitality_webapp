@@ -289,7 +289,7 @@ function PrescriptionsPageInner() {
                           )}
                           {p.pharmacyName && (
                             <span className="block text-xs text-muted-foreground">
-                              → {p.pharmacyName}{p.pharmacyStatus === 'collected' ? ' · collected' : p.pharmacyStatus === 'cancelled' ? ' · cancelled' : ''}
+                              → {p.pharmacyName}{p.pharmacyStatus === 'ready' ? ' · ready' : p.pharmacyStatus === 'collected' ? ' · collected' : p.pharmacyStatus === 'cancelled' ? ' · cancelled' : ''}
                             </span>
                           )}
                         </TableCell>

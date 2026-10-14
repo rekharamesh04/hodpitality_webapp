@@ -18,6 +18,8 @@ import { TERMINAL_APPOINTMENT_STATUSES, type SessionOutcome } from '@/constants/
 import { cn, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
 import type { Appointment, PaymentMethodType } from '@/types';
 import { useTerminology } from '@/hooks';
+import { useBillingSettings } from '@/hooks/usePharmacies';
+import { visitFee } from '@/constants/kiosk';
 
 const PAYMENT_METHODS: PaymentMethodType[] = ['cash', 'card', 'credit_card', 'upi', 'bank_transfer', 'online', 'other'];
 const METHOD_LABELS: Record<PaymentMethodType, string> = {
@@ -61,13 +63,23 @@ export function RecordAppointmentPaymentDialog({ open, onOpenChange, appointment
   const updateAppointmentPayment = useUpdateAppointmentPayment();
   const updateStatus = useUpdateAppointmentStatus();
   const isPending = updateAppointmentPayment.isPending || updateStatus.isPending;
+  // A hospital charges its standard visit fee when the visit has no fee of its own (as the kiosk does).
+  const hospital = t.slug === 'healthcare';
+  const { data: billing } = useBillingSettings({ enabled: open && hospital });
+  const standardFee = hospital ? billing?.standardVisitFee : undefined;
+  const suggested = appointment
+    ? standardFee === undefined
+      ? { amount: Number(appointment.amount ?? 0), usesStandardFee: false }
+      : visitFee(appointment, standardFee)
+    : null;
+  const suggestedAmount = suggested && suggested.amount > 0 ? String(suggested.amount) : '';
 
   useEffect(() => {
     if (open && appointment) {
       setOutcome('completed');
       setSessionNote('');
       setFee('collect');
-      setAmount(appointment.amount ? String(appointment.amount) : '');
+      setAmount(suggestedAmount);
       setMethod('cash');
       setTransactionId('');
       setFieldError(null);
@@ -76,6 +88,11 @@ export function RecordAppointmentPaymentDialog({ open, onOpenChange, appointment
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, appointment?.id]);
+
+  // The standard fee can arrive after the dialog opened; fill it in unless someone has typed already.
+  useEffect(() => {
+    if (open && suggestedAmount) setAmount((current) => current || suggestedAmount);
+  }, [open, suggestedAmount]);
 
   if (!appointment) return null;
 
@@ -216,6 +233,9 @@ export function RecordAppointmentPaymentDialog({ open, onOpenChange, appointment
                     onChange={(e) => setAmount(e.target.value)}
                     placeholder="1500"
                   />
+                  {suggested?.usesStandardFee && amount === suggestedAmount && (
+                    <p className="text-xs text-muted-foreground">The standard visit fee. Insurance is not calculated here.</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="rap-method">Payment Method</Label>

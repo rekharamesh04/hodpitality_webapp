@@ -62,13 +62,23 @@ export interface PrescriptionAttachment {
 }
 
 /** Where a prescription sent to a pharmacy has got to. */
-export type PharmacyRouteStatus = 'sent' | 'collected' | 'cancelled';
+export type PharmacyRouteStatus = 'sent' | 'ready' | 'collected' | 'cancelled';
 
 export const PHARMACY_ROUTE_LABELS: Record<PharmacyRouteStatus, string> = {
-  sent: 'Sent — waiting at the pharmacy',
+  sent: 'Sent — the pharmacy is preparing it',
+  ready: 'Ready for pickup at the pharmacy',
   collected: 'Collected by the patient',
-  cancelled: 'Cancelled by the pharmacy',
+  cancelled: 'Cancelled — not at the pharmacy any more',
 };
+
+/**
+ * Sent to a pharmacy that still holds it. Such a prescription is filled there: it cannot be
+ * amended, completed or handed over here (the API answers 409 SENT_TO_PHARMACY), only cancelled,
+ * which withdraws it from the pharmacy too.
+ */
+export function isWithPharmacy(p: Pick<Prescription, 'pharmacyTenantId' | 'pharmacyStatus'>): boolean {
+  return !!p.pharmacyTenantId && (p.pharmacyStatus === 'sent' || p.pharmacyStatus === 'ready' || !p.pharmacyStatus);
+}
 
 /** A pharmacy a prescription can be sent to (GET /pharmacies). */
 export interface Pharmacy {
@@ -126,6 +136,10 @@ export interface Prescription {
   /** The hospital or clinic that wrote it. */
   sourceTenantName?: string;
   receivedAt?: string;
+
+  // ── Filled and waiting at the counter (POST /prescriptions/{id}/ready) ──
+  readyAt?: string;
+  fillStatus?: 'ready' | string;
 
   created_at?: string;
   createdAt?: string;
@@ -219,5 +233,6 @@ export function prescriptionsFor(all: readonly Prescription[], patientId: string
  * there is nothing checked to hand over.
  */
 export function isReadyForPickup(p: Prescription): boolean {
-  return p.status === 'active' && !awaitingTyping(p);
+  // Sent to another pharmacy: it is collected there, never here as well.
+  return p.status === 'active' && !awaitingTyping(p) && !isWithPharmacy(p);
 }

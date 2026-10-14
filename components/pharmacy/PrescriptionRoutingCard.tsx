@@ -22,7 +22,10 @@ export function PrescriptionRoutingCard({ prescription: p, canSend }: { prescrip
   const send = useSendToPharmacy();
   const [choice, setChoice] = useState<string | null>(null);
   const isReceived = !!p.sourcePrescriptionId;
-  const { data: patient } = useGuest(canSend && !p.pharmacyName && !isReceived ? p.customerId : '');
+  const status = (p.pharmacyStatus as PharmacyRouteStatus) || 'sent';
+  // Cancelled at (or withdrawn from) the pharmacy: it is back here, and may be sent again.
+  const resendable = !!p.pharmacyName && status === 'cancelled' && canSend && p.status === 'active';
+  const { data: patient } = useGuest(canSend && (!p.pharmacyName || resendable) && !isReceived ? p.customerId : '');
   const preferred = preferredPharmacyOf(patient);
   const pharmacyId = choice ?? preferred.id;
   const typed = medicinesOf(p).some((m) => (typeof m === 'string' ? m : m?.name)?.trim());
@@ -44,8 +47,7 @@ export function PrescriptionRoutingCard({ prescription: p, canSend }: { prescrip
     );
   }
 
-  if (p.pharmacyName) {
-    const status = (p.pharmacyStatus as PharmacyRouteStatus) || 'sent';
+  if (p.pharmacyName && !resendable) {
     return (
       <Card>
         <CardHeader className="pb-3">
@@ -64,7 +66,8 @@ export function PrescriptionRoutingCard({ prescription: p, canSend }: { prescrip
     );
   }
 
-  if (!canSend || p.status !== 'active') return null;
+  // Already filled at this counter: sending it out as well would fill it twice (the API refuses).
+  if (!canSend || p.status !== 'active' || p.readyAt) return null;
 
   return (
     <Card>
@@ -74,6 +77,11 @@ export function PrescriptionRoutingCard({ prescription: p, canSend }: { prescrip
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
+        {resendable && (
+          <p className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            {p.pharmacyName} cancelled it{p.pharmacyStatusAt ? ` on ${formatDate(p.pharmacyStatusAt, 'MMM dd')}` : ''}. Send it again, here or to another pharmacy.
+          </p>
+        )}
         <div className="space-y-1.5">
           <Label htmlFor="route-pharmacy">Pharmacy</Label>
           <PharmacySelect

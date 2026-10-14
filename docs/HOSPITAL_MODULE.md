@@ -265,6 +265,22 @@ A payment gateway plugs in at one function (`payByCard` in the kiosk page).
 
 **Workflow.** The last hospital step is now **Payment & checkout**.
 
+**Keeping the hospital and the pharmacy in step.** The pharmacy must fill exactly what the doctor
+last signed, exactly once. So, once a prescription has been sent:
+
+| Situation | What happens |
+|---|---|
+| Doctor wants to change the medicines | Not allowed while the pharmacy holds it (*Amend* is hidden; the API answers 409). Cancel it and write a new one |
+| Hospital cancels or deletes it | The pharmacy's copy is **withdrawn** (cancelled) and the pharmacy gets a *do not dispense* notice. A copy already collected is left alone |
+| Hospital tries to hand it over or complete it too | Not allowed — it is collected at the pharmacy. The hospital pickup list leaves it out |
+| Pharmacy has filled it | Pharmacist presses **Ready for pickup**: the patient is emailed "your prescription is ready at CVS" (no medicine named) and the hospital sees *Ready for pickup at the pharmacy* |
+| Pharmacy cancels (out of stock) | It comes back to the hospital, which can **send it again** — to the same or another pharmacy |
+| Filled at the hospital's own counter first | It cannot also be sent out (409 `ALREADY_FILLED`) |
+
+**Checkout at the desk** uses the same fee rule as the kiosk: a walk-in with no fee of its own shows
+the **standard visit fee** in the OPD queue (*Fee (standard)*), and *Record payment* is pre-filled
+with it.
+
 ## 6. Not built yet, deliberately
 
 Each needs a decision or data the product does not have yet. The queue works without them.

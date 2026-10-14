@@ -17,6 +17,12 @@ export const pharmacyService = {
     return unwrapList<Pharmacy>(data);
   },
 
+  /** POST /prescriptions/{id}/ready — filled; emails the patient and tells the sender. Idempotent. */
+  async markReady(prescriptionId: string): Promise<{ readyAt: string; alreadyReady?: boolean }> {
+    const { data } = await api.post(`${API_ENDPOINTS.PRESCRIPTIONS}/${prescriptionId}/ready`);
+    return data;
+  },
+
   /** POST /prescriptions/{id}/send — only a typed, active, unsent prescription can go. */
   async send(prescriptionId: string, pharmacyTenantId: string): Promise<{ pharmacyName: string; pharmacyStatus: string }> {
     const { data } = await api.post(`${API_ENDPOINTS.PRESCRIPTIONS}/${prescriptionId}/send`, { pharmacyTenantId });

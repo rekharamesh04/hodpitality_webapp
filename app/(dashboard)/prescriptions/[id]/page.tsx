@@ -3,7 +3,7 @@
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Pill, Pencil, Trash2, Stethoscope, User, CalendarClock, CheckCircle2, XCircle, Camera, Keyboard,
+  ArrowLeft, Pill, Pencil, Trash2, Stethoscope, User, CalendarClock, CheckCircle2, XCircle, Camera, Keyboard, PackageCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,9 +20,10 @@ import {
 } from '@/hooks/usePrescriptions';
 import { useTerminology } from '@/hooks';
 import { PrescriptionRoutingCard } from '@/components/pharmacy/PrescriptionRoutingCard';
+import { useMarkPrescriptionReady } from '@/hooks/usePharmacies';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
 import {
-  attachmentsOf, awaitingTyping, medicineLabel, medicinesOf, patientNameOf, prescriberNameOf,
+  attachmentsOf, awaitingTyping, isWithPharmacy, medicineLabel, medicinesOf, patientNameOf, prescriberNameOf,
 } from '@/types/prescription';
 
 /**
@@ -46,6 +47,7 @@ export default function PrescriptionDetailPage({
   const { data: rx, isLoading, isError, error, refetch } = usePrescription(id);
   const updateMutation = useUpdatePrescription();
   const deleteMutation = useDeletePrescription();
+  const markReady = useMarkPrescriptionReady();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -83,6 +85,7 @@ export default function PrescriptionDetailPage({
   const untyped = awaitingTyping(rx);
   const created = rx.created_at ?? rx.createdAt;
   const isActive = rx.status === 'active';
+  const sentElsewhere = isWithPharmacy(rx);
 
   function setStatus(status: 'completed' | 'cancelled') {
     updateMutation.mutate({ id, data: { status } });
@@ -115,11 +118,20 @@ export default function PrescriptionDetailPage({
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
-                <Pencil className="mr-2 h-4 w-4" /> Amend
-              </Button>
+              {/* Sent to a pharmacy: filled there. Only cancelling (which withdraws it) stays here. */}
+              {!sentElsewhere && (
+                <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
+                  <Pencil className="mr-2 h-4 w-4" /> Amend
+                </Button>
+              )}
+              {isActive && !sentElsewhere && !untyped && !rx.readyAt && (
+                <Button size="sm" onClick={() => markReady.mutate(rx.id)} loading={markReady.isPending}>
+                  <PackageCheck className="mr-2 h-4 w-4" /> Ready for pickup
+                </Button>
+              )}
               {isActive && (
                 <>
+                  {!sentElsewhere && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -130,6 +142,7 @@ export default function PrescriptionDetailPage({
                   >
                     <CheckCircle2 className="mr-2 h-4 w-4" /> Complete
                   </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -147,6 +160,19 @@ export default function PrescriptionDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {isActive && rx.readyAt && !sentElsewhere && (
+        <p className="rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900 dark:border-green-900 dark:bg-green-950/20 dark:text-green-300">
+          Ready for pickup since {formatDate(rx.readyAt, 'MMM dd, HH:mm')}. Hand it over at the collection counter.
+        </p>
+      )}
+
+      {sentElsewhere && (
+        <p className="rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+          Sent to {rx.pharmacyName}, which fills it. To change the medicines, cancel it — that withdraws it from
+          the pharmacy — and write a new prescription.
+        </p>
+      )}
 
       {untyped && isActive && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/20">
