@@ -29,17 +29,26 @@ describe('the workflow', () => {
     expect(getWorkflow('pharmacy').at(-1)!.label).toBe('Payments');
   });
 
-  it('lets a hospital walk-in skip booking but never the queue', () => {
+  it('keeps only the steps every hospital visit goes through', () => {
     const steps = getWorkflow('healthcare');
-    expect(steps.find((s) => s.href === '/calendar')?.optional).toBe(true);
-    expect(steps.find((s) => s.href === '/opd')?.optional).toBeFalsy();
+    expect(steps.some((s) => s.optional)).toBe(false);
+    expect(steps.find((s) => s.href === '/opd')).toBeDefined();
+  });
+
+  it('keeps the hospital pages left out of the flow in the menu', () => {
+    const ops = getVisibleNavSections('company_admin', 'healthcare').find((s) => s.menuLabel === 'Operations')!;
+    for (const href of ['/calendar', '/prescriptions', '/pickup']) {
+      const item = ops.items.find((i) => i.href === href);
+      expect(item, href).toBeDefined();
+      expect(item!.step, href).toBeUndefined();
+    }
   });
 
   it('runs each industry through its own flagship screen in order', () => {
     expect(hrefsOf('pharmacy')).toEqual(['/guests', '/calendar', '/prescriptions', '/pickup', '/payments']);
     expect(hrefsOf('wellness')).toEqual(['/guests', '/calendar', '/check-ins', '/treatments', '/hospitality', '/payments']);
     expect(hrefsOf('hospitality')).toEqual(['/guests', '/calendar', '/front-desk', '/hospitality', '/payments']);
-    expect(hrefsOf('healthcare')).toEqual(['/guests', '/calendar', '/opd', '/prescriptions', '/pickup', '/payments']);
+    expect(hrefsOf('healthcare')).toEqual(['/guests', '/opd', '/payments']);
   });
 
   it('never repeats a page, so "which step am I on" has one answer', () => {
@@ -63,7 +72,7 @@ describe('the workflow', () => {
     expect(getWorkflow('wellness')[1].label).toBe('Book treatment');
     expect(getWorkflow('hospitality')[1].label).toBe('Take booking');
     expect(getWorkflow('healthcare')[0].label).toBe('Register patient');
-    expect(getWorkflow('healthcare')[1].label).toBe('Book appointment');
+    expect(getWorkflow('healthcare')[1].label).toBe('OPD Queue');
   });
 
   it('finds the current step from a page or one of its detail pages', () => {

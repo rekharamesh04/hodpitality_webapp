@@ -172,19 +172,11 @@ function buildWorkflow(slug: WorkflowIndustry): WorkflowStep[] {
         pay,
       ];
 
+    // Only the steps every visit goes through. Appointments, prescriptions and
+    // the pharmacy counter are still in the Operations menu, just unnumbered.
     case 'healthcare':
       return [
         register,
-        {
-          href: '/calendar',
-          label: `Book ${visit}`,
-          description: `Pick the ${t.practitioner.toLowerCase()} and the slot. Walk-ins skip this and join the queue directly.`,
-          short: t.visit.many,
-          icon: CalendarDays,
-          optional: true,
-          module: 'appointments',
-          action: { label: `New ${visit}`, href: '/calendar?action=add' },
-        },
         {
           href: '/opd',
           label: 'OPD Queue',
@@ -192,24 +184,6 @@ function buildWorkflow(slug: WorkflowIndustry): WorkflowStep[] {
           description: `Check the ${person} in for a token, record triage, and call them in to the ${t.practitioner.toLowerCase()}.`,
           icon: Stethoscope,
           module: 'opd',
-        },
-        {
-          href: '/prescriptions',
-          label: 'Prescriptions',
-          description: `What the ${t.practitioner.toLowerCase()} prescribed, ready for the pharmacy.`,
-          icon: Pill,
-          optional: true,
-          module: 'prescriptions',
-          action: { label: 'New prescription', href: '/prescriptions?action=add' },
-        },
-        {
-          href: '/pickup',
-          label: 'Pharmacy',
-          description: `Verify the ${person} and hand over the medicines.`,
-          icon: PackageCheck,
-          optional: true,
-          module: 'prescriptions',
-          action: { label: 'Start a collection', href: '/pickup' },
         },
         // The visit ends at checkout — the reception kiosk, or the desk — where the fee is taken.
         {
