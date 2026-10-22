@@ -120,7 +120,7 @@ function RegistrationsPageInner() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">Registrations</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Registrations</h1>
           <p className="text-muted-foreground">Track event registrations and payments.</p>
         </div>
         <Button size="sm" onClick={() => setRegistrationDialogOpen(true)}>

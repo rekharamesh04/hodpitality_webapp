@@ -65,10 +65,10 @@ export default function VerifyOTPPage() {
         transition={{ duration: 0.4 }}
         className="w-full max-w-md"
       >
-        <Card className="border-border/60 bg-card/90 shadow-[var(--shadow-floating)] backdrop-blur-sm">
+        <Card className="border-border/60 shadow-2xl backdrop-blur-sm">
           <CardHeader className="text-center">
             <div className="mb-4 flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-brand-accent shadow-[var(--shadow-glow)]">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-[var(--shadow-primary)]">
                 <Shield className="h-6 w-6 text-white" />
               </div>
             </div>

@@ -87,7 +87,7 @@ export default function RegistrationDetailPage({ params }: { params: Promise<{ i
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{registration.guestName}</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{registration.guestName}</h1>
                 <StatusBadge status={registration.status} />
                 <Badge variant={registration.paymentStatus === 'paid' ? 'default' : 'secondary'} className="capitalize">
                   {registration.paymentStatus}

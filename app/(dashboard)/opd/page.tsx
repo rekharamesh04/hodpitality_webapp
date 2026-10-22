@@ -177,7 +177,7 @@ export default function OpdQueuePage() {
         {/* Header */}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">OPD Queue</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">OPD Queue</h1>
             <p className="text-muted-foreground">
               Tokens, triage and each {t.practitioner.toLowerCase()}&rsquo;s queue{isToday ? ' — live' : ''}
             </p>

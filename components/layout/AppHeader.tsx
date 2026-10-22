@@ -32,7 +32,7 @@ const navIconButton =
 export function BrandMark({ className, alwaysShowName }: { className?: string; alwaysShowName?: boolean }) {
   return (
     <Link href="/dashboard" className={cn('flex shrink-0 items-center gap-2.5', className)} aria-label="EntryFlow Admin — Dashboard">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-sm font-extrabold text-white shadow-[var(--shadow-glow)]">
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow-[0_4px_12px_-2px_rgb(99_102_241_/_0.6)]">
         E
       </span>
       <span className={cn('text-[15px] font-semibold tracking-tight text-nav-foreground', alwaysShowName ? 'inline' : 'hidden sm:inline')}>
@@ -51,7 +51,7 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
   );
   // Active-section marker sitting on the bar's bottom edge.
   const indicator = active && (
-    <span className="absolute inset-x-3 -bottom-[14px] h-0.5 rounded-full bg-gradient-to-r from-indigo-400 to-violet-400" aria-hidden="true" />
+    <span className="absolute inset-x-3 -bottom-[14px] h-0.5 rounded-full bg-indigo-400" aria-hidden="true" />
   );
 
   if (section.items.length === 1) {
@@ -80,13 +80,13 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
           <span
             className={cn(
               'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-              itemActive ? 'bg-gradient-to-br from-primary to-brand-accent text-primary-foreground shadow-[var(--shadow-primary)]' : 'bg-primary/10 text-primary'
+              itemActive ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
             )}
           >
             <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
             {item.step && (
               <span
-                className="absolute -left-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-popover bg-gradient-to-br from-indigo-500 to-violet-600 px-1 text-[10px] font-bold text-white"
+                className="absolute -left-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-popover bg-foreground px-1 text-[10px] font-bold text-background"
                 aria-hidden="true"
               >
                 {item.step}
@@ -302,7 +302,7 @@ export function AppHeader() {
               >
                 <Avatar className="h-8 w-8 ring-2 ring-white/15">
                   <AvatarImage src={user?.avatar} alt={user?.name} />
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-semibold text-white">
                     {user?.name ? getInitials(user.name) : 'U'}
                   </AvatarFallback>
                 </Avatar>

@@ -34,9 +34,9 @@ export function WorkflowGuide({ steps }: { steps: WorkflowStep[] }) {
           {steps.map((s, i) => {
             const Icon = s.icon;
             return (
-              <li key={s.href} className="card-hover relative flex flex-col rounded-xl border border-border/70 bg-card p-3 shadow-[var(--shadow-soft)]">
+              <li key={s.href} className="relative flex flex-col rounded-lg border bg-card p-3">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow-[var(--shadow-glow)]">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                     {i + 1}
                   </span>
                   <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
@@ -53,10 +53,10 @@ export function WorkflowGuide({ steps }: { steps: WorkflowStep[] }) {
                 <p className="mt-1 flex-1 text-xs leading-snug text-muted-foreground">{s.description}</p>
                 <Link
                   href={s.action?.href ?? s.href}
-                  className={cn(buttonVariants({ size: 'sm', variant: 'outline' }), 'group mt-3 w-full justify-between')}
+                  className={cn(buttonVariants({ size: 'sm', variant: 'outline' }), 'mt-3 w-full justify-between')}
                 >
                   <span className="truncate">{s.action?.label ?? `Open ${s.label}`}</span>
-                  <ArrowRight className="h-3.5 w-3.5 shrink-0 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                  <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 </Link>
                 {i < steps.length - 1 && (
                   <ArrowRight

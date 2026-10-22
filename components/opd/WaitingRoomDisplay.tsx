@@ -51,12 +51,12 @@ export function WaitingRoomDisplay({
       role="dialog"
       aria-modal="true"
       aria-label="Waiting-room display"
-      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-slate-950 bg-gradient-to-br from-indigo-950 via-slate-950 to-indigo-950 p-6 text-white sm:p-10"
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-slate-950 p-6 text-white sm:p-10"
     >
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <p className="text-sm uppercase tracking-widest text-slate-400">{orgLabel}</p>
-          <h2 className="text-3xl font-extrabold tracking-tight sm:text-5xl">Now serving</h2>
+          <h2 className="text-3xl font-bold sm:text-5xl">Now serving</h2>
         </div>
         <div className="flex items-center gap-2">
           <p className="mr-2 text-2xl font-semibold tabular-nums text-slate-300 sm:text-4xl">

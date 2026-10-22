@@ -4,8 +4,8 @@ export const BRAND_COLORS = {
   primaryHover: '#4338CA',
   primaryLight: '#E0E7FF',
   secondary: '#0F172A',
-  accent: '#7C3AED',
-  success: '#10B981',
+  accent: '#8B5CF6',
+  success: '#22C55E',
   danger: '#EF4444',
   warning: '#F59E0B',
   info: '#3B82F6',
@@ -171,8 +171,8 @@ export const STORAGE_KEYS = {
 // Chart Colors
 export const CHART_COLORS = {
   PRIMARY: '#4F46E5',
-  SECONDARY: '#7C3AED',
-  SUCCESS: '#10B981',
+  SECONDARY: '#8B5CF6',
+  SUCCESS: '#22C55E',
   WARNING: '#F59E0B',
   DANGER: '#EF4444',
   INFO: '#3B82F6',

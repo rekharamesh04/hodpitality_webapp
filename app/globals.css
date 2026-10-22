@@ -1,4 +1,5 @@
-/* Plus Jakarta Sans is self-hosted through next/font in app/layout.tsx (--font-jakarta). */
+/* ─── Google Fonts ──────────────────────────────────────── */
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
 
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
@@ -25,32 +26,23 @@
   --destructive-foreground: #FFFFFF;
   --border: #E2E8F0;
   --input: #E2E8F0;
-  --ring: #6366F1;
+  --ring: #4F46E5;
 
-  /* Top navigation bar — deep indigo (indigo-950 → indigo-900), same in light and dark mode */
-  --nav-bg: #1E1B4B;
-  --nav-bg-to: #312E81;
+  /* Top navigation bar — midnight navy, same in light and dark mode */
+  --nav-bg: #0B1220;
+  --nav-bg-to: #1E1B4B;
   --nav-border: rgba(255, 255, 255, 0.08);
   --nav-foreground: #F8FAFC;
   --nav-muted-foreground: rgba(226, 232, 240, 0.72);
   --nav-accent-bg: rgba(255, 255, 255, 0.07);
   --nav-active-bg: rgba(255, 255, 255, 0.12);
 
-  /* brand — indigo (primary) + violet (secondary) form the gradient spectrum */
-  --brand-accent: #7C3AED;
-  --brand-success: #10B981;
+  /* brand */
+  --brand-accent: #8B5CF6;
+  --brand-success: #22C55E;
   --brand-warning: #F59E0B;
   --brand-danger: #EF4444;
   --brand-info: #3B82F6;
-
-  /* Colored shadows — indigo-tinted instead of neutral grey */
-  --shadow-soft:          0 4px 20px -2px rgba(79, 70, 229, 0.1);
-  --shadow-medium:        0 10px 25px -5px rgba(79, 70, 229, 0.15), 0 8px 10px -6px rgba(79, 70, 229, 0.1);
-  --shadow-large:         0 16px 40px -8px rgba(79, 70, 229, 0.18), 0 8px 16px -8px rgba(79, 70, 229, 0.1);
-  --shadow-floating:      0 24px 50px -12px rgba(79, 70, 229, 0.25), 0 10px 20px -10px rgba(15, 23, 42, 0.12);
-  --shadow-primary:       0 4px 14px 0 rgba(79, 70, 229, 0.3);
-  --shadow-primary-hover: 0 8px 22px -2px rgba(79, 70, 229, 0.4);
-  --shadow-glow:          0 0 20px rgba(79, 70, 229, 0.5);
 }
 
 /* ─── CSS Custom Properties (dark) ─────────────────────── */
@@ -74,30 +66,18 @@
   --border: #1E293B;
   --input: #1E293B;
   --ring: #818CF8;
-  --nav-bg: #0B0A1F;
+  --nav-bg: #020617;
   --nav-bg-to: #1E1B4B;
   --nav-border: rgba(255, 255, 255, 0.08);
   --nav-foreground: #F8FAFC;
   --nav-muted-foreground: rgba(226, 232, 240, 0.7);
   --nav-accent-bg: rgba(255, 255, 255, 0.06);
   --nav-active-bg: rgba(255, 255, 255, 0.1);
-
-  --brand-accent: #A78BFA;
-  --brand-success: #34D399;
-
-  /* On a dark canvas the tint needs more weight to read as depth */
-  --shadow-soft:          0 4px 20px -2px rgba(0, 0, 0, 0.45);
-  --shadow-medium:        0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(99, 102, 241, 0.12);
-  --shadow-large:         0 16px 40px -8px rgba(0, 0, 0, 0.55), 0 8px 16px -8px rgba(99, 102, 241, 0.15);
-  --shadow-floating:      0 24px 50px -12px rgba(0, 0, 0, 0.65), 0 10px 20px -10px rgba(99, 102, 241, 0.18);
-  --shadow-primary:       0 4px 14px 0 rgba(99, 102, 241, 0.35);
-  --shadow-primary-hover: 0 8px 22px -2px rgba(129, 140, 248, 0.45);
-  --shadow-glow:          0 0 20px rgba(129, 140, 248, 0.55);
 }
 
 /* ─── Tailwind Theme ────────────────────────────────────── */
 @theme inline {
-  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -132,19 +112,21 @@
   --color-danger: var(--brand-danger);
   --color-info: var(--brand-info);
 
-  /* radius system — cards rounded-xl (12px), inputs and buttons rounded-lg (8px) */
-  --radius-sm:     4px;
-  --radius:        6px;
-  --radius-md:     6px;
-  --radius-lg:     8px;
-  --radius-xl:    12px;
-  --radius-2xl:   16px;
-  --radius-3xl:   24px;
+  /* radius system */
+  --radius-sm:     8px;
+  --radius:       12px;
+  --radius-md:    14px;
+  --radius-lg:    16px;
+  --radius-xl:    20px;
+  --radius-2xl:   24px;
   --radius-full: 9999px;
 
-  /* "Refined motion": 200ms, ease-out, for every transition unless a component says otherwise */
-  --default-transition-duration: 200ms;
-  --default-transition-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  /* shadows */
+  --shadow-soft:     0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
+  --shadow-medium:   0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
+  --shadow-large:    0 10px 30px -5px rgb(0 0 0 / 0.1),  0 4px 10px -5px rgb(0 0 0 / 0.06);
+  --shadow-floating: 0 20px 40px -10px rgb(0 0 0 / 0.15), 0 8px 16px -8px rgb(0 0 0 / 0.08);
+  --shadow-primary:  0 4px 16px -2px rgb(79 70 229 / 0.35);
 }
 
 /* ─── Base Styles ───────────────────────────────────────── */
@@ -165,18 +147,18 @@
 }
 
 body {
-  font-family: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  font-family: var(--font-sans);
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  line-height: 1.6;
+  line-height: 1.5;
+  font-feature-settings: "cv11", "ss01";
 }
 
 h1, h2, h3 {
   text-wrap: balance;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
+  letter-spacing: -0.01em;
 }
 
 /* Numbers in stats and tables line up column-to-column. */
@@ -236,33 +218,20 @@ h1, h2, h3 {
 
 /* ─── Gradient text ─────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(90deg, var(--primary) 0%, var(--brand-accent) 100%);
+  background: linear-gradient(135deg, #4F46E5 0%, #8B5CF6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* ─── Card hover — lift with a deeper colored shadow ─────── */
+/* ─── Card hover ────────────────────────────────────────── */
 .card-hover {
-  transition: transform 0.2s cubic-bezier(0, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0, 0, 0.2, 1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .card-hover:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-medium);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-large);
 }
-
-/* ─── Atmospheric blobs ─────────────────────────────────────
-   Large blurred indigo/violet orbs behind hero areas. Parent needs `relative overflow-hidden`. */
-.blob {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(64px);
-  pointer-events: none;
-}
-.blob-indigo { background: var(--primary); opacity: 0.18; }
-.blob-violet { background: var(--brand-accent); opacity: 0.16; }
-.dark .blob-indigo { opacity: 0.22; }
-.dark .blob-violet { opacity: 0.18; }
 
 /* ─── Smooth fade-in ────────────────────────────────────── */
 @keyframes fadeUp {
