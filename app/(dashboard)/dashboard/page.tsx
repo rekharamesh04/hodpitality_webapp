@@ -45,19 +45,26 @@ export default function DashboardPage() {
   const markAllRead = useMarkAllNotificationsRead();
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <WelcomeHeader />
+    <div className="space-y-8">
+      {/* Editorial hero, asymmetric 8:4 — headline on the dot grid, desk actions in a framed panel. */}
+      <div className="editorial-dots grid gap-8 border border-border bg-card/40 p-6 sm:p-10 lg:grid-cols-12 lg:items-end">
+        <div className="lg:col-span-8">
+          <WelcomeHeader />
+        </div>
         {/* The two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
-            <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
-            Find by face
-          </Button>
-          <Button size="sm" onClick={() => router.push('/guests?action=add')}>
-            <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Add {t.person.one}
-          </Button>
+        <div className="relative border border-border bg-background p-6 shadow-[var(--shadow-editorial)] lg:col-span-4">
+          <span className="pointer-events-none absolute -bottom-px -left-px h-8 w-8 border-b border-l border-primary" aria-hidden="true" />
+          <p className="editorial-label text-muted-foreground">Start from a face</p>
+          <div className="mt-4 grid gap-2">
+            <Button className="w-full" onClick={() => router.push('/guests?action=add')}>
+              <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Add {t.person.one}
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => setFindByFaceOpen(true)}>
+              <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
+              Find by face
+            </Button>
+          </div>
         </div>
       </div>
       <FindByFaceDialog open={findByFaceOpen} onOpenChange={setFindByFaceOpen} />
@@ -76,7 +83,7 @@ export default function DashboardPage() {
       {workflow.length === 0 && <QuickActions />}
 
       {/* Cards for modules this industry is not offered are left out rather than shown empty. */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="editorial-grid grid grid-cols-1 gap-px lg:grid-cols-2">
         <ActivityFeed
           activities={activity.data ?? []}
           isLoading={activity.isLoading}

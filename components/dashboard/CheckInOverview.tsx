@@ -79,7 +79,7 @@ export function CheckInOverview({ checkIns, stats, isLoading, isError, error, on
               <p className="text-xs text-muted-foreground">On Site</p>
             </div>
             <div className="rounded-lg border p-2">
-              <p className="text-lg font-bold text-gray-700 dark:text-gray-300">{stats.completed ?? 0}</p>
+              <p className="text-lg font-bold text-muted-foreground">{stats.completed ?? 0}</p>
               <p className="text-xs text-muted-foreground">Completed</p>
             </div>
           </div>

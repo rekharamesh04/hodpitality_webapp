@@ -138,7 +138,7 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
           <div className="grid gap-6 py-4">
             {/* Guest Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">{t.person.one} Information</h3>
+              <h3 className="font-serif text-xl font-semibold">{t.person.one} Information</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="guestName">Full Name *</Label>
@@ -201,7 +201,7 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
 
             {/* Event Information */}
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Event Information</h3>
+              <h3 className="font-serif text-xl font-semibold">Event Information</h3>
               <div className="grid gap-2">
                 <Label htmlFor="eventTitle">Event *</Label>
                 <Select
@@ -263,7 +263,7 @@ export function CompleteRegistrationDialog({ open, onOpenChange }: CompleteRegis
             {/* Hospitality Requests */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium">Hospitality Services</h3>
+                <h3 className="font-serif text-xl font-semibold">Hospitality Services</h3>
                 <Button type="button" variant="outline" size="sm" onClick={addHospitalityRequest}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Service

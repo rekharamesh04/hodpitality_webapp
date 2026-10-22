@@ -254,11 +254,11 @@ export default function LoginPage() {
         transition={{ duration: 0.4 }}
         className="relative w-full max-w-md"
       >
-        <Card className="border-border/60 shadow-2xl backdrop-blur-sm">
+        <Card className="relative border-border bg-card/90 shadow-[var(--shadow-editorial)] backdrop-blur-sm">
           <CardHeader className="text-center pb-2">
             <div className="mb-4 flex justify-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 shadow-[var(--shadow-primary)]">
-                <span className="text-2xl font-bold text-white">E</span>
+              <div className="flex h-14 w-14 items-center justify-center rounded-full border border-border bg-background text-primary">
+                <span className="font-serif text-2xl font-bold text-foreground">EF</span>
               </div>
             </div>
             <AnimatePresence mode="wait">
@@ -269,14 +269,14 @@ export default function LoginPage() {
                       <KeyRound className="h-5 w-5 text-primary" />
                     </div>
                   </div>
-                  <h1 className="text-2xl font-semibold tracking-tight">Set your password</h1>
+                  <h1 className="font-serif text-3xl font-normal tracking-tight">Set your password</h1>
                   <p className="mt-1 text-sm text-muted-foreground">
                     You received a temporary password. Create a permanent one to continue.
                   </p>
                 </motion.div>
               ) : (
                 <motion.div key="header" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h1 className="text-2xl font-semibold tracking-tight">
+                  <h1 className="font-serif text-3xl font-normal tracking-tight">
                     {mode === 'register' ? 'Create your account' : 'Welcome back'}
                   </h1>
                   <p className="mt-1 text-sm text-muted-foreground">

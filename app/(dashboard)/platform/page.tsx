@@ -62,10 +62,10 @@ export default function PlatformOverviewPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Platform overview</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Platform overview</h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
             {role === 'reseller' ? 'Your organisations' : 'Every organisation'}, by industry. View one to see the portal as it does.
           </p>
         </div>

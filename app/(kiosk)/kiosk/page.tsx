@@ -188,7 +188,7 @@ export default function KioskPage() {
             <ScanFace className="h-14 w-14 text-primary" aria-hidden="true" />
           </div>
           <div>
-            <h1 className="text-4xl font-bold sm:text-5xl">Welcome</h1>
+            <h1 className="font-serif text-5xl font-light tracking-tight sm:text-6xl">Welcome</h1>
             <p className="mt-3 text-xl text-muted-foreground">Arriving or leaving? Scan your face to check in or check out.</p>
           </div>
           <Button size="lg" className="h-20 w-full max-w-md text-2xl" onClick={() => setScreen({ name: 'camera' })}>
@@ -228,7 +228,7 @@ export default function KioskPage() {
       {screen.name === 'checkout' && (
         <div className="flex w-full max-w-xl flex-col items-center gap-6">
           <LogOut className="h-16 w-16 text-primary" aria-hidden="true" />
-          <h1 className="text-4xl font-bold">Checking out, {screen.first}</h1>
+          <h1 className="font-serif text-5xl font-light tracking-tight">Checking out, {screen.first}</h1>
           {screen.total > 0 ? (
             <>
               <div className="w-full rounded-2xl border bg-muted/30 p-5 text-left">
@@ -311,7 +311,7 @@ function Result({
     <div className="flex max-w-xl flex-col items-center gap-6">
       <Icon className={tone === 'success' ? 'h-20 w-20 text-green-600' : 'h-20 w-20 text-amber-600'} aria-hidden="true" />
       {/* Plain text: the title carries a patient's name, which must never be parsed as markup. */}
-      <h1 className="text-4xl font-bold">{title}</h1>
+      <h1 className="font-serif text-5xl font-light tracking-tight">{title}</h1>
       {children}
       <Button variant="outline" size="lg" className="h-14 px-10 text-lg" onClick={onDone}>Done</Button>
     </div>

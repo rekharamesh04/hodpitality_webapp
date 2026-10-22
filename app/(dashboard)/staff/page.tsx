@@ -222,10 +222,10 @@ function StaffPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Staff</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Staff</h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
             {!isPlatform
               ? 'Manage your team members'
               : scope.kind === 'company'
@@ -473,8 +473,8 @@ function StaffPageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Staff</h1>
-        <p className="text-muted-foreground">Manage your team members</p>
+        <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Staff</h1>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Manage your team members</p>
       </div>
       <Card>
         <CardContent className="p-6">

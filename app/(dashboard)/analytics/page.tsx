@@ -69,8 +69,8 @@ export default function AnalyticsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Analytics</h1>
-          <p className="text-muted-foreground">Understand operational performance and activity across your organisation.</p>
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Analytics</h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Understand operational performance and activity across your organisation.</p>
         </div>
         <ErrorState
           title="Access denied"
@@ -179,10 +179,10 @@ function AnalyticsPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Analytics</h1>
-          <p className="text-muted-foreground">Multi-tenant operational performance and activity for your organization.</p>
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Analytics</h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Multi-tenant operational performance and activity for your organization.</p>
         </div>
         <Button size="sm" variant="outline" onClick={refreshAll} disabled={isRefreshing}>
           <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
@@ -191,7 +191,7 @@ function AnalyticsPageInner() {
       </div>
 
       {/* KPIs */}
-      <section aria-labelledby="analytics-kpi-heading" className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <section aria-labelledby="analytics-kpi-heading" className="editorial-grid grid grid-cols-2 gap-px md:grid-cols-4">
         <h2 id="analytics-kpi-heading" className="sr-only">Key Performance Indicators</h2>
         {stats.isLoading ? <StatsCardSkeleton /> : (
           <StatsCard title={`Total ${t.person.many}`} value={stats.data?.totalGuests ?? '—'} icon={Users} />

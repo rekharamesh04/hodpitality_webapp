@@ -285,10 +285,10 @@ function PickupPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Collection counter</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Collection counter</h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
             Identify the {t.person.one.toLowerCase()}, verify them, then release what they are collecting.
           </p>
         </div>

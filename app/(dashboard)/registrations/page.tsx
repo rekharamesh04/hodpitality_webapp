@@ -118,10 +118,10 @@ function RegistrationsPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Registrations</h1>
-          <p className="text-muted-foreground">Track event registrations and payments.</p>
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Registrations</h1>
+          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Track event registrations and payments.</p>
         </div>
         <Button size="sm" onClick={() => setRegistrationDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -129,15 +129,15 @@ function RegistrationsPageInner() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="editorial-grid grid grid-cols-2 gap-px md:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
         ) : (
           <>
-            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Total Registrations</p><p className="mt-1 text-2xl font-bold tabular-nums">{total}</p></CardContent></Card>
-            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Confirmed</p><p className="mt-1 text-2xl font-bold tabular-nums">{confirmed}</p></CardContent></Card>
-            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Pending</p><p className="mt-1 text-2xl font-bold tabular-nums">{pending}</p></CardContent></Card>
-            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Paid Revenue</p><p className="mt-1 text-2xl font-bold tabular-nums">{formatCurrency(revenue)}</p></CardContent></Card>
+            <Card><CardContent className="p-5 sm:p-8"><p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Total Registrations</p><p className="mt-3 break-words font-serif text-2xl font-light leading-none tabular-nums sm:text-3xl lg:text-4xl">{total}</p></CardContent></Card>
+            <Card><CardContent className="p-5 sm:p-8"><p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Confirmed</p><p className="mt-3 break-words font-serif text-2xl font-light leading-none tabular-nums sm:text-3xl lg:text-4xl">{confirmed}</p></CardContent></Card>
+            <Card><CardContent className="p-5 sm:p-8"><p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Pending</p><p className="mt-3 break-words font-serif text-2xl font-light leading-none tabular-nums sm:text-3xl lg:text-4xl">{pending}</p></CardContent></Card>
+            <Card><CardContent className="p-5 sm:p-8"><p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Paid Revenue</p><p className="mt-3 break-words font-serif text-2xl font-light leading-none tabular-nums sm:text-3xl lg:text-4xl">{formatCurrency(revenue)}</p></CardContent></Card>
           </>
         )}
       </div>

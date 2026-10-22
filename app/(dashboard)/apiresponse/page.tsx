@@ -370,7 +370,7 @@ export default function ApiResponsePage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">API Tester</h1>
+          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">API Tester</h1>
         </div>
         <ErrorState
           title="Access denied"
