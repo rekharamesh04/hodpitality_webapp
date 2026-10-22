@@ -143,7 +143,7 @@ function HospitalityPageInner() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">{t.place.one} Services</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.place.one} Services</h1>
           <p className="text-muted-foreground">Concierge &amp; {t.person.one.toLowerCase()} services.</p>
         </div>
         <div className="flex gap-2">

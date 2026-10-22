@@ -11,6 +11,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       attribute="class"
       defaultTheme="light"
       enableSystem
+      disableTransitionOnChange
     >
       <QueryProvider>
         {/* Honour the OS "reduce motion" setting for every framer-motion animation. */}

@@ -71,19 +71,19 @@ export function PlatformScopeSwitcher() {
     : 'All organisations';
 
   return (
-    <div className={cn('border-t border-nav-border', scope.kind !== 'all' && 'bg-primary/10')}>
+    <div className={cn('border-t border-nav-border/60', scope.kind !== 'all' && 'bg-indigo-500/15')}>
       <div className="mx-auto flex h-10 w-full max-w-[1600px] items-center gap-2 px-4 text-xs sm:px-6 lg:px-8">
-        <span className="shrink-0 font-mono text-[10px] uppercase tracking-[0.25em] text-nav-muted">Viewing</span>
+        <span className="shrink-0 text-nav-muted">Viewing</span>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
               className={cn(
-                'h-7 min-w-0 gap-1.5 rounded-sm border px-2',
+                'h-7 min-w-0 gap-1.5 border px-2',
                 scope.kind === 'all'
-                  ? 'border-nav-border bg-transparent text-nav-foreground hover:border-nav-muted hover:bg-transparent hover:text-nav-foreground'
-                  : 'border-primary/60 bg-primary/10 text-nav-foreground hover:bg-primary/20 hover:text-nav-foreground',
+                  ? 'border-nav-border bg-white/5 text-nav-foreground hover:bg-white/10 hover:text-nav-foreground'
+                  : 'border-indigo-400/50 bg-indigo-400/15 text-indigo-100 hover:bg-indigo-400/25 hover:text-white',
               )}
               aria-label={`Viewing ${label}. Change which organisations you see.`}
             >
@@ -94,7 +94,7 @@ export function PlatformScopeSwitcher() {
           </PopoverTrigger>
           <PopoverContent align="start" sideOffset={8} className="w-80 p-0">
         <div className="border-b p-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-primary">Viewing</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Viewing</p>
           <p className="text-xs text-muted-foreground">
             Every page shows only what you pick. Viewing one company, what you add is added to it.
           </p>
@@ -128,7 +128,7 @@ export function PlatformScopeSwitcher() {
                 active={scope.kind === 'industry' && scope.industry === industry}
                 onClick={() => choose({ kind: 'industry', industry })}
               >
-                <span className="flex-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                <span className="flex-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {industryPack(industry).label}
                 </span>
                 <span className="text-xs tabular-nums text-muted-foreground">{list.length}</span>
@@ -153,13 +153,13 @@ export function PlatformScopeSwitcher() {
           </PopoverContent>
         </Popover>
         {scope.kind === 'company' && (
-          <span className="hidden truncate font-mono text-[10px] uppercase tracking-widest text-primary sm:inline">{industryPack(scope.industry).label}</span>
+          <span className="hidden truncate text-indigo-200/90 sm:inline">{industryPack(scope.industry).label}</span>
         )}
         {scope.kind !== 'all' && (
           <button
             type="button"
             onClick={() => choose(ALL_ORGANISATIONS)}
-            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-xs px-1.5 py-0.5 text-nav-muted hover:bg-nav-accent hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary"
+            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-nav-muted hover:bg-white/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             <X className="h-3 w-3" aria-hidden="true" /> Show all
           </button>
@@ -177,10 +177,10 @@ function ScopeRow({
       type="button"
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-2 rounded-xs px-2.5 py-1.5 text-left transition-colors duration-150 hover:bg-accent',
+        'flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-accent',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         inset && 'pl-6',
-        active && 'bg-primary/10 text-foreground',
+        active && 'bg-primary/10',
       )}
     >
       {children}

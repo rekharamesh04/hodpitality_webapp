@@ -134,7 +134,7 @@ function CalendarPageInner() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">{t.visit.many}</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.visit.many}</h1>
           <p className="text-sm text-muted-foreground">
             {view === 'day' ? formatDayHeading(selectedDate) : view === 'week' ? formatWeekHeading(weekStart) : formatMonthHeading(selectedMonth)}
             {view === 'week' && weekQuery.data && (

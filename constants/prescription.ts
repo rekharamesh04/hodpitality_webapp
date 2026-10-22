@@ -18,7 +18,7 @@ export const PRESCRIPTION_STATUS_LABELS: Record<PrescriptionStatus, string> = {
 
 export const PRESCRIPTION_STATUS_CLASSES: Record<PrescriptionStatus, string> = {
   active:    'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800',
-  completed: 'bg-muted text-muted-foreground border-border',
+  completed: 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700',
   cancelled: 'bg-red-100 text-red-800 border-red-300 dark:bg-red-950/30 dark:text-red-400 dark:border-red-800',
 };
 

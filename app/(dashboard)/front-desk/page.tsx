@@ -132,7 +132,7 @@ export default function FrontDeskPage() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Front Desk</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">Front Desk</h1>
             <p className="text-muted-foreground">
               Arrivals, departures and {t.place.one.toLowerCase()} availability
             </p>

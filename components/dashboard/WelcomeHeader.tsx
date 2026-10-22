@@ -9,15 +9,9 @@ export function WelcomeHeader() {
 
   return (
     <div>
-      <p className="editorial-label flex items-center gap-3 text-primary">
-        <span className="h-px w-8 bg-primary" aria-hidden="true" />
-        {formatDate(currentDate, 'MMMM dd, yyyy')}
-      </p>
-      <h1 className="mt-4 font-serif text-5xl font-light leading-[1.02] tracking-tight sm:text-6xl">Dashboard</h1>
-      <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted-foreground">
-        Welcome back,{' '}
-        <em className="font-serif text-base italic text-foreground">{user?.name?.split(' ')[0] || 'Admin'}</em>
-        {' '}— here&apos;s what&apos;s happening today.
+      <h1 className="text-2xl font-bold sm:text-3xl">Dashboard</h1>
+      <p className="text-muted-foreground">
+        Welcome back, {user?.name?.split(' ')[0] || 'Admin'} — here&apos;s what&apos;s happening today, {formatDate(currentDate, 'MMMM dd, yyyy')}.
       </p>
     </div>
   );
