@@ -1,83 +1,141 @@
-/* ─── Google Fonts ──────────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+/* Fonts (Crimson Pro, Plus Jakarta Sans, JetBrains Mono) are self-hosted through next/font in
+   app/layout.tsx, which sets --font-crimson, --font-jakarta and --font-jetbrains on <html>. */
 
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 
-/* ─── CSS Custom Properties (light) ────────────────────── */
+/* ─── Modern Editorial — light (ivory) ─────────────────── */
 :root {
-  --background: #F8FAFC;
-  --foreground: #0F172A;
+  --background: #F9F8F6;
+  --foreground: #111111;
   --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --card-foreground: #111111;
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
-  --primary: #4F46E5;
+  --popover-foreground: #111111;
+  /* Antique gold: links, active states, icon tints, focus. Solid calls-to-action use ink (below). */
+  --primary: #9E7B4F;
   --primary-foreground: #FFFFFF;
-  --secondary: #F1F5F9;
-  --secondary-foreground: #0F172A;
+  --secondary: #F1EEE8;
+  --secondary-foreground: #111111;
   /* One step darker than the page background so muted fills (table headers, skeletons,
      avatar fallbacks) are actually visible on white cards. */
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
-  --accent: #F1F5F9;
-  --accent-foreground: #0F172A;
-  --destructive: #EF4444;
+  --muted: #F1EEE8;
+  --muted-foreground: #66615A;
+  --accent: #F3F0EA;
+  --accent-foreground: #111111;
+  --destructive: #B42318;
   --destructive-foreground: #FFFFFF;
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #4F46E5;
+  --border: #E5E0D8;
+  --input: #E5E0D8;
+  --ring: #9E7B4F;
 
-  /* Top navigation bar — midnight navy, same in light and dark mode */
-  --nav-bg: #0B1220;
-  --nav-bg-to: #1E1B4B;
-  --nav-border: rgba(255, 255, 255, 0.08);
-  --nav-foreground: #F8FAFC;
-  --nav-muted-foreground: rgba(226, 232, 240, 0.72);
-  --nav-accent-bg: rgba(255, 255, 255, 0.07);
-  --nav-active-bg: rgba(255, 255, 255, 0.12);
+  /* Ink — the onyx/ivory pair used for primary buttons and inverted sections */
+  --ink: #111111;
+  --ink-foreground: #F9F8F6;
 
-  /* brand */
-  --brand-accent: #8B5CF6;
-  --brand-success: #22C55E;
-  --brand-warning: #F59E0B;
-  --brand-danger: #EF4444;
-  --brand-info: #3B82F6;
+  /* Top navigation bar — translucent ivory, blurred */
+  --nav-bg: rgba(249, 248, 246, 0.8);
+  --nav-bg-to: rgba(249, 248, 246, 0.8);
+  --nav-border: #E5E0D8;
+  --nav-foreground: #111111;
+  --nav-muted-foreground: #66615A;
+  --nav-accent-bg: rgba(17, 17, 17, 0.04);
+  --nav-active-bg: rgba(158, 123, 79, 0.1);
+
+  /* brand + status — muted, editorial tones */
+  --brand-accent: #9E7B4F;
+  --brand-success: #3F7D58;
+  --brand-warning: #B7791F;
+  --brand-danger: #B42318;
+  --brand-info: #3B6E91;
+
+  /* charts */
+  --chart-1: #9E7B4F;
+  --chart-2: #111111;
+  --chart-3: #3F7D58;
+  --chart-4: #B7791F;
+  --chart-5: #B42318;
+  --chart-6: #3B6E91;
+  --chart-7: #7A5C7E;
+  --chart-8: #B5736A;
+
+  /* elevation — minimal; borders do the work */
+  --shadow-editorial: 0 4px 30px rgba(0, 0, 0, 0.03);
+  --shadow-soft:      0 4px 30px rgba(0, 0, 0, 0.03);
+  --shadow-medium:    0 6px 30px rgba(0, 0, 0, 0.05);
+  --shadow-large:     0 12px 40px -8px rgba(0, 0, 0, 0.08);
+  --shadow-floating:  0 24px 60px -16px rgba(0, 0, 0, 0.14);
+  --shadow-primary:   0 4px 30px rgba(0, 0, 0, 0.03);
+
+  /* hero dot pattern */
+  --dot-color: rgba(17, 17, 17, 0.2);
+
+  --ease-editorial: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ─── CSS Custom Properties (dark) ─────────────────────── */
+/* ─── Modern Editorial — dark (onyx, cinematic) ────────── */
 .dark {
-  --background: #020617;
-  --foreground: #F1F5F9;
-  --card: #0F172A;
-  --card-foreground: #F1F5F9;
-  --popover: #0F172A;
-  --popover-foreground: #F1F5F9;
-  --primary: #818CF8;
-  --primary-foreground: #1E1B4B;
-  --secondary: #1E293B;
-  --secondary-foreground: #F1F5F9;
-  --muted: #1E293B;
-  --muted-foreground: #94A3B8;
-  --accent: #1E293B;
-  --accent-foreground: #F1F5F9;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #1E293B;
-  --input: #1E293B;
-  --ring: #818CF8;
-  --nav-bg: #020617;
-  --nav-bg-to: #1E1B4B;
-  --nav-border: rgba(255, 255, 255, 0.08);
-  --nav-foreground: #F8FAFC;
-  --nav-muted-foreground: rgba(226, 232, 240, 0.7);
-  --nav-accent-bg: rgba(255, 255, 255, 0.06);
-  --nav-active-bg: rgba(255, 255, 255, 0.1);
+  --background: #0B0C0E;
+  --foreground: #F3F1EC;
+  --card: #111215;
+  --card-foreground: #F3F1EC;
+  --popover: #141519;
+  --popover-foreground: #F3F1EC;
+  --primary: #D4AF37;
+  --primary-foreground: #0B0C0E;
+  --secondary: #1A1B20;
+  --secondary-foreground: #F3F1EC;
+  --muted: #18191D;
+  --muted-foreground: #A6A6A6;
+  --accent: #1C1D22;
+  --accent-foreground: #F3F1EC;
+  --destructive: #F07167;
+  --destructive-foreground: #0B0C0E;
+  --border: #303139;
+  --input: #303139;
+  --ring: #D4AF37;
+
+  --ink: #F3F1EC;
+  --ink-foreground: #0B0C0E;
+
+  --nav-bg: rgba(11, 12, 14, 0.8);
+  --nav-bg-to: rgba(11, 12, 14, 0.8);
+  --nav-border: #303139;
+  --nav-foreground: #F3F1EC;
+  --nav-muted-foreground: #A6A6A6;
+  --nav-accent-bg: rgba(243, 241, 236, 0.06);
+  --nav-active-bg: rgba(212, 175, 55, 0.12);
+
+  --brand-accent: #D4AF37;
+  --brand-success: #6FBF8E;
+  --brand-warning: #E0A93B;
+  --brand-danger: #F07167;
+  --brand-info: #7FB2D9;
+
+  --chart-1: #D4AF37;
+  --chart-2: #F3F1EC;
+  --chart-3: #6FBF8E;
+  --chart-4: #E0A93B;
+  --chart-5: #F07167;
+  --chart-6: #7FB2D9;
+  --chart-7: #B79BC0;
+  --chart-8: #D9978C;
+
+  --shadow-editorial: 0 4px 30px rgba(0, 0, 0, 0.25);
+  --shadow-soft:      0 4px 30px rgba(0, 0, 0, 0.25);
+  --shadow-medium:    0 6px 30px rgba(0, 0, 0, 0.35);
+  --shadow-large:     0 12px 40px -8px rgba(0, 0, 0, 0.5);
+  --shadow-floating:  0 24px 60px -16px rgba(0, 0, 0, 0.6);
+  --shadow-primary:   0 4px 30px rgba(0, 0, 0, 0.25);
+
+  --dot-color: rgba(243, 241, 236, 0.05);
 }
 
 /* ─── Tailwind Theme ────────────────────────────────────── */
 @theme inline {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-serif: var(--font-crimson), "Crimson Pro", Georgia, "Times New Roman", serif;
+  --font-mono: var(--font-jetbrains), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -98,6 +156,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
   --color-nav: var(--nav-bg);
   --color-nav-to: var(--nav-bg-to);
   --color-nav-border: var(--nav-border);
@@ -112,21 +172,20 @@
   --color-danger: var(--brand-danger);
   --color-info: var(--brand-info);
 
-  /* radius system */
-  --radius-sm:     8px;
-  --radius:       12px;
-  --radius-md:    14px;
-  --radius-lg:    16px;
-  --radius-xl:    20px;
-  --radius-2xl:   24px;
+  /* radius system — editorial: near-square corners, thin lines */
+  --radius-xs:     1px;
+  --radius-sm:     2px;
+  --radius:        2px;
+  --radius-md:     3px;
+  --radius-lg:     4px;
+  --radius-xl:     4px;
+  --radius-2xl:    6px;
+  --radius-3xl:    8px;
   --radius-full: 9999px;
 
-  /* shadows */
-  --shadow-soft:     0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
-  --shadow-medium:   0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
-  --shadow-large:    0 10px 30px -5px rgb(0 0 0 / 0.1),  0 4px 10px -5px rgb(0 0 0 / 0.06);
-  --shadow-floating: 0 20px 40px -10px rgb(0 0 0 / 0.15), 0 8px 16px -8px rgb(0 0 0 / 0.08);
-  --shadow-primary:  0 4px 16px -2px rgb(79 70 229 / 0.35);
+  /* every transition: 0.4s cubic-bezier(0.4, 0, 0.2, 1) unless a component asks otherwise */
+  --default-transition-duration: 400ms;
+  --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ─── Base Styles ───────────────────────────────────────── */
@@ -147,13 +206,12 @@
 }
 
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-jakarta), "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  font-feature-settings: "cv11", "ss01";
 }
 
 h1, h2, h3 {
@@ -166,6 +224,17 @@ h1, h2, h3 {
   font-variant-numeric: tabular-nums;
 }
 
+/* ─── Theme switch ────────────────────────────────────────
+   The header toggle adds .theme-switching to <html> for the length of one transition, so the
+   whole DOM crossfades between ivory and onyx instead of snapping. */
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow !important;
+  transition-duration: 0.4s !important;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
 /* ─── Overlay motion ──────────────────────────────────────
    Radix sets data-state on dialogs/popovers/menus. These replace the tailwindcss-animate
    classes (animate-in, zoom-in-95, …) used in components/ui, whose plugin isn't installed
@@ -173,15 +242,15 @@ h1, h2, h3 {
    Keyframes use `transform`, which composes with Tailwind v4's separate `translate` property. */
 @keyframes overlayIn  { from { opacity: 0; } to { opacity: 1; } }
 @keyframes overlayOut { from { opacity: 1; } to { opacity: 0; } }
-@keyframes popIn  { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-@keyframes popOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.96); } }
+@keyframes popIn  { from { opacity: 0; transform: scale(0.98) translateY(4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes popOut { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(0.98); } }
 
-[data-slot="dialog-overlay"][data-state="open"]  { animation: overlayIn 150ms ease-out; }
-[data-slot="dialog-overlay"][data-state="closed"] { animation: overlayOut 120ms ease-in; }
+[data-slot="dialog-overlay"][data-state="open"]  { animation: overlayIn 200ms cubic-bezier(0.4, 0, 0.2, 1); }
+[data-slot="dialog-overlay"][data-state="closed"] { animation: overlayOut 150ms ease-in; }
 [data-slot="dialog-content"][data-state="open"],
-[data-radix-popper-content-wrapper] > [data-state="open"] { animation: popIn 160ms cubic-bezier(0.16, 1, 0.3, 1); }
+[data-radix-popper-content-wrapper] > [data-state="open"] { animation: popIn 220ms cubic-bezier(0.4, 0, 0.2, 1); }
 [data-slot="dialog-content"][data-state="closed"],
-[data-radix-popper-content-wrapper] > [data-state="closed"] { animation: popOut 110ms ease-in; }
+[data-radix-popper-content-wrapper] > [data-state="closed"] { animation: popOut 120ms ease-in; }
 
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {
@@ -195,42 +264,60 @@ h1, h2, h3 {
 /* ─── Scrollbar ─────────────────────────────────────────── */
 ::-webkit-scrollbar         { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track   { background: transparent; }
-::-webkit-scrollbar-thumb   { background: rgba(107,114,128,0.25); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(107,114,128,0.45); }
+::-webkit-scrollbar-thumb   { background: var(--border); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 
 /* ─── Selection ─────────────────────────────────────────── */
 ::selection {
-  background-color: rgba(79, 70, 229, 0.16);
-  color: #3730A3;
+  background-color: rgba(158, 123, 79, 0.22);
+  color: var(--foreground);
+}
+.dark ::selection {
+  background-color: rgba(212, 175, 55, 0.25);
+}
+
+/* ─── Editorial helpers ─────────────────────────────────── */
+
+/* 40px radial dot grid for hero areas — 0.2 opacity on ivory, 0.05 on onyx. */
+.editorial-dots {
+  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Mono metadata label: JetBrains Mono, uppercase, widest tracking. */
+.editorial-label {
+  font-family: var(--font-jetbrains), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
 }
 
 /* ─── Glassmorphism ─────────────────────────────────────── */
 .glass {
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(249, 248, 246, 0.8);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--border);
 }
 .dark .glass {
-  background: rgba(15, 23, 42, 0.75);
-  border-color: rgba(30, 41, 59, 0.6);
+  background: rgba(11, 12, 14, 0.8);
+  border-color: var(--border);
 }
 
-/* ─── Gradient text ─────────────────────────────────────── */
+/* ─── Gradient text (now a gold accent) ─────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #4F46E5 0%, #8B5CF6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary);
+  font-style: italic;
 }
 
 /* ─── Card hover ────────────────────────────────────────── */
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.4s var(--ease-editorial), box-shadow 0.4s var(--ease-editorial);
 }
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-large);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-editorial);
 }
 
 /* ─── Smooth fade-in ────────────────────────────────────── */
@@ -251,9 +338,9 @@ h1, h2, h3 {
   100% { background-position:  200% 0; }
 }
 
-.animate-fade-up   { animation: fadeUp  0.35s ease both; }
-.animate-fade-in   { animation: fadeIn  0.25s ease both; }
-.animate-scale-in  { animation: scaleIn 0.25s ease both; }
+.animate-fade-up   { animation: fadeUp  0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.animate-fade-in   { animation: fadeIn  0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
+.animate-scale-in  { animation: scaleIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) both; }
 
 /* Skeleton shimmer */
 .skeleton-shimmer {

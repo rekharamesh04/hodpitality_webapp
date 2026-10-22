@@ -18,7 +18,7 @@ import { cn, formatCurrency, formatDate, formatTimeLabel, getStatusColor, toLoca
 import type { Appointment } from '@/types';
 import type { PersonEntity } from '@/services/document.service';
 
-const NEUTRAL_BADGE = 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700';
+const NEUTRAL_BADGE = 'bg-muted text-muted-foreground border-border';
 
 interface PersonHistoryProps {
   entity: PersonEntity;

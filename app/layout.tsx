@@ -1,12 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Crimson_Pro, Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { Providers } from "@/providers";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { cn } from "@/lib/utils";
 import "./globals.css";
 
-const inter = Inter({
+/* Modern Editorial type system: serif headlines, sans body, mono labels. */
+const crimson = Crimson_Pro({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["300", "400", "600", "700"],
+  style: ["normal", "italic"],
+  variable: "--font-crimson",
+  display: "swap",
+});
+
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  variable: "--font-jakarta",
+  display: "swap",
+});
+
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-jetbrains",
   display: "swap",
 });
 
@@ -26,8 +42,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F8FAFC" },
-    { media: "(prefers-color-scheme: dark)",  color: "#020617" },
+    { media: "(prefers-color-scheme: light)", color: "#F9F8F6" },
+    { media: "(prefers-color-scheme: dark)",  color: "#0B0C0E" },
   ],
 };
 
@@ -37,7 +53,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={inter.variable}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={cn(crimson.variable, jakarta.variable, jetbrains.variable)}
+    >
       <body className="font-sans antialiased">
         <Providers>
           <AuthProvider>

@@ -66,7 +66,7 @@ function stateOf(a: Appointment): 'booked' | 'arrived' | 'in_progress' | 'comple
 }
 
 const STATE_BAR: Record<ReturnType<typeof stateOf>, string> = {
-  booked:      'bg-slate-200 dark:bg-slate-700',
+  booked:      'bg-border',
   arrived:     'bg-amber-300 dark:bg-amber-600',
   in_progress: 'bg-primary text-primary-foreground',
   complete:    'bg-green-300 dark:bg-green-800',
@@ -187,7 +187,7 @@ export default function TreatmentBoardPage() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold sm:text-3xl">{t.visit.one} Board</h1>
+            <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">{t.visit.one} Board</h1>
             <p className="text-muted-foreground">
               {t.place.many} and {t.practitioner.toLowerCase()}s across the day
             </p>

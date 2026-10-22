@@ -46,7 +46,9 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      {/* Editorial hero: dot grid, thin rule, gold L-bracket in the bottom-left corner. */}
+      <div className="editorial-dots relative flex flex-col gap-6 border border-border bg-card/40 p-6 sm:flex-row sm:items-end sm:justify-between sm:p-10">
+        <span className="pointer-events-none absolute -bottom-px -left-px h-8 w-8 border-b border-l border-primary" aria-hidden="true" />
         <WelcomeHeader />
         {/* The two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
         <div className="flex shrink-0 flex-wrap gap-2">

@@ -1,14 +1,14 @@
-// Brand Colors
+// Brand Colors — Modern Editorial (light theme values; see app/globals.css for dark)
 export const BRAND_COLORS = {
-  primary: '#4F46E5',
-  primaryHover: '#4338CA',
-  primaryLight: '#E0E7FF',
-  secondary: '#0F172A',
-  accent: '#8B5CF6',
-  success: '#22C55E',
-  danger: '#EF4444',
-  warning: '#F59E0B',
-  info: '#3B82F6',
+  primary: '#9E7B4F',
+  primaryHover: '#8A6A40',
+  primaryLight: '#F1EEE8',
+  secondary: '#111111',
+  accent: '#9E7B4F',
+  success: '#3F7D58',
+  danger: '#B42318',
+  warning: '#B7791F',
+  info: '#3B6E91',
 } as const;
 
 // Status Types
@@ -169,15 +169,16 @@ export const STORAGE_KEYS = {
 } as const;
 
 // Chart Colors
+// Theme-aware: each resolves to the editorial chart palette in app/globals.css (light and dark).
 export const CHART_COLORS = {
-  PRIMARY: '#4F46E5',
-  SECONDARY: '#8B5CF6',
-  SUCCESS: '#22C55E',
-  WARNING: '#F59E0B',
-  DANGER: '#EF4444',
-  INFO: '#3B82F6',
-  PURPLE: '#A855F7',
-  PINK: '#EC4899',
+  PRIMARY: 'var(--chart-1)',
+  SECONDARY: 'var(--chart-2)',
+  SUCCESS: 'var(--chart-3)',
+  WARNING: 'var(--chart-4)',
+  DANGER: 'var(--chart-5)',
+  INFO: 'var(--chart-6)',
+  PURPLE: 'var(--chart-7)',
+  PINK: 'var(--chart-8)',
 } as const;
 
 // Display names for check-in methods; anything unlisted falls back to the raw value, de-underscored.

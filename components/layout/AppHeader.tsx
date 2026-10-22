@@ -25,18 +25,23 @@ import { useIndustry } from '@/hooks';
 import { cn, getInitials, getRelativeTime } from '@/lib/utils';
 import { authService } from '@/services/auth.service';
 
-/** Icon button styled for the dark navigation bar. */
+/** Circular icon button for the navigation bar. */
 const navIconButton =
-  'relative h-9 w-9 text-nav-muted hover:bg-nav-accent hover:text-nav-foreground focus-visible:ring-offset-nav';
+  'relative h-9 w-9 rounded-full text-nav-muted hover:bg-nav-accent hover:text-nav-foreground focus-visible:ring-offset-background';
 
 export function BrandMark({ className, alwaysShowName }: { className?: string; alwaysShowName?: boolean }) {
   return (
-    <Link href="/dashboard" className={cn('flex shrink-0 items-center gap-2.5', className)} aria-label="EntryFlow Admin — Dashboard">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow-[0_4px_12px_-2px_rgb(99_102_241_/_0.6)]">
-        E
+    <Link href="/dashboard" className={cn('flex shrink-0 items-center gap-3', className)} aria-label="EntryFlow Admin — Dashboard">
+      <span className="font-serif text-[28px] font-bold leading-none tracking-tight text-nav-foreground">
+        EF
       </span>
-      <span className={cn('text-[15px] font-semibold tracking-tight text-nav-foreground', alwaysShowName ? 'inline' : 'hidden sm:inline')}>
-        EntryFlow <span className="font-normal text-nav-muted">Admin</span>
+      <span
+        className={cn('h-6 w-px bg-nav-border', alwaysShowName ? 'block' : 'hidden sm:block')}
+        aria-hidden="true"
+      />
+      <span className={cn('flex-col leading-tight', alwaysShowName ? 'flex' : 'hidden sm:flex')}>
+        <span className="font-mono text-[10px] uppercase tracking-[0.25em] text-nav-foreground">EntryFlow</span>
+        <span className="font-mono text-[9px] uppercase tracking-[0.25em] text-primary">Admin</span>
       </span>
     </Link>
   );
@@ -45,13 +50,13 @@ export function BrandMark({ className, alwaysShowName }: { className?: string; a
 function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pathname: string; unreadCount: number }) {
   const active = section.items.some((item) => isNavItemActive(pathname, item.href));
   const triggerClass = cn(
-    'relative flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-medium transition-colors outline-none',
-    'focus-visible:ring-2 focus-visible:ring-indigo-400',
-    active ? 'bg-nav-active text-nav-foreground' : 'text-nav-muted hover:bg-nav-accent hover:text-nav-foreground'
+    'relative flex h-9 items-center gap-1 rounded-sm px-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors outline-none xl:px-3 xl:tracking-[0.25em]',
+    'focus-visible:ring-1 focus-visible:ring-primary',
+    active ? 'text-nav-foreground' : 'text-nav-muted hover:text-nav-foreground'
   );
-  // Active-section marker sitting on the bar's bottom edge.
+  // Active-section marker: a 1px gold rule sitting on the bar's bottom edge.
   const indicator = active && (
-    <span className="absolute inset-x-3 -bottom-[14px] h-0.5 rounded-full bg-indigo-400" aria-hidden="true" />
+    <span className="absolute inset-x-2.5 -bottom-[22px] h-px bg-primary xl:inset-x-3" aria-hidden="true" />
   );
 
   if (section.items.length === 1) {
@@ -75,12 +80,12 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
     const itemActive = isNavItemActive(pathname, item.href);
     const badge = item.href === '/notifications' ? unreadCount : 0;
     return (
-      <DropdownMenuItem key={item.href} asChild className="cursor-pointer rounded-lg p-2.5 focus:bg-accent">
+      <DropdownMenuItem key={item.href} asChild className="cursor-pointer rounded-xs p-2.5 focus:bg-accent">
         <Link href={item.href} className="flex items-start gap-3" aria-current={itemActive ? 'page' : undefined}>
           <span
             className={cn(
-              'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors',
-              itemActive ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'
+              'relative flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors',
+              itemActive ? 'border-primary bg-primary text-primary-foreground' : 'border-border text-primary'
             )}
           >
             <Icon className="h-[18px] w-[18px]" aria-hidden="true" />
@@ -98,7 +103,7 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
               {item.step && <span className="sr-only">Step {item.step}:</span>}
               {item.label}
               {item.optional && (
-                <span className="rounded border px-1 text-[10px] font-normal text-muted-foreground">Optional</span>
+                <span className="rounded-xs border px-1 font-mono text-[9px] font-normal uppercase tracking-widest text-muted-foreground">Optional</span>
               )}
               {badge > 0 && <Badge className="h-4 px-1.5 text-[10px]">{badge > 99 ? '99+' : badge}</Badge>}
             </span>
@@ -113,13 +118,13 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger className={cn(triggerClass, 'data-[state=open]:bg-nav-active data-[state=open]:text-nav-foreground')}>
+      <DropdownMenuTrigger className={cn(triggerClass, 'data-[state=open]:text-nav-foreground')}>
         {section.menuLabel}
         <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform [[data-state=open]>&]:rotate-180" aria-hidden="true" />
         {indicator}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={14} className={cn('p-2', wide ? 'w-[560px]' : steps.length ? 'w-[400px]' : 'w-[320px]')}>
-        <DropdownMenuLabel className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <DropdownMenuContent align="start" sideOffset={22} className={cn('p-2', wide ? 'w-[560px]' : steps.length ? 'w-[400px]' : 'w-[320px]')}>
+        <DropdownMenuLabel className="px-2 pb-2 text-primary">
           {section.label}
         </DropdownMenuLabel>
         {steps.length > 0 ? (
@@ -128,7 +133,7 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
             {others.length > 0 && (
               <>
                 <DropdownMenuSeparator className="my-2" />
-                <DropdownMenuLabel className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                <DropdownMenuLabel className="px-2 pb-1">
                   Other tools
                 </DropdownMenuLabel>
                 <div className="grid gap-1">{others.map(renderItem)}</div>
@@ -162,6 +167,14 @@ export function AppHeader() {
   const [loggingOut, setLoggingOut] = useState(false);
   const sections = getVisibleNavSections(user?.role, industry);
 
+  // .theme-switching (globals.css) lets every surface crossfade for one 0.4s transition.
+  const toggleTheme = () => {
+    const root = document.documentElement;
+    root.classList.add('theme-switching');
+    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
+    window.setTimeout(() => root.classList.remove('theme-switching'), 450);
+  };
+
   const handleLogout = async () => {
     if (loggingOut) return;
     setLoggingOut(true);
@@ -174,8 +187,8 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-nav-border bg-nav bg-gradient-to-r from-nav via-nav to-nav-to text-nav-foreground shadow-[0_1px_0_0_rgb(255_255_255_/_0.04),0_8px_24px_-12px_rgb(2_6_23_/_0.5)]">
-      <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center gap-2 px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-nav-border bg-nav text-nav-foreground backdrop-blur-xl supports-[backdrop-filter]:bg-nav">
+      <div className="mx-auto flex h-20 w-full max-w-[1600px] items-center gap-2 px-4 sm:px-6 lg:px-8">
         <Button
           variant="ghost"
           size="icon"
@@ -202,11 +215,11 @@ export function AppHeader() {
           <button
             type="button"
             onClick={openCommandPalette}
-            className="hidden h-9 items-center gap-2 rounded-lg border border-nav-border bg-white/5 pl-3 pr-2 text-sm text-nav-muted transition-colors hover:bg-white/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 md:flex xl:w-56"
+            className="hidden h-9 items-center gap-2 rounded-sm border border-nav-border bg-transparent pl-3 pr-2 text-sm text-nav-muted transition-colors hover:border-nav-muted hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary md:flex xl:w-56"
           >
             <Search className="h-4 w-4" aria-hidden="true" />
             <span className="flex-1 text-left">Search…</span>
-            <kbd className="flex h-5 items-center gap-0.5 rounded border border-nav-border bg-white/5 px-1.5 font-mono text-[10px]">
+            <kbd className="flex h-5 items-center gap-0.5 rounded-xs border border-nav-border bg-transparent px-1.5 font-mono text-[10px]">
               <Command className="h-3 w-3" />K
             </kbd>
           </button>
@@ -217,12 +230,12 @@ export function AppHeader() {
           <Button
             variant="ghost"
             size="icon"
-            className={navIconButton}
-            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+            className={cn(navIconButton, 'border border-nav-border hover:border-primary hover:text-primary')}
+            onClick={toggleTheme}
             aria-label="Toggle theme"
           >
-            <Sun className="h-[18px] w-[18px] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-            <Moon className="absolute h-[18px] w-[18px] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            <Sun className="h-[18px] w-[18px] rotate-0 scale-100 opacity-100 transition-all duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] dark:-rotate-90 dark:scale-0 dark:opacity-0" />
+            <Moon className="absolute h-[18px] w-[18px] rotate-90 scale-0 opacity-0 transition-all duration-[400ms] ease-[cubic-bezier(0.4,0,0.2,1)] dark:rotate-0 dark:scale-100 dark:opacity-100" />
           </Button>
 
           {/* Notifications */}
@@ -239,14 +252,14 @@ export function AppHeader() {
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white ring-2 ring-nav"
+                    className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 font-mono text-[9px] font-semibold text-primary-foreground ring-2 ring-background"
                   >
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </motion.span>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={14} className="w-[min(22rem,calc(100vw-2rem))]">
+            <DropdownMenuContent align="end" sideOffset={22} className="w-[min(22rem,calc(100vw-2rem))]">
               <DropdownMenuLabel className="flex items-center justify-between">
                 <span>Notifications</span>
                 {unreadCount > 0 && <Badge variant="secondary">{unreadCount} new</Badge>}
@@ -266,7 +279,7 @@ export function AppHeader() {
                       <DropdownMenuItem
                         key={n.id}
                         className={cn(
-                          'cursor-pointer flex-col items-start gap-0.5 rounded-lg p-3',
+                          'cursor-pointer flex-col items-start gap-0.5 rounded-xs p-3',
                           !n.read && 'bg-primary/5'
                         )}
                         onClick={() => {
@@ -279,14 +292,14 @@ export function AppHeader() {
                           <p className="flex-1 text-sm font-medium leading-snug">{n.title}</p>
                         </div>
                         {n.message && <p className="line-clamp-2 text-xs text-muted-foreground">{n.message}</p>}
-                        {n.createdAt && <p className="text-xs text-muted-foreground">{getRelativeTime(n.createdAt)}</p>}
+                        {n.createdAt && <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{getRelativeTime(n.createdAt)}</p>}
                       </DropdownMenuItem>
                     ))}
                   </div>
                 )}
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="cursor-pointer justify-center font-medium text-primary" onClick={() => router.push('/notifications')}>
+              <DropdownMenuItem className="cursor-pointer justify-center text-[11px] font-semibold uppercase tracking-[0.16em] text-primary" onClick={() => router.push('/notifications')}>
                 View all notifications
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -297,26 +310,26 @@ export function AppHeader() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-nav-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 xl:rounded-lg xl:py-1 xl:pl-1 xl:pr-2.5"
+                className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-nav-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary xl:rounded-sm xl:py-1 xl:pl-1 xl:pr-2.5"
                 aria-label="Account menu"
               >
-                <Avatar className="h-8 w-8 ring-2 ring-white/15">
+                <Avatar className="h-8 w-8 ring-1 ring-nav-border">
                   <AvatarImage src={user?.avatar} alt={user?.name} />
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-semibold text-white">
+                  <AvatarFallback className="bg-ink font-serif text-sm font-semibold text-ink-foreground">
                     {user?.name ? getInitials(user.name) : 'U'}
                   </AvatarFallback>
                 </Avatar>
                 <span className="hidden flex-col items-start text-left leading-tight xl:flex">
                   <span className="text-sm font-medium text-nav-foreground">{user?.name || 'User'}</span>
-                  <span className="text-[11px] capitalize text-nav-muted">{user?.role?.replace(/_/g, ' ') || 'Admin'}</span>
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-nav-muted">{user?.role?.replace(/_/g, ' ') || 'Admin'}</span>
                 </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={14} className="w-56">
+            <DropdownMenuContent align="end" sideOffset={22} className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium">{user?.name || 'User'}</p>
-                  <p className="truncate text-xs font-normal text-muted-foreground">{user?.email || ''}</p>
+                  <p className="font-serif text-base font-semibold normal-case tracking-normal text-foreground">{user?.name || 'User'}</p>
+                  <p className="truncate font-sans text-xs font-normal normal-case tracking-normal text-muted-foreground">{user?.email || ''}</p>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
