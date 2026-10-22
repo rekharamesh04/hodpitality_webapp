@@ -205,7 +205,7 @@ function VenuesPageInner() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">{t.place.many}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">{t.place.many}</h1>
           <p className="text-muted-foreground">Manage {t.place.many.toLowerCase()}, capacity and occupancy</p>
         </div>
         <Button size="sm" onClick={openCreate}>
@@ -452,7 +452,7 @@ function VenuesPageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">{t.place.many}</h1>
+        <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">{t.place.many}</h1>
         <p className="text-muted-foreground">Manage {t.place.many.toLowerCase()}, capacity and occupancy</p>
       </div>
       <Card>

@@ -81,10 +81,10 @@ export function QuickActions() {
               <Button
                 key={action.label}
                 variant="outline"
-                className="group h-auto flex-col items-start gap-2 whitespace-normal p-4 hover:border-primary/40 hover:bg-primary/5"
+                className="group h-auto flex-col items-start gap-2 whitespace-normal rounded-xl p-4 hover:-translate-y-1 hover:border-primary/40 hover:bg-primary/5 hover:shadow-[var(--shadow-medium)]"
                 onClick={action.onClick}
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 transition-all group-hover:bg-gradient-to-br group-hover:from-primary group-hover:to-brand-accent group-hover:shadow-[var(--shadow-primary)]">
                   <Icon className="h-5 w-5 text-primary group-hover:text-primary-foreground" aria-hidden="true" />
                 </div>
                 <div className="text-left">

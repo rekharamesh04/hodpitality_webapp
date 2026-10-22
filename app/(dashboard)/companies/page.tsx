@@ -88,7 +88,7 @@ export default function CompaniesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Companies</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">Companies</h1>
           <p className="text-muted-foreground">Manage organizations and tenant accounts.</p>
         </div>
         <ErrorState
@@ -233,7 +233,7 @@ function CompaniesPageInner({
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Companies</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl lg:text-4xl">Companies</h1>
           <p className="text-muted-foreground">Manage organizations and tenant accounts.</p>
         </div>
         {canCreate && (

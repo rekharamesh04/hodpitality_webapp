@@ -125,14 +125,14 @@ export function MobileNavDrawer() {
                           aria-current={active ? 'page' : undefined}
                           className={cn(
                             'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-                            active ? 'bg-primary/10 font-semibold text-primary' : 'font-medium text-foreground hover:bg-accent'
+                            active ? 'bg-gradient-to-r from-primary/10 to-brand-accent/5 font-semibold text-primary' : 'font-medium text-foreground hover:bg-accent'
                           )}
                         >
                           {item.step ? (
                             <span
                               className={cn(
                                 'flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
-                                active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                                active ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-[var(--shadow-glow)]' : 'bg-muted text-muted-foreground'
                               )}
                             >
                               <span className="sr-only">Step </span>{item.step}
@@ -183,7 +183,7 @@ export function MobileTabBar() {
                 active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              {active && <span className="absolute inset-x-5 top-0 h-0.5 rounded-b-full bg-primary" aria-hidden="true" />}
+              {active && <span className="absolute inset-x-5 top-0 h-0.5 rounded-b-full bg-gradient-to-r from-primary to-brand-accent" aria-hidden="true" />}
               <Icon className="h-5 w-5" aria-hidden="true" />
               <span className="max-w-full truncate px-1">{tab.short ?? tab.label}</span>
             </Link>

@@ -46,10 +46,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      {/* Hero: soft indigo/violet orbs give the page atmospheric depth. */}
+      <div className="relative flex flex-col gap-4 overflow-hidden rounded-2xl border border-border/70 bg-card p-6 shadow-[var(--shadow-soft)] sm:flex-row sm:items-end sm:justify-between sm:p-8">
+        <span className="blob blob-indigo -right-16 -top-24 h-72 w-72" aria-hidden="true" />
+        <span className="blob blob-violet -bottom-28 right-40 h-64 w-64" aria-hidden="true" />
         <WelcomeHeader />
         {/* The two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
-        <div className="flex shrink-0 flex-wrap gap-2">
+        <div className="relative flex shrink-0 flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
             <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
             Find by face

@@ -28,15 +28,15 @@ export function StatsCard({ title, value, icon: Icon, trend, className }: StatsC
         <CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5">
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground sm:text-sm">{title}</p>
-            <p data-stat className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">{value}</p>
+            <p data-stat className="mt-1.5 text-2xl font-extrabold tracking-tight sm:text-3xl">{value}</p>
             {trend && (
               <p className={cn('mt-1 text-xs font-medium', trend.isPositive ? 'text-success' : 'text-danger')}>
                 {trend.isPositive ? '+' : ''}{trend.value}% from last week
               </p>
             )}
           </div>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 sm:h-11 sm:w-11 sm:rounded-xl">
-            <Icon className="h-4 w-4 text-primary sm:h-5 sm:w-5" aria-hidden="true" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-all group-hover:bg-gradient-to-br group-hover:from-primary group-hover:to-brand-accent group-hover:shadow-[var(--shadow-primary)] sm:h-11 sm:w-11 sm:rounded-xl">
+            <Icon className="h-4 w-4 text-primary transition-colors group-hover:text-primary-foreground sm:h-5 sm:w-5" aria-hidden="true" />
           </div>
         </CardContent>
       </Card>

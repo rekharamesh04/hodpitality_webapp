@@ -90,7 +90,7 @@ export function PopupHost() {
               <Icon className={cn('h-7 w-7', variant.iconClass)} aria-hidden="true" />
             </span>
 
-            <DialogPrimitive.Title id="app-popup-title" className="mt-4 text-base font-semibold leading-snug text-balance">
+            <DialogPrimitive.Title id="app-popup-title" className="mt-4 text-lg font-bold leading-snug tracking-tight text-balance">
               {current?.title}
             </DialogPrimitive.Title>
 

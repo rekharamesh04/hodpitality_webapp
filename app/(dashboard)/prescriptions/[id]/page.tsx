@@ -107,7 +107,7 @@ export default function PrescriptionDetailPage({
               </div>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-bold sm:text-2xl">{patientNameOf(rx)}</h1>
+                  <h1 className="text-xl font-extrabold tracking-tight sm:text-2xl lg:text-3xl">{patientNameOf(rx)}</h1>
                   <PrescriptionStatusBadge status={rx.status} />
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">

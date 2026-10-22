@@ -30,7 +30,7 @@ export function WorkflowTrail() {
   return (
     <nav
       aria-label="Workflow"
-      className="mb-6 rounded-xl border bg-card px-3 py-2.5 shadow-sm sm:px-4"
+      className="mb-6 rounded-xl border border-border/70 bg-card px-3 py-2.5 shadow-[var(--shadow-soft)] sm:px-4"
     >
       <div className="flex items-center gap-3">
         {/* Full flow on wider screens */}
@@ -51,7 +51,7 @@ export function WorkflowTrail() {
                   <span
                     className={cn(
                       'flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold',
-                      isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground',
+                      isCurrent ? 'bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-[var(--shadow-glow)]' : 'bg-muted text-muted-foreground',
                     )}
                   >
                     {i + 1}
@@ -81,10 +81,10 @@ export function WorkflowTrail() {
             </Link>
           )}
           {next ? (
-            <Link href={next.href} className={buttonVariants({ size: 'sm', variant: 'outline' })}>
+            <Link href={next.href} className={cn(buttonVariants({ size: 'sm', variant: 'outline' }), 'group')}>
               <span className="hidden sm:inline">Next:&nbsp;</span>
               <span className="max-w-[9rem] truncate">{next.label}</span>
-              <ArrowRight className="ml-1.5 h-4 w-4" />
+              <ArrowRight className="ml-1.5 h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           ) : (
             <Link href="/dashboard" className={buttonVariants({ size: 'sm', variant: 'outline' })}>
