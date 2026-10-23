@@ -106,7 +106,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
         {/* Hero */}
         <Card className="overflow-hidden">
-          <div className="editorial-dots h-20 border-b border-border bg-muted/40 sm:h-24" />
+          <div className="h-20 bg-gradient-to-r from-primary/25 via-primary/10 to-transparent sm:h-24" />
           <CardContent className="relative px-4 pb-6 pt-0 sm:px-6">
             <div className="-mt-10 flex flex-col gap-5 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:text-left">
@@ -118,7 +118,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
                 </Avatar>
                 <div className="sm:pb-1">
                   <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                    <h1 className="font-serif text-3xl font-normal tracking-tight sm:text-4xl">{customer.name || `Unnamed ${t.account.one.toLowerCase()}`}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight">{customer.name || `Unnamed ${t.account.one.toLowerCase()}`}</h1>
                     {customer.tier && (
                       <span
                         className={cn(

@@ -21,7 +21,7 @@ export function DashboardStatsGrid({ stats, isLoading, isError, error, onRetry }
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 gap-px sm:grid-cols-2 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-4">
         {Array.from({ length: 8 }).map((_, i) => (
           <StatsCardSkeleton key={i} />
         ))}
@@ -55,7 +55,7 @@ export function DashboardStatsGrid({ stats, isLoading, isError, error, onRetry }
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-px sm:grid-cols-2 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 md:grid-cols-4">
       {cards.map((card) => (
         <StatsCard key={card.title} title={card.title} value={card.value} icon={card.icon} />
       ))}

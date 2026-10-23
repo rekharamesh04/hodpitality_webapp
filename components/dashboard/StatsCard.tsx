@@ -22,22 +22,21 @@ export function StatsCard({ title, value, icon: Icon, trend, className }: StatsC
       transition={{ duration: 0.25 }}
       className="h-full"
     >
-      {/* A 1px ring instead of a border: tiles laid edge to edge on a gap-px grid share one hairline. */}
-      <Card className={cn('group relative h-full overflow-hidden rounded-none border-0 shadow-[0_0_0_1px_var(--border)] transition-colors hover:bg-accent/40', className)}>
-        {/* Gold rule, revealed on hover */}
-        <div className="absolute inset-x-0 top-0 h-px bg-primary opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
-        <CardContent className="flex items-start justify-between gap-3 p-5 sm:p-8">
+      <Card className={cn('card-hover group relative h-full overflow-hidden', className)}>
+        {/* Brand accent strip, revealed on hover */}
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary to-brand-accent opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+        <CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase leading-snug tracking-widest text-muted-foreground">{title}</p>
-            <p data-stat className="mt-3 break-words font-serif text-3xl font-light leading-none tracking-tight sm:text-4xl lg:text-5xl">{value}</p>
+            <p className="text-xs font-medium text-muted-foreground sm:text-sm">{title}</p>
+            <p data-stat className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">{value}</p>
             {trend && (
-              <p className={cn('mt-2 font-mono text-[10px] uppercase tracking-widest', trend.isPositive ? 'text-success' : 'text-danger')}>
+              <p className={cn('mt-1 text-xs font-medium', trend.isPositive ? 'text-success' : 'text-danger')}>
                 {trend.isPositive ? '+' : ''}{trend.value}% from last week
               </p>
             )}
           </div>
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border transition-colors group-hover:border-primary sm:h-10 sm:w-10">
-            <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 sm:h-11 sm:w-11 sm:rounded-xl">
+            <Icon className="h-4 w-4 text-primary sm:h-5 sm:w-5" aria-hidden="true" />
           </div>
         </CardContent>
       </Card>

@@ -7,7 +7,6 @@ import { CommandPalette } from '@/components/common/CommandPalette';
 import { WorkflowTrail } from '@/components/workflow/WorkflowTrail';
 import { Loading } from '@/components/common/Loading';
 import { ModuleGate } from '@/components/layout/ModuleGate';
-import { PageEyebrow } from '@/components/layout/PageEyebrow';
 import { useAuthStore } from '@/store';
 import { useSyncIdentity } from '@/hooks';
 import { useRouter } from 'next/navigation';
@@ -44,10 +43,9 @@ export default function DashboardLayout({
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25 }}
-          className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:px-10 lg:py-10"
+          className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8"
         >
           <WorkflowTrail />
-          <PageEyebrow />
           <ModuleGate>{children}</ModuleGate>
         </motion.div>
       </main>

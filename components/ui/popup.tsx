@@ -72,14 +72,14 @@ export function PopupHost() {
           className={cn(
             'fixed left-1/2 top-1/2 z-[120] w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 -translate-y-1/2',
             'max-h-[calc(100dvh-2rem)] overflow-y-auto overscroll-contain',
-            'rounded-sm border border-border bg-card p-6 text-card-foreground shadow-[var(--shadow-floating)]',
+            'rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-[var(--shadow-floating)]',
             // The panel itself takes focus on open; the dismiss button carries the visible ring.
             'focus:outline-none'
           )}
         >
           <DialogPrimitive.Close
             aria-label="Close"
-            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground opacity-70 transition-opacity hover:bg-accent hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground opacity-70 transition-opacity hover:bg-accent hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <X className="h-4 w-4" />
           </DialogPrimitive.Close>
@@ -90,7 +90,7 @@ export function PopupHost() {
               <Icon className={cn('h-7 w-7', variant.iconClass)} aria-hidden="true" />
             </span>
 
-            <DialogPrimitive.Title id="app-popup-title" className="mt-4 font-serif text-2xl font-semibold leading-snug text-balance">
+            <DialogPrimitive.Title id="app-popup-title" className="mt-4 text-base font-semibold leading-snug text-balance">
               {current?.title}
             </DialogPrimitive.Title>
 

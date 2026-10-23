@@ -15,7 +15,7 @@ const SheetOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-[#0B0C0E]/50 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
     {...props}
@@ -29,10 +29,10 @@ const sheetVariants = cva(
   {
     variants: {
       side: {
-        top:    "inset-x-0 top-0 border-b border-border data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-        bottom: "inset-x-0 bottom-0 border-t border-border data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left:   "inset-y-0 left-0 h-full w-3/4 border-r border-border data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
-        right:  "inset-y-0 right-0 h-full w-3/4 border-l border-border data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-lg",
+        top:    "inset-x-0 top-0 border-b border-border rounded-b-2xl data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
+        bottom: "inset-x-0 bottom-0 border-t border-border rounded-t-2xl data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
+        left:   "inset-y-0 left-0 h-full w-3/4 border-r border-border rounded-r-2xl data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+        right:  "inset-y-0 right-0 h-full w-3/4 border-l border-border rounded-l-2xl data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-lg",
       },
     },
     defaultVariants: { side: "right" },
@@ -80,7 +80,7 @@ const SheetTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <SheetPrimitive.Title
     ref={ref}
-    className={cn("font-serif text-2xl font-semibold text-foreground", className)}
+    className={cn("text-lg font-semibold text-foreground", className)}
     {...props}
   />
 ));

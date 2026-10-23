@@ -539,10 +539,10 @@ function PaymentsPageInner() {
   return (
     <div className="space-y-6">
       {/* ─── Header ─── */}
-      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Payments</h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Track revenue, manage refunds, and update payment statuses.</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Payments</h1>
+          <p className="text-muted-foreground">Track revenue, manage refunds, and update payment statuses.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleExport} loading={isExporting}>
@@ -571,7 +571,7 @@ function PaymentsPageInner() {
       </p>
 
       {/* ─── Stats Row ─── */}
-      <div className="editorial-grid grid grid-cols-2 gap-px lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         {statsLoading && !payments.length ? (
           Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
         ) : (
@@ -839,17 +839,16 @@ function StatsCard({
   sub: string;
 }) {
   return (
-    <Card className="group relative">
-      <div className="absolute inset-x-0 top-0 h-px bg-primary opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
-      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 p-5 pb-2 sm:p-8 sm:pb-3">
-        <CardTitle className="truncate font-mono text-[10px] font-normal uppercase tracking-widest text-muted-foreground">{label}</CardTitle>
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border transition-colors group-hover:border-primary">
-          <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
+    <Card className="card-hover">
+      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 p-4 pb-2 sm:p-5 sm:pb-2">
+        <CardTitle className="truncate text-xs font-medium text-muted-foreground sm:text-sm">{label}</CardTitle>
+        <div className="shrink-0 rounded-lg bg-primary/10 p-1.5 sm:p-2">
+          <Icon className="h-4 w-4 text-primary sm:h-5 sm:w-5" aria-hidden="true" />
         </div>
       </CardHeader>
-      <CardContent className="p-5 pt-0 sm:p-8 sm:pt-0">
-        <div data-stat className="truncate font-serif text-2xl font-light leading-tight tracking-tight sm:text-3xl lg:text-4xl">{value}</div>
-        <p className="mt-2 truncate font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{sub}</p>
+      <CardContent className="p-4 pt-0 sm:p-5 sm:pt-0">
+        <div data-stat className="truncate text-xl font-bold tracking-tight sm:text-2xl">{value}</div>
+        <p className="mt-1 truncate text-xs text-muted-foreground">{sub}</p>
       </CardContent>
     </Card>
   );

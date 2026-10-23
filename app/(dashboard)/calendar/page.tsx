@@ -132,10 +132,10 @@ function CalendarPageInner() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">{t.visit.many}</h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+          <h1 className="text-2xl font-bold sm:text-3xl">{t.visit.many}</h1>
+          <p className="text-sm text-muted-foreground">
             {view === 'day' ? formatDayHeading(selectedDate) : view === 'week' ? formatWeekHeading(weekStart) : formatMonthHeading(selectedMonth)}
             {view === 'week' && weekQuery.data && (
               <span> · {weekQuery.data.length} {(weekQuery.data.length === 1 ? t.visit.one : t.visit.many).toLowerCase()}</span>

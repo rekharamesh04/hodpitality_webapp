@@ -47,7 +47,7 @@ import { useTerminology } from '@/hooks';
 type CheckMode = 'quick' | 'qr' | 'face' | null;
 
 const METHOD_BADGE: Record<string, string> = {
-  manual:             'bg-muted text-muted-foreground border-border',
+  manual:             'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700',
   qr:                 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800',
   qr_scan:            'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-800',
   facial_recognition: 'bg-purple-100 text-purple-800 border-purple-300 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-800',
@@ -266,10 +266,10 @@ function CheckInsPageInner() {
     <TooltipProvider delayDuration={200}>
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Check-ins</h1>
-          <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Live front-desk check-in management</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Check-ins</h1>
+          <p className="text-muted-foreground">Live front-desk check-in management</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={() => refetch()} aria-label="Refresh" title="Refresh">
@@ -598,8 +598,8 @@ function CheckInsPageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">Check-ins</h1>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">Live front-desk check-in management</p>
+        <h1 className="text-2xl font-bold sm:text-3xl">Check-ins</h1>
+        <p className="text-muted-foreground">Live front-desk check-in management</p>
       </div>
       <Card>
         <CardContent className="p-6">

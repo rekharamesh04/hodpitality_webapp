@@ -51,21 +51,21 @@ export function WaitingRoomDisplay({
       role="dialog"
       aria-modal="true"
       aria-label="Waiting-room display"
-      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-[#0B0C0E] p-6 text-[#F3F1EC] sm:p-10"
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-slate-950 p-6 text-white sm:p-10"
     >
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <p className="flex items-center gap-3 font-mono text-xs uppercase tracking-[0.25em] text-[#D4AF37]"><span className="h-px w-8 bg-[#D4AF37]" aria-hidden="true" />{orgLabel}</p>
-          <h2 className="mt-3 font-serif text-4xl font-light tracking-tight sm:text-6xl">Now <em className="italic text-[#D4AF37]">serving</em></h2>
+          <p className="text-sm uppercase tracking-widest text-slate-400">{orgLabel}</p>
+          <h2 className="text-3xl font-bold sm:text-5xl">Now serving</h2>
         </div>
         <div className="flex items-center gap-2">
-          <p className="mr-2 font-mono text-2xl tabular-nums text-[#A6A6A6] sm:text-4xl">
+          <p className="mr-2 text-2xl font-semibold tabular-nums text-slate-300 sm:text-4xl">
             {clock.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
           </p>
-          <Button size="icon" variant="ghost" className="rounded-full border border-[#303139] text-[#A6A6A6] hover:border-[#D4AF37] hover:bg-transparent hover:text-[#D4AF37]" onClick={goFullScreen} aria-label="Full screen">
+          <Button size="icon" variant="ghost" className="text-slate-300 hover:bg-slate-800 hover:text-white" onClick={goFullScreen} aria-label="Full screen">
             <Maximize2 className="h-5 w-5" />
           </Button>
-          <Button size="icon" variant="ghost" className="rounded-full border border-[#303139] text-[#A6A6A6] hover:border-[#D4AF37] hover:bg-transparent hover:text-[#D4AF37]" onClick={onClose} aria-label="Close display">
+          <Button size="icon" variant="ghost" className="text-slate-300 hover:bg-slate-800 hover:text-white" onClick={onClose} aria-label="Close display">
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -73,7 +73,7 @@ export function WaitingRoomDisplay({
 
       {visible.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
-          <p className="font-serif text-3xl font-light italic text-[#A6A6A6]">Please wait — you will be called shortly.</p>
+          <p className="text-2xl text-slate-400">Please wait — you will be called shortly.</p>
         </div>
       ) : (
         <div className="grid flex-1 auto-rows-min grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -81,28 +81,28 @@ export function WaitingRoomDisplay({
             const serving = lane.withDoctor[0];
             const next = lane.waiting.slice(0, NEXT_TOKENS_SHOWN);
             return (
-              <div key={lane.staffId} className="relative rounded-none border border-[#303139] bg-[#111215] p-6 sm:p-8">
-                <p className="truncate font-serif text-2xl font-semibold sm:text-3xl">{lane.doctorName}</p>
-                <p className="truncate font-mono text-xs uppercase tracking-widest text-[#A6A6A6]">{lane.room || ' '}</p>
+              <div key={lane.staffId} className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
+                <p className="truncate text-xl font-semibold sm:text-2xl">{lane.doctorName}</p>
+                <p className="truncate text-sm text-slate-400">{lane.room || ' '}</p>
                 <div className="mt-5 flex items-end justify-between gap-4">
                   <div>
-                    <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#A6A6A6]">Token</p>
-                    <p className="text-6xl font-bold tabular-nums text-[#D4AF37] sm:text-7xl">
+                    <p className="text-xs uppercase tracking-widest text-slate-400">Token</p>
+                    <p className="text-6xl font-bold tabular-nums text-emerald-400 sm:text-7xl">
                       {serving ? tokens.get(serving.id) ?? '—' : '—'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-[#A6A6A6]">Next</p>
+                    <p className="text-xs uppercase tracking-widest text-slate-400">Next</p>
                     <div className="mt-1 flex flex-wrap justify-end gap-1.5">
                       {next.length === 0 ? (
-                        <span className="text-lg text-[#A6A6A6]/70">—</span>
+                        <span className="text-lg text-slate-500">—</span>
                       ) : next.map((a) => (
                         <span
                           key={a.id}
                           className={cn(
-                            'rounded-none border px-2.5 py-1 text-xl font-semibold tabular-nums',
+                            'rounded-md px-2.5 py-1 text-xl font-semibold tabular-nums',
                             // Colour only — the word "Emergency" stays off a public screen.
-                            visitPriorityOf(a) === 'emergency' ? 'border-red-600 bg-red-600 text-white' : 'border-[#303139] bg-transparent text-[#F3F1EC]',
+                            visitPriorityOf(a) === 'emergency' ? 'bg-red-600 text-white' : 'bg-slate-800 text-slate-100',
                           )}
                         >
                           {tokens.get(a.id) ?? '—'}

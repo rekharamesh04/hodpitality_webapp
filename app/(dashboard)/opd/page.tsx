@@ -175,10 +175,10 @@ export default function OpdQueuePage() {
     <TooltipProvider delayDuration={200}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-5 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="font-serif text-4xl font-light tracking-tight sm:text-5xl">OPD Queue</h1>
-            <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            <h1 className="text-2xl font-bold sm:text-3xl">OPD Queue</h1>
+            <p className="text-muted-foreground">
               Tokens, triage and each {t.practitioner.toLowerCase()}&rsquo;s queue{isToday ? ' — live' : ''}
             </p>
           </div>
