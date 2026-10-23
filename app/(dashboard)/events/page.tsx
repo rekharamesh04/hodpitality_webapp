@@ -171,10 +171,10 @@ function EventsPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Events</h1>
-          <p className="text-muted-foreground">Schedule and manage events</p>
+          <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">Events</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Schedule and manage events</p>
         </div>
         <Button size="sm" onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -395,8 +395,8 @@ function EventsPageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Events</h1>
-        <p className="text-muted-foreground">Schedule and manage events</p>
+        <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">Events</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">Schedule and manage events</p>
       </div>
       <Card>
         <CardContent className="p-6">

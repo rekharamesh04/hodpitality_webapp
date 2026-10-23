@@ -1,83 +1,124 @@
-/* ─── Google Fonts ──────────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+/* ─── "Console" design system ─────────────────────────────
+   IBM Plex Sans (UI) + IBM Plex Mono (data, codes, counts), self-hosted via next/font in
+   app/layout.tsx. Cool graphite neutrals, one accent (signal teal), 1px rules, small radii,
+   elevation only for things that float. */
 
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 
 /* ─── CSS Custom Properties (light) ────────────────────── */
 :root {
-  --background: #F8FAFC;
-  --foreground: #0F172A;
+  --background: #F6F7F9;
+  --foreground: #0B1220;
   --card: #FFFFFF;
-  --card-foreground: #0F172A;
+  --card-foreground: #0B1220;
   --popover: #FFFFFF;
-  --popover-foreground: #0F172A;
-  --primary: #4F46E5;
+  --popover-foreground: #0B1220;
+  /* Signal teal — the one accent: primary actions, current state, focus. 5.4:1 on white. */
+  --primary: #0F766E;
   --primary-foreground: #FFFFFF;
-  --secondary: #F1F5F9;
-  --secondary-foreground: #0F172A;
+  --secondary: #EEF0F3;
+  --secondary-foreground: #0B1220;
   /* One step darker than the page background so muted fills (table headers, skeletons,
      avatar fallbacks) are actually visible on white cards. */
-  --muted: #F1F5F9;
-  --muted-foreground: #64748B;
-  --accent: #F1F5F9;
-  --accent-foreground: #0F172A;
-  --destructive: #EF4444;
+  --muted: #EEF0F3;
+  --muted-foreground: #5B6474;
+  --accent: #F0F2F5;
+  --accent-foreground: #0B1220;
+  --destructive: #C2410C;
   --destructive-foreground: #FFFFFF;
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #4F46E5;
+  --border: #E3E6EB;
+  --input: #D5DAE1;
+  --ring: #0F766E;
 
-  /* Top navigation bar — midnight navy, same in light and dark mode */
-  --nav-bg: #0B1220;
-  --nav-bg-to: #1E1B4B;
-  --nav-border: rgba(255, 255, 255, 0.08);
-  --nav-foreground: #F8FAFC;
-  --nav-muted-foreground: rgba(226, 232, 240, 0.72);
-  --nav-accent-bg: rgba(255, 255, 255, 0.07);
-  --nav-active-bg: rgba(255, 255, 255, 0.12);
+  /* Console header — a light surface in light mode, graphite in dark */
+  --nav-bg: #FFFFFF;
+  --nav-bg-to: #FFFFFF;
+  --nav-border: #E3E6EB;
+  --nav-foreground: #0B1220;
+  --nav-muted-foreground: #5B6474;
+  --nav-accent-bg: #F0F2F5;
+  --nav-active-bg: rgba(15, 118, 110, 0.08);
 
-  /* brand */
-  --brand-accent: #8B5CF6;
-  --brand-success: #22C55E;
-  --brand-warning: #F59E0B;
-  --brand-danger: #EF4444;
-  --brand-info: #3B82F6;
+  /* brand + status */
+  --brand-accent: #0F766E;
+  --brand-success: #15803D;
+  --brand-warning: #B45309;
+  --brand-danger: #C2410C;
+  --brand-info: #1D4ED8;
+
+  /* charts: teal first, then graphite and the status hues */
+  --chart-1: #0F766E;
+  --chart-2: #334155;
+  --chart-3: #15803D;
+  --chart-4: #B45309;
+  --chart-5: #C2410C;
+  --chart-6: #1D4ED8;
+  --chart-7: #7C3AED;
+  --chart-8: #94A3B8;
+
+  /* elevation — only for what floats above the page */
+  --shadow-soft:     0 1px 2px rgba(11, 18, 32, 0.04);
+  --shadow-medium:   0 4px 12px -4px rgba(11, 18, 32, 0.1);
+  --shadow-large:    0 12px 28px -10px rgba(11, 18, 32, 0.18), 0 2px 6px rgba(11, 18, 32, 0.05);
+  --shadow-floating: 0 24px 48px -16px rgba(11, 18, 32, 0.24), 0 4px 10px rgba(11, 18, 32, 0.06);
+  --shadow-primary:  none;
 }
 
-/* ─── CSS Custom Properties (dark) ─────────────────────── */
 .dark {
-  --background: #020617;
-  --foreground: #F1F5F9;
-  --card: #0F172A;
-  --card-foreground: #F1F5F9;
-  --popover: #0F172A;
-  --popover-foreground: #F1F5F9;
-  --primary: #818CF8;
-  --primary-foreground: #1E1B4B;
-  --secondary: #1E293B;
-  --secondary-foreground: #F1F5F9;
-  --muted: #1E293B;
-  --muted-foreground: #94A3B8;
-  --accent: #1E293B;
-  --accent-foreground: #F1F5F9;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: #1E293B;
-  --input: #1E293B;
-  --ring: #818CF8;
-  --nav-bg: #020617;
-  --nav-bg-to: #1E1B4B;
-  --nav-border: rgba(255, 255, 255, 0.08);
-  --nav-foreground: #F8FAFC;
-  --nav-muted-foreground: rgba(226, 232, 240, 0.7);
-  --nav-accent-bg: rgba(255, 255, 255, 0.06);
-  --nav-active-bg: rgba(255, 255, 255, 0.1);
+  --background: #0A0D12;
+  --foreground: #E6E9EE;
+  --card: #11151C;
+  --card-foreground: #E6E9EE;
+  --popover: #151A22;
+  --popover-foreground: #E6E9EE;
+  --primary: #2DD4BF;
+  --primary-foreground: #04201C;
+  --secondary: #1A2029;
+  --secondary-foreground: #E6E9EE;
+  --muted: #1A2029;
+  --muted-foreground: #8A93A3;
+  --accent: #1C232D;
+  --accent-foreground: #E6E9EE;
+  --destructive: #FB923C;
+  --destructive-foreground: #1F0D02;
+  --border: #222833;
+  --input: #2B323E;
+  --ring: #2DD4BF;
+  --nav-bg: #11151C;
+  --nav-bg-to: #11151C;
+  --nav-border: #222833;
+  --nav-foreground: #E6E9EE;
+  --nav-muted-foreground: #8A93A3;
+  --nav-accent-bg: #1C232D;
+  --nav-active-bg: rgba(45, 212, 191, 0.1);
+
+  --brand-accent: #2DD4BF;
+  --brand-success: #4ADE80;
+  --brand-warning: #FBBF24;
+  --brand-danger: #FB923C;
+  --brand-info: #60A5FA;
+
+  --chart-1: #2DD4BF;
+  --chart-2: #CBD5E1;
+  --chart-3: #4ADE80;
+  --chart-4: #FBBF24;
+  --chart-5: #FB923C;
+  --chart-6: #60A5FA;
+  --chart-7: #A78BFA;
+  --chart-8: #64748B;
+
+  --shadow-soft:     0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-medium:   0 4px 12px -4px rgba(0, 0, 0, 0.5);
+  --shadow-large:    0 12px 28px -10px rgba(0, 0, 0, 0.6);
+  --shadow-floating: 0 24px 48px -16px rgba(0, 0, 0, 0.7);
+  --shadow-primary:  none;
 }
 
 /* ─── Tailwind Theme ────────────────────────────────────── */
 @theme inline {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-plex-sans), "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -112,21 +153,19 @@
   --color-danger: var(--brand-danger);
   --color-info: var(--brand-info);
 
-  /* radius system */
-  --radius-sm:     8px;
-  --radius:       12px;
-  --radius-md:    14px;
-  --radius-lg:    16px;
-  --radius-xl:    20px;
-  --radius-2xl:   24px;
+  /* radius system — Console: 4px controls, 6px panels, 8px overlays */
+  --radius-sm:     3px;
+  --radius:        4px;
+  --radius-md:     4px;
+  --radius-lg:     6px;
+  --radius-xl:     6px;
+  --radius-2xl:    8px;
+  --radius-3xl:   12px;
   --radius-full: 9999px;
 
-  /* shadows */
-  --shadow-soft:     0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
-  --shadow-medium:   0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
-  --shadow-large:    0 10px 30px -5px rgb(0 0 0 / 0.1),  0 4px 10px -5px rgb(0 0 0 / 0.06);
-  --shadow-floating: 0 20px 40px -10px rgb(0 0 0 / 0.15), 0 8px 16px -8px rgb(0 0 0 / 0.08);
-  --shadow-primary:  0 4px 16px -2px rgb(79 70 229 / 0.35);
+  /* "Console 1.2" type scale (minor third, 14px base): 12 · 13 · 14 · 16 · 19 · 23 · 28 · 34 */
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
 }
 
 /* ─── Base Styles ───────────────────────────────────────── */
@@ -147,13 +186,12 @@
 }
 
 body {
-  font-family: var(--font-sans);
+  font-family: var(--font-plex-sans), "IBM Plex Sans", system-ui, -apple-system, sans-serif;
   background-color: var(--background);
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  font-feature-settings: "cv11", "ss01";
 }
 
 h1, h2, h3 {
@@ -200,13 +238,13 @@ h1, h2, h3 {
 
 /* ─── Selection ─────────────────────────────────────────── */
 ::selection {
-  background-color: rgba(79, 70, 229, 0.16);
-  color: #3730A3;
+  background-color: rgba(15, 118, 110, 0.18);
+  color: inherit;
 }
 
 /* ─── Glassmorphism ─────────────────────────────────────── */
 .glass {
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -218,20 +256,37 @@ h1, h2, h3 {
 
 /* ─── Gradient text ─────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, #4F46E5 0%, #8B5CF6 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--primary);
 }
 
 /* ─── Card hover ────────────────────────────────────────── */
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-large);
+  border-color: color-mix(in srgb, var(--primary) 45%, var(--border));
+  box-shadow: var(--shadow-medium);
 }
+
+/* ─── Metric ledger ─────────────────────────────────────────
+   `metric-ledger grid gap-px` on a grid of stat cards: each cell drops its own border and
+   radius and gets a 1px ring, so neighbours share one rule and a short last row leaves no
+   filled gap. Placed after .card-hover so hovering never drops the rule. */
+.metric-ledger > *,
+.metric-ledger > *:hover {
+  border-width: 0;
+  border-radius: 0;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* ─── Flow line — EntryFlow's signature ─────────────────────
+   The workflow drawn as a transit line: stations on a rule, the current one ringed. */
+@keyframes stationPulse {
+  0%   { box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 45%, transparent); }
+  70%  { box-shadow: 0 0 0 7px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.station-live { animation: stationPulse 2.2s ease-out infinite; }
 
 /* ─── Smooth fade-in ────────────────────────────────────── */
 @keyframes fadeUp {
@@ -267,6 +322,12 @@ h1, h2, h3 {
   animation: shimmer 1.5s infinite;
 }
 
+
+/* Data typography: counts, codes and timestamps sit in Plex Mono. */
+.font-data {
+  font-family: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ─── Focus ring ────────────────────────────────────────── */
 .focus-ring {

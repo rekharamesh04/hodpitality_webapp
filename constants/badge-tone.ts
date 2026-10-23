@@ -23,7 +23,7 @@ export const BADGE_TONE_CLASSES: Record<BadgeTone, string> = {
   green:   'bg-green-100 text-green-800 border-green-300 dark:bg-green-950/30 dark:text-green-400 dark:border-green-800',
   cyan:    'bg-cyan-100 text-cyan-800 border-cyan-300 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-800',
   rose:    'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-800',
-  neutral: 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700',
+  neutral: 'bg-muted text-muted-foreground border-border',
 };
 
 /** The tone a position in a list gets. Neutral is reserved for baselines. */

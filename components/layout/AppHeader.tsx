@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { DevIndustrySwitcher } from '@/components/common/DevIndustrySwitcher';
 import { PlatformScopeSwitcher } from '@/components/layout/PlatformScopeSwitcher';
+import { WorkflowTrail } from '@/components/workflow/WorkflowTrail';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications, useMarkNotificationRead } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive, type NavItem, type NavSection } from '@/constants/navigation';
@@ -25,18 +26,19 @@ import { useIndustry } from '@/hooks';
 import { cn, getInitials, getRelativeTime } from '@/lib/utils';
 import { authService } from '@/services/auth.service';
 
-/** Icon button styled for the dark navigation bar. */
+/** Icon button for the console bar. */
 const navIconButton =
-  'relative h-9 w-9 text-nav-muted hover:bg-nav-accent hover:text-nav-foreground focus-visible:ring-offset-nav';
+  'relative h-9 w-9 text-nav-muted hover:bg-nav-accent hover:text-nav-foreground';
 
 export function BrandMark({ className, alwaysShowName }: { className?: string; alwaysShowName?: boolean }) {
   return (
     <Link href="/dashboard" className={cn('flex shrink-0 items-center gap-2.5', className)} aria-label="EntryFlow Admin — Dashboard">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-400 to-violet-500 text-sm font-bold text-white shadow-[0_4px_12px_-2px_rgb(99_102_241_/_0.6)]">
-        E
+      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary font-mono text-[13px] font-medium tracking-tight text-primary-foreground">
+        EF
       </span>
-      <span className={cn('text-[15px] font-semibold tracking-tight text-nav-foreground', alwaysShowName ? 'inline' : 'hidden sm:inline')}>
-        EntryFlow <span className="font-normal text-nav-muted">Admin</span>
+      <span className={cn('flex-col leading-none', alwaysShowName ? 'flex' : 'hidden sm:flex')}>
+        <span className="text-[15px] font-semibold tracking-tight text-nav-foreground">EntryFlow</span>
+        <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-nav-muted">Front-of-house console</span>
       </span>
     </Link>
   );
@@ -45,13 +47,13 @@ export function BrandMark({ className, alwaysShowName }: { className?: string; a
 function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pathname: string; unreadCount: number }) {
   const active = section.items.some((item) => isNavItemActive(pathname, item.href));
   const triggerClass = cn(
-    'relative flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-medium transition-colors outline-none',
-    'focus-visible:ring-2 focus-visible:ring-indigo-400',
-    active ? 'bg-nav-active text-nav-foreground' : 'text-nav-muted hover:bg-nav-accent hover:text-nav-foreground'
+    'relative flex h-11 items-center gap-1 px-3 text-[13px] font-medium transition-colors outline-none',
+    'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+    active ? 'text-nav-foreground' : 'text-nav-muted hover:text-nav-foreground'
   );
-  // Active-section marker sitting on the bar's bottom edge.
+  // Active tab: a teal rule on the tab row's bottom edge.
   const indicator = active && (
-    <span className="absolute inset-x-3 -bottom-[14px] h-0.5 rounded-full bg-indigo-400" aria-hidden="true" />
+    <span className="absolute inset-x-3 bottom-0 h-0.5 bg-primary" aria-hidden="true" />
   );
 
   if (section.items.length === 1) {
@@ -113,12 +115,12 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger className={cn(triggerClass, 'data-[state=open]:bg-nav-active data-[state=open]:text-nav-foreground')}>
+      <DropdownMenuTrigger className={cn(triggerClass, 'data-[state=open]:bg-nav-accent data-[state=open]:text-nav-foreground')}>
         {section.menuLabel}
         <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform [[data-state=open]>&]:rotate-180" aria-hidden="true" />
         {indicator}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={14} className={cn('p-2', wide ? 'w-[560px]' : steps.length ? 'w-[400px]' : 'w-[320px]')}>
+      <DropdownMenuContent align="start" sideOffset={1} className={cn('p-2', wide ? 'w-[560px]' : steps.length ? 'w-[400px]' : 'w-[320px]')}>
         <DropdownMenuLabel className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           {section.label}
         </DropdownMenuLabel>
@@ -174,8 +176,9 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-nav-border bg-nav bg-gradient-to-r from-nav via-nav to-nav-to text-nav-foreground shadow-[0_1px_0_0_rgb(255_255_255_/_0.04),0_8px_24px_-12px_rgb(2_6_23_/_0.5)]">
-      <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center gap-2 px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 border-b border-nav-border bg-nav text-nav-foreground">
+      {/* Row 1 — brand, the command bar, and status */}
+      <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Button
           variant="ghost"
           size="icon"
@@ -186,30 +189,26 @@ export function AppHeader() {
           <Menu className="h-5 w-5" />
         </Button>
 
-        <BrandMark className="mr-2 lg:mr-4" />
+        <BrandMark className="mr-1" />
 
-        {/* Desktop navigation */}
-        <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Main">
-          {sections.map((section) => (
-            <NavGroup key={section.label} section={section} pathname={pathname} unreadCount={unreadCount} />
-          ))}
-        </nav>
-
-        <div className="ml-auto flex items-center gap-1 sm:gap-1.5">
-          {/* Renders nothing unless the local demo bypass is on. */}
-          <DevIndustrySwitcher />
-          {/* Search — opens the ⌘K command palette */}
+        {/* Command bar — the centre of the console; opens the ⌘K palette */}
+        <div className="hidden min-w-0 flex-1 justify-center px-2 md:flex">
           <button
             type="button"
             onClick={openCommandPalette}
-            className="hidden h-9 items-center gap-2 rounded-lg border border-nav-border bg-white/5 pl-3 pr-2 text-sm text-nav-muted transition-colors hover:bg-white/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 md:flex xl:w-56"
+            className="flex h-9 w-full max-w-lg items-center gap-2.5 rounded-md border border-input bg-background px-3 text-sm text-nav-muted transition-colors hover:border-foreground/25 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Search className="h-4 w-4" aria-hidden="true" />
-            <span className="flex-1 text-left">Search…</span>
-            <kbd className="flex h-5 items-center gap-0.5 rounded border border-nav-border bg-white/5 px-1.5 font-mono text-[10px]">
+            <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate text-left">Search people, bookings and pages…</span>
+            <kbd className="flex h-5 shrink-0 items-center gap-0.5 rounded-sm border border-input bg-card px-1.5 font-mono text-[10px] text-nav-muted">
               <Command className="h-3 w-3" />K
             </kbd>
           </button>
+        </div>
+
+        <div className="ml-auto flex items-center gap-1 sm:gap-1.5 md:ml-0">
+          {/* Renders nothing unless the local demo bypass is on. */}
+          <DevIndustrySwitcher />
           <Button variant="ghost" size="icon" className={cn(navIconButton, 'md:hidden')} onClick={openCommandPalette} aria-label="Search">
             <Search className="h-[18px] w-[18px]" />
           </Button>
@@ -239,14 +238,14 @@ export function AppHeader() {
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white ring-2 ring-nav"
+                    className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 font-mono text-[10px] font-medium text-primary-foreground ring-2 ring-nav"
                   >
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </motion.span>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={14} className="w-[min(22rem,calc(100vw-2rem))]">
+            <DropdownMenuContent align="end" sideOffset={10} className="w-[min(22rem,calc(100vw-2rem))]">
               <DropdownMenuLabel className="flex items-center justify-between">
                 <span>Notifications</span>
                 {unreadCount > 0 && <Badge variant="secondary">{unreadCount} new</Badge>}
@@ -297,22 +296,22 @@ export function AppHeader() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-nav-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 xl:rounded-lg xl:py-1 xl:pl-1 xl:pr-2.5"
+                className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-nav-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring 2xl:rounded-md 2xl:py-1 2xl:pl-1 2xl:pr-2.5"
                 aria-label="Account menu"
               >
-                <Avatar className="h-8 w-8 ring-2 ring-white/15">
+                <Avatar className="h-8 w-8 ring-1 ring-nav-border">
                   <AvatarImage src={user?.avatar} alt={user?.name} />
-                  <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-semibold text-white">
+                  <AvatarFallback className="bg-primary font-mono text-xs font-medium text-primary-foreground">
                     {user?.name ? getInitials(user.name) : 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <span className="hidden flex-col items-start text-left leading-tight xl:flex">
-                  <span className="text-sm font-medium text-nav-foreground">{user?.name || 'User'}</span>
+                <span className="hidden flex-col items-start text-left leading-tight 2xl:flex">
+                  <span className="max-w-[10rem] truncate text-sm font-medium text-nav-foreground">{user?.name || 'User'}</span>
                   <span className="text-[11px] capitalize text-nav-muted">{user?.role?.replace(/_/g, ' ') || 'Admin'}</span>
                 </span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={14} className="w-56">
+            <DropdownMenuContent align="end" sideOffset={10} className="w-56">
               <DropdownMenuLabel>
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium">{user?.name || 'User'}</p>
@@ -334,8 +333,18 @@ export function AppHeader() {
           </DropdownMenu>
         </div>
       </div>
+      {/* Row 2 — the menu as tabs (desktop; phones use the drawer and the tab bar) */}
+      <div className="hidden border-t border-nav-border lg:block">
+        <nav className="mx-auto flex w-full max-w-[1600px] items-stretch px-4 sm:px-6 lg:px-5" aria-label="Main">
+          {sections.map((section) => (
+            <NavGroup key={section.label} section={section} pathname={pathname} unreadCount={unreadCount} />
+          ))}
+        </nav>
+      </div>
       {/* Super admin and reseller only: which organisations every page shows. */}
       <PlatformScopeSwitcher />
+      {/* On a workflow page: the flow line, kept in view while the page scrolls. */}
+      <WorkflowTrail />
     </header>
   );
 }

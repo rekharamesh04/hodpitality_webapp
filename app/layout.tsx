@@ -1,12 +1,22 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { cn } from "@/lib/utils";
 import { Providers } from "@/providers";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import "./globals.css";
 
-const inter = Inter({
+// "Console" type: Plex Sans for the interface, Plex Mono for counts, codes and timestamps.
+const plexSans = IBM_Plex_Sans({
   subsets: ["latin"],
-  variable: "--font-inter",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-plex-sans",
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-plex-mono",
   display: "swap",
 });
 
@@ -26,8 +36,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F8FAFC" },
-    { media: "(prefers-color-scheme: dark)",  color: "#020617" },
+    { media: "(prefers-color-scheme: light)", color: "#FFFFFF" },
+    { media: "(prefers-color-scheme: dark)",  color: "#11151C" },
   ],
 };
 
@@ -37,7 +47,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={inter.variable}>
+    <html lang="en" suppressHydrationWarning className={cn(plexSans.variable, plexMono.variable)}>
       <body className="font-sans antialiased">
         <Providers>
           <AuthProvider>

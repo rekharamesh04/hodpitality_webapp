@@ -82,7 +82,7 @@ export function MobileNavDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-50 bg-[#0B1220]/45 backdrop-blur-[2px] lg:hidden"
             onClick={close}
           />
           <motion.aside
@@ -95,7 +95,7 @@ export function MobileNavDrawer() {
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,85vw)] flex-col bg-card shadow-[var(--shadow-floating)] lg:hidden"
           >
-            <div className="flex h-16 shrink-0 items-center justify-between bg-nav bg-gradient-to-r from-nav to-nav-to px-4">
+            <div className="flex h-14 shrink-0 items-center justify-between border-b border-nav-border bg-nav px-4">
               <BrandMark alwaysShowName />
               <Button
                 variant="ghost"
@@ -110,7 +110,7 @@ export function MobileNavDrawer() {
             <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Main">
               {sections.map((section) => (
                 <div key={section.label}>
-                  <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                  <p className="mb-1.5 px-3 font-mono text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     {section.label}
                   </p>
                   <div className="space-y-0.5">

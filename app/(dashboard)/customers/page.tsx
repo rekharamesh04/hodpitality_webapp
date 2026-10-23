@@ -200,10 +200,10 @@ function CustomersPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">{t.account.many}</h1>
-          <p className="text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
+          <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">{t.account.many}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
@@ -413,8 +413,8 @@ function CustomersPageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">{t.account.many}</h1>
-        <p className="text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
+        <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">{t.account.many}</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
       </div>
       <Card>
         <CardContent className="p-6">

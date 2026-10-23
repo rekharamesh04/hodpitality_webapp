@@ -91,10 +91,10 @@ function ReportsPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Reports</h1>
-          <p className="text-muted-foreground">Operational performance and business insights.</p>
+          <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">Reports</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Operational performance and business insights.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
@@ -132,11 +132,11 @@ function ReportsPageInner() {
           <section aria-labelledby="reports-overview-heading">
             <h2 id="reports-overview-heading" className="sr-only">Overview</h2>
             {isLoading ? (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="metric-ledger grid grid-cols-2 gap-px md:grid-cols-4">
                 {Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div className="metric-ledger grid grid-cols-2 gap-px md:grid-cols-4">
                 <StatsCard title="Today's Check-ins" value={stats!.todayCheckIns} icon={UserCheck} />
                 <StatsCard title={`Total ${t.person.many}`} value={stats!.totalGuests} icon={Users} />
                 <StatsCard title="Total Events" value={stats!.totalEvents} icon={CalendarDays} />

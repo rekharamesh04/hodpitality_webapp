@@ -141,10 +141,10 @@ function HospitalityPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">{t.place.one} Services</h1>
-          <p className="text-muted-foreground">Concierge &amp; {t.person.one.toLowerCase()} services.</p>
+          <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">{t.place.one} Services</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Concierge &amp; {t.person.one.toLowerCase()} services.</p>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => refetch()}>
@@ -158,15 +158,15 @@ function HospitalityPageInner() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+      <div className="metric-ledger grid grid-cols-2 gap-px md:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
         ) : (
           <>
-            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Total Requests</p><p className="mt-1 text-2xl font-bold tabular-nums">{total}</p></CardContent></Card>
-            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Pending</p><p className="mt-1 text-2xl font-bold tabular-nums">{pending}</p></CardContent></Card>
-            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Confirmed</p><p className="mt-1 text-2xl font-bold tabular-nums">{confirmed}</p></CardContent></Card>
-            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Completed</p><p className="mt-1 text-2xl font-bold tabular-nums">{completed}</p></CardContent></Card>
+            <Card><CardContent className="p-4 sm:p-5"><p className="text-[13px] font-medium text-muted-foreground">Total Requests</p><p className="font-data mt-3 break-words text-[23px] font-medium leading-none sm:text-[28px]">{total}</p></CardContent></Card>
+            <Card><CardContent className="p-4 sm:p-5"><p className="text-[13px] font-medium text-muted-foreground">Pending</p><p className="font-data mt-3 break-words text-[23px] font-medium leading-none sm:text-[28px]">{pending}</p></CardContent></Card>
+            <Card><CardContent className="p-4 sm:p-5"><p className="text-[13px] font-medium text-muted-foreground">Confirmed</p><p className="font-data mt-3 break-words text-[23px] font-medium leading-none sm:text-[28px]">{confirmed}</p></CardContent></Card>
+            <Card><CardContent className="p-4 sm:p-5"><p className="text-[13px] font-medium text-muted-foreground">Completed</p><p className="font-data mt-3 break-words text-[23px] font-medium leading-none sm:text-[28px]">{completed}</p></CardContent></Card>
           </>
         )}
       </div>

@@ -46,15 +46,15 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      {/* Command bar — today, and the two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
+      <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
         <WelcomeHeader />
-        {/* The two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
         <div className="flex shrink-0 flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
+          <Button variant="outline" onClick={() => setFindByFaceOpen(true)}>
             <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
             Find by face
           </Button>
-          <Button size="sm" onClick={() => router.push('/guests?action=add')}>
+          <Button onClick={() => router.push('/guests?action=add')}>
             <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
             Add {t.person.one}
           </Button>
@@ -62,9 +62,7 @@ export default function DashboardPage() {
       </div>
       <FindByFaceDialog open={findByFaceOpen} onOpenChange={setFindByFaceOpen} />
 
-      {/* With a workflow, the flow itself is the set of quick actions. */}
-      {workflow.length > 0 && <WorkflowGuide steps={workflow} />}
-
+      {/* The day in numbers, as one ledger strip. */}
       <DashboardStatsGrid
         stats={stats.data}
         isLoading={stats.isLoading}
@@ -73,68 +71,74 @@ export default function DashboardPage() {
         onRetry={() => stats.refetch()}
       />
 
-      {workflow.length === 0 && <QuickActions />}
+      {/* With a workflow, the flow itself is the set of quick actions. */}
+      {workflow.length > 0 ? <WorkflowGuide steps={workflow} /> : <QuickActions />}
 
-      {/* Cards for modules this industry is not offered are left out rather than shown empty. */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <ActivityFeed
-          activities={activity.data ?? []}
-          isLoading={activity.isLoading}
-          isError={activity.isError}
-          error={activity.error}
-          onRetry={() => activity.refetch()}
-        />
-        {hasPayments && (
-          <RecentPayments
-            payments={payments.data?.data ?? []}
-            isLoading={payments.isLoading}
-            isError={payments.isError}
-            error={payments.error}
-            onRetry={() => payments.refetch()}
+      {/* Work area: what is happening (main) beside what needs watching (side).
+          Cards for modules this industry is not offered are left out rather than shown empty. */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="min-w-0 space-y-6 lg:col-span-8">
+          <ActivityFeed
+            activities={activity.data ?? []}
+            isLoading={activity.isLoading}
+            isError={activity.isError}
+            error={activity.error}
+            onRetry={() => activity.refetch()}
           />
-        )}
-        {t.has('events') && (
-          <UpcomingEvents
-            events={upcomingEvents.data ?? []}
-            isLoading={upcomingEvents.isLoading}
-            isError={upcomingEvents.isError}
-            error={upcomingEvents.error}
-            onRetry={() => upcomingEvents.refetch()}
+          <RecentGuests
+            guests={guests.data?.data ?? []}
+            isLoading={guests.isLoading}
+            isError={guests.isError}
+            error={guests.error}
+            onRetry={() => guests.refetch()}
           />
-        )}
-        <CheckInOverview
-          checkIns={checkIns.data ?? []}
-          stats={checkInStats.data}
-          isLoading={checkIns.isLoading}
-          isError={checkIns.isError}
-          error={checkIns.error}
-          onRetry={() => checkIns.refetch()}
-        />
-        <RecentGuests
-          guests={guests.data?.data ?? []}
-          isLoading={guests.isLoading}
-          isError={guests.isError}
-          error={guests.error}
-          onRetry={() => guests.refetch()}
-        />
-        {t.has('hospitality') && (
-          <HospitalityOverview
-            bookings={hospitality.data ?? []}
-            isLoading={hospitality.isLoading}
-            isError={hospitality.isError}
-            error={hospitality.error}
-            onRetry={() => hospitality.refetch()}
+          {hasPayments && (
+            <RecentPayments
+              payments={payments.data?.data ?? []}
+              isLoading={payments.isLoading}
+              isError={payments.isError}
+              error={payments.error}
+              onRetry={() => payments.refetch()}
+            />
+          )}
+        </div>
+        <aside className="min-w-0 space-y-6 lg:col-span-4" aria-label="Watch list">
+          <CheckInOverview
+            checkIns={checkIns.data ?? []}
+            stats={checkInStats.data}
+            isLoading={checkIns.isLoading}
+            isError={checkIns.isError}
+            error={checkIns.error}
+            onRetry={() => checkIns.refetch()}
           />
-        )}
-        <NotificationsPanel
-          notifications={notifications.data ?? []}
-          isLoading={notifications.isLoading}
-          isError={notifications.isError}
-          error={notifications.error}
-          onRetry={() => notifications.refetch()}
-          onMarkAllRead={() => markAllRead.mutate()}
-          isMarkingAllRead={markAllRead.isPending}
-        />
+          <NotificationsPanel
+            notifications={notifications.data ?? []}
+            isLoading={notifications.isLoading}
+            isError={notifications.isError}
+            error={notifications.error}
+            onRetry={() => notifications.refetch()}
+            onMarkAllRead={() => markAllRead.mutate()}
+            isMarkingAllRead={markAllRead.isPending}
+          />
+          {t.has('events') && (
+            <UpcomingEvents
+              events={upcomingEvents.data ?? []}
+              isLoading={upcomingEvents.isLoading}
+              isError={upcomingEvents.isError}
+              error={upcomingEvents.error}
+              onRetry={() => upcomingEvents.refetch()}
+            />
+          )}
+          {t.has('hospitality') && (
+            <HospitalityOverview
+              bookings={hospitality.data ?? []}
+              isLoading={hospitality.isLoading}
+              isError={hospitality.isError}
+              error={hospitality.error}
+              onRetry={() => hospitality.refetch()}
+            />
+          )}
+        </aside>
       </div>
     </div>
   );

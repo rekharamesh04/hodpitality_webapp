@@ -4,9 +4,9 @@ import { motion } from 'framer-motion';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { MobileNavDrawer, MobileTabBar } from '@/components/layout/MobileNav';
 import { CommandPalette } from '@/components/common/CommandPalette';
-import { WorkflowTrail } from '@/components/workflow/WorkflowTrail';
 import { Loading } from '@/components/common/Loading';
 import { ModuleGate } from '@/components/layout/ModuleGate';
+import { WorkflowStepNote } from '@/components/workflow/WorkflowTrail';
 import { useAuthStore } from '@/store';
 import { useSyncIdentity } from '@/hooks';
 import { useRouter } from 'next/navigation';
@@ -45,7 +45,7 @@ export default function DashboardLayout({
           transition={{ duration: 0.25 }}
           className="mx-auto w-full max-w-[1600px] p-4 sm:p-6 lg:p-8"
         >
-          <WorkflowTrail />
+          <WorkflowStepNote />
           <ModuleGate>{children}</ModuleGate>
         </motion.div>
       </main>

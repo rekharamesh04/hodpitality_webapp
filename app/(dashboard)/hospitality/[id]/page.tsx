@@ -78,7 +78,7 @@ export default function HospitalityDetailPage({ params }: { params: Promise<{ id
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight">{booking.guestName}</h1>
+                <h1 className="text-[23px] font-semibold tracking-tight">{booking.guestName}</h1>
                 <Badge variant="outline">{booking.type}</Badge>
                 <StatusBadge status={booking.status} />
               </div>
