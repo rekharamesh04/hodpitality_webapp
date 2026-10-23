@@ -19,6 +19,7 @@ import { Badge } from '@/components/ui/badge';
 import { DevIndustrySwitcher } from '@/components/common/DevIndustrySwitcher';
 import { PlatformScopeSwitcher } from '@/components/layout/PlatformScopeSwitcher';
 import { WorkflowTrail } from '@/components/workflow/WorkflowTrail';
+import { LogoMark } from '@/components/brand/LogoMark';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications, useMarkNotificationRead } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive, type NavItem, type NavSection } from '@/constants/navigation';
@@ -33,9 +34,7 @@ const navIconButton =
 export function BrandMark({ className, alwaysShowName }: { className?: string; alwaysShowName?: boolean }) {
   return (
     <Link href="/dashboard" className={cn('flex shrink-0 items-center gap-2.5', className)} aria-label="EntryFlow Admin — Dashboard">
-      <span className="flex h-8 w-8 items-center justify-center rounded-md bg-primary font-mono text-[13px] font-medium tracking-tight text-primary-foreground">
-        EF
-      </span>
+      <LogoMark className="h-8 w-8" />
       <span className={cn('flex-col leading-none', alwaysShowName ? 'flex' : 'hidden sm:flex')}>
         <span className="text-[15px] font-semibold tracking-tight text-nav-foreground">EntryFlow</span>
         <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-nav-muted">Front-of-house console</span>

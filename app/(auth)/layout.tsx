@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { LogoMark } from '@/components/brand/LogoMark';
 
 /** The four moments every EntryFlow workflow is made of, whatever the industry calls them. */
 const STATIONS = [
@@ -17,9 +18,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         className="relative hidden flex-col justify-between overflow-hidden border-r border-[#222833] bg-[#0B1220] p-12 text-[#E6E9EE] lg:col-span-5 lg:flex xl:p-16"
       >
         <div className="flex items-center gap-2.5">
-          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-[#2DD4BF] font-mono text-[13px] font-medium text-[#04201C]">
-            EF
-          </span>
+          <LogoMark className="h-8 w-8" tileClassName="fill-[#2DD4BF]" glyphClassName="stroke-[#04201C]" />
           <span className="flex flex-col leading-none">
             <span className="text-[15px] font-semibold tracking-tight">EntryFlow</span>
             <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8A93A3]">Front-of-house console</span>

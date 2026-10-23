@@ -34,7 +34,10 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/api/') ||
     pathname.includes('.') ||
-    pathname.startsWith('/images/')
+    pathname.startsWith('/images/') ||
+    // The generated iOS home-screen icon has no file extension, so it needs naming here; without
+    // it a signed-out visitor's phone is sent to /login instead of the icon.
+    pathname === '/apple-icon'
   ) {
     return NextResponse.next();
   }

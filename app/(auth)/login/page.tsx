@@ -13,6 +13,7 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
+import { LogoMark } from '@/components/brand/LogoMark';
 import { useAuthStore } from '@/store';
 import { authService } from '@/services/auth.service';
 import { getFriendlyErrorMessage } from '@/lib/utils';
@@ -257,9 +258,7 @@ export default function LoginPage() {
         <Card className="border-border shadow-[var(--shadow-medium)]">
           <CardHeader className="text-center pb-2">
             <div className="mb-4 flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <span className="font-mono text-base font-medium">EF</span>
-              </div>
+              <LogoMark className="h-12 w-12" title="EntryFlow" />
             </div>
             <AnimatePresence mode="wait">
               {challenge ? (
