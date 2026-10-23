@@ -167,27 +167,26 @@ function PrescriptionsPageInner() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <SearchInput
-          placeholder={`Search ${t.person.one.toLowerCase()}, medicine or diagnosis…`}
-          defaultValue={search}
-          onSearch={(v) => { setSearch(v); setPage(1); }}
-          className="max-w-sm"
-        />
-        <Select value={prescriber || 'all'} onValueChange={(v) => { setPrescriber(v === 'all' ? '' : v); setPage(1); }}>
-          <SelectTrigger className="w-full sm:w-[220px]" aria-label={`Filter by ${t.practitioner.toLowerCase()}`}>
-            <SelectValue placeholder={`All ${t.practitioner.toLowerCase()}s`} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All {t.practitioner.toLowerCase()}s</SelectItem>
-            {prescriberOptions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        {hasFilters && <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>}
-      </div>
-
-      {/* Worklist */}
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Toolbar: search and filters sit on the list they filter */}
+        <div className="border-b border-border bg-muted/40 p-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <SearchInput
+            placeholder={`Search ${t.person.one.toLowerCase()}, medicine or diagnosis…`}
+            defaultValue={search}
+            onSearch={(v) => { setSearch(v); setPage(1); }}
+            className="max-w-sm"
+          />
+          <Select value={prescriber || 'all'} onValueChange={(v) => { setPrescriber(v === 'all' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="w-full sm:w-[220px]" aria-label={`Filter by ${t.practitioner.toLowerCase()}`}>
+              <SelectValue placeholder={`All ${t.practitioner.toLowerCase()}s`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All {t.practitioner.toLowerCase()}s</SelectItem>
+              {prescriberOptions.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {hasFilters && <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>}
+        </div>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6"><TableSkeleton rows={8} /></div>
@@ -328,18 +327,20 @@ function PrescriptionsPageInner() {
             </div>
           )}
         </CardContent>
+        {/* Paging sits on the panel's foot */}
+        <div className="border-t border-border px-3 py-2.5 empty:hidden">
+          {!isLoading && !isError && pageItems.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              pageSize={limit}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={(l) => { setLimit(l); setPage(1); }}
+            />
+          )}
+        </div>
       </Card>
-
-      {!isLoading && !isError && pageItems.length > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={limit}
-          total={total}
-          onPageChange={setPage}
-          onPageSizeChange={(l) => { setLimit(l); setPage(1); }}
-        />
-      )}
 
       <PrescriptionFormDialog open={createOpen} onOpenChange={setCreateOpen} />
 

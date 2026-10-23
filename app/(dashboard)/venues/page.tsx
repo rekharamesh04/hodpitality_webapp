@@ -214,40 +214,40 @@ function VenuesPageInner() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <SearchInput
-          placeholder="Search venues…"
-          defaultValue={search}
-          onSearch={handleSearch}
-          className="max-w-sm"
-        />
-        <Select value={status || 'all'} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by status">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={type || 'all'} onValueChange={handleTypeChange}>
-          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by type">
-            <SelectValue placeholder="All types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All types</SelectItem>
-            {typeOptions.map((t) => (
-              <SelectItem key={t} value={t}>{t}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
-        )}
-      </div>
-
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Toolbar: search and filters sit on the list they filter */}
+        <div className="border-b border-border bg-muted/40 p-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchInput
+            placeholder="Search venues…"
+            defaultValue={search}
+            onSearch={handleSearch}
+            className="max-w-sm"
+          />
+          <Select value={status || 'all'} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by status">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={type || 'all'} onValueChange={handleTypeChange}>
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by type">
+              <SelectValue placeholder="All types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              {typeOptions.map((t) => (
+                <SelectItem key={t} value={t}>{t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
+          )}
+        </div>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6">
@@ -377,18 +377,20 @@ function VenuesPageInner() {
             </div>
           )}
         </CardContent>
+        {/* Paging sits on the panel's foot */}
+        <div className="border-t border-border px-3 py-2.5 empty:hidden">
+          {!isLoading && !isError && pageItems.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              pageSize={limit}
+              total={total}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          )}
+        </div>
       </Card>
-
-      {!isLoading && !isError && pageItems.length > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={limit}
-          total={total}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      )}
 
       <VenueFormDialog
         open={formOpen}

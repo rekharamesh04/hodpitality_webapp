@@ -291,61 +291,60 @@ function CheckInsPageInner() {
       </div>
 
       {/* Today at a glance */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="metric-ledger grid grid-cols-2 gap-px sm:grid-cols-3 lg:grid-cols-6">
         {STAT_CARDS.map((s) => (
           <Card key={s.label}>
-            <CardContent className="px-4 pb-3 pt-4">
-              <p className="text-xs font-medium text-muted-foreground">{s.label}</p>
-              <p className={cn('mt-1 text-2xl font-bold tabular-nums', s.color)}>{s.value}</p>
+            <CardContent className="p-4">
+              <p className="text-[13px] font-medium text-muted-foreground">{s.label}</p>
+              <p className={cn('font-data mt-2 text-[23px] font-medium leading-none', s.color)}>{s.value}</p>
             </CardContent>
           </Card>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <SearchInput
-          placeholder={`Search ${t.person.one.toLowerCase()} name, email or phone…`}
-          defaultValue={search}
-          onSearch={handleSearch}
-          className="max-w-sm"
-        />
-        <Input
-          type="date"
-          value={date}
-          onChange={(e) => handleDateChange(e.target.value)}
-          className="w-full sm:w-[170px]"
-          aria-label="Filter by date"
-        />
-        <Select value={status || 'all'} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by status">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {statusOptions.map((s) => (
-              <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={eventFilter || 'all'} onValueChange={handleEventChange}>
-          <SelectTrigger className="w-full sm:w-[200px]" aria-label="Filter by event">
-            <SelectValue placeholder="All events" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All events</SelectItem>
-            {eventOptions.map((e) => (
-              <SelectItem key={e} value={e}>{e}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
-        )}
-      </div>
-
-      {/* Check-in list */}
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Toolbar: search and filters sit on the list they filter */}
+        <div className="border-b border-border bg-muted/40 p-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <SearchInput
+            placeholder={`Search ${t.person.one.toLowerCase()} name, email or phone…`}
+            defaultValue={search}
+            onSearch={handleSearch}
+            className="max-w-sm"
+          />
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="w-full sm:w-[170px]"
+            aria-label="Filter by date"
+          />
+          <Select value={status || 'all'} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by status">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {statusOptions.map((s) => (
+                <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={eventFilter || 'all'} onValueChange={handleEventChange}>
+            <SelectTrigger className="w-full sm:w-[200px]" aria-label="Filter by event">
+              <SelectValue placeholder="All events" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All events</SelectItem>
+              {eventOptions.map((e) => (
+                <SelectItem key={e} value={e}>{e}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
+          )}
+        </div>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6">
@@ -496,18 +495,20 @@ function CheckInsPageInner() {
             </div>
           )}
         </CardContent>
+        {/* Paging sits on the panel's foot */}
+        <div className="border-t border-border px-3 py-2.5 empty:hidden">
+          {!isLoading && !isError && pageItems.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              pageSize={limit}
+              total={total}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          )}
+        </div>
       </Card>
-
-      {!isLoading && !isError && pageItems.length > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={limit}
-          total={total}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      )}
 
       {/* Quick Check-in Dialog */}
       <Dialog open={checkMode === 'quick'} onOpenChange={(v) => { if (!v) { setCheckMode(null); setSelectedGuest(null); } }}>

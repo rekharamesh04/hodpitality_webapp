@@ -11,7 +11,9 @@ export const notificationKeys = {
 
 export function useNotifications(params?: { limit?: number; read?: boolean }) {
   return useQuery({
-    queryKey: notificationKeys.list(params),
+    // Keyed only by what is sent. `limit` never reaches the API (callers slice what they show),
+    // so keying on it made the header, the dashboard panel and the inbox each poll the same list.
+    queryKey: notificationKeys.list({ read: params?.read }),
     queryFn:  () => notificationService.getNotifications({ read: params?.read }),
     refetchInterval: 30000,
   });

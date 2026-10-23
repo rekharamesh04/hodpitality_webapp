@@ -182,53 +182,53 @@ function EventsPageInner() {
         </Button>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <SearchInput
-          placeholder="Search events…"
-          defaultValue={search}
-          onSearch={handleSearch}
-          className="max-w-sm"
-        />
-        <Select value={status || 'all'} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by status">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {statusOptions.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={category || 'all'} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by category">
-            <SelectValue placeholder="All categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {categoryOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={venue || 'all'} onValueChange={handleVenueChange}>
-          <SelectTrigger className="w-full sm:w-[170px]" aria-label="Filter by venue">
-            <SelectValue placeholder="All venues" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All venues</SelectItem>
-            {venueOptions.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Input
-          type="date"
-          value={date}
-          onChange={(e) => handleDateChange(e.target.value)}
-          className="w-full sm:w-[170px]"
-          aria-label="Filter by date"
-        />
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
-        )}
-      </div>
-
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Toolbar: search and filters sit on the list they filter */}
+        <div className="border-b border-border bg-muted/40 p-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <SearchInput
+            placeholder="Search events…"
+            defaultValue={search}
+            onSearch={handleSearch}
+            className="max-w-sm"
+          />
+          <Select value={status || 'all'} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by status">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {statusOptions.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={category || 'all'} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by category">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {categoryOptions.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={venue || 'all'} onValueChange={handleVenueChange}>
+            <SelectTrigger className="w-full sm:w-[170px]" aria-label="Filter by venue">
+              <SelectValue placeholder="All venues" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All venues</SelectItem>
+              {venueOptions.map((v) => <SelectItem key={v} value={v}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => handleDateChange(e.target.value)}
+            className="w-full sm:w-[170px]"
+            aria-label="Filter by date"
+          />
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
+          )}
+        </div>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6">
@@ -351,18 +351,20 @@ function EventsPageInner() {
             </div>
           )}
         </CardContent>
+        {/* Paging sits on the panel's foot */}
+        <div className="border-t border-border px-3 py-2.5 empty:hidden">
+          {!isLoading && !isError && pageItems.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              pageSize={limit}
+              total={total}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          )}
+        </div>
       </Card>
-
-      {!isLoading && !isError && pageItems.length > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={limit}
-          total={total}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      )}
 
       <EventFormDialog
         open={formOpen}

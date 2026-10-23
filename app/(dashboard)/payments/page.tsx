@@ -605,53 +605,52 @@ function PaymentsPageInner() {
       </div>
 
       {/* ─── Filters ─── */}
-      <div className="flex flex-wrap items-center gap-3">
-        <SearchInput
-          key={searchResetKey}
-          placeholder={`Search by ${t.person.one.toLowerCase()}, ID or transaction…`}
-          defaultValue={search}
-          onSearch={setSearch}
-          className="w-full sm:max-w-xs"
-        />
-        <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[180px]" aria-label="Filter by payment status" id="payments-status-filter">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {STATUS_OPTIONS.map((s) => (
-              <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={methodFilter || 'all'} onValueChange={(v) => setMethodFilter(v === 'all' ? '' : v)}>
-          <SelectTrigger className="w-[160px]" aria-label="Filter by payment method" id="payments-method-filter">
-            <SelectValue placeholder="All methods" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All methods</SelectItem>
-            {METHOD_OPTIONS.map((m) => (
-              <SelectItem key={m} value={m}>{METHOD_LABELS[m]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5">
-            <X className="h-3.5 w-3.5" /> Clear
-          </Button>
-        )}
-        {eventIdFilter && (
-          <Badge variant="secondary" className="gap-1.5 py-1.5 pl-2.5 pr-1.5">
-            Filtered by event
-            <button type="button" onClick={clearEventFilter} aria-label="Clear event filter" className="rounded-full p-0.5 hover:bg-muted">
-              <X className="h-3 w-3" />
-            </button>
-          </Badge>
-        )}
-      </div>
-
-      {/* ─── Table ─── */}
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Toolbar: search and filters sit on the list they filter */}
+        <div className="border-b border-border bg-muted/40 p-3 flex flex-wrap items-center gap-3">
+          <SearchInput
+            key={searchResetKey}
+            placeholder={`Search by ${t.person.one.toLowerCase()}, ID or transaction…`}
+            defaultValue={search}
+            onSearch={setSearch}
+            className="w-full sm:max-w-xs"
+          />
+          <Select value={statusFilter || 'all'} onValueChange={(v) => setStatusFilter(v === 'all' ? '' : v)}>
+            <SelectTrigger className="w-[180px]" aria-label="Filter by payment status" id="payments-status-filter">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {STATUS_OPTIONS.map((s) => (
+                <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, ' ')}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={methodFilter || 'all'} onValueChange={(v) => setMethodFilter(v === 'all' ? '' : v)}>
+            <SelectTrigger className="w-[160px]" aria-label="Filter by payment method" id="payments-method-filter">
+              <SelectValue placeholder="All methods" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All methods</SelectItem>
+              {METHOD_OPTIONS.map((m) => (
+                <SelectItem key={m} value={m}>{METHOD_LABELS[m]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="gap-1.5">
+              <X className="h-3.5 w-3.5" /> Clear
+            </Button>
+          )}
+          {eventIdFilter && (
+            <Badge variant="secondary" className="gap-1.5 py-1.5 pl-2.5 pr-1.5">
+              Filtered by event
+              <button type="button" onClick={clearEventFilter} aria-label="Clear event filter" className="rounded-full p-0.5 hover:bg-muted">
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+        </div>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6"><TableSkeleton rows={8} /></div>

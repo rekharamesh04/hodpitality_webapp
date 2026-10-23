@@ -7,6 +7,15 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { useTerminology } from '@/hooks';
 import type { DashboardStats } from '@/types';
+import { cn } from '@/lib/utils';
+
+/** Columns per tile count (industries show 6–8), so the ledger ends on a full row where it can. */
+const LEDGER_COLUMNS: Record<number, string> = {
+  5: 'md:grid-cols-5',
+  6: 'md:grid-cols-3 xl:grid-cols-6',
+  7: 'md:grid-cols-4 xl:grid-cols-7',
+  8: 'md:grid-cols-4',
+};
 
 interface DashboardStatsGridProps {
   stats?: DashboardStats;
@@ -55,7 +64,7 @@ export function DashboardStatsGrid({ stats, isLoading, isError, error, onRetry }
   ];
 
   return (
-    <div className="metric-ledger grid grid-cols-2 gap-px md:grid-cols-4">
+    <div className={cn('metric-ledger grid grid-cols-2 gap-px', LEDGER_COLUMNS[cards.length] ?? 'md:grid-cols-4')}>
       {cards.map((card) => (
         <StatsCard key={card.title} title={card.title} value={card.value} icon={card.icon} />
       ))}

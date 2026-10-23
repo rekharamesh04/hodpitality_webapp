@@ -199,9 +199,11 @@ function ResellersPageInner() {
         )}
       </div>
 
-      <SearchInput placeholder="Search resellers…" onSearch={handleSearch} className="max-w-sm" />
-
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Toolbar: search sits on the list it filters */}
+        <div className="border-b border-border bg-muted/40 p-3">
+          <SearchInput placeholder="Search resellers…" onSearch={handleSearch} className="max-w-sm" />
+        </div>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6"><TableSkeleton rows={6} /></div>
@@ -285,18 +287,20 @@ function ResellersPageInner() {
             </div>
           )}
         </CardContent>
+        {/* Paging sits on the panel's foot */}
+        <div className="border-t border-border px-3 py-2.5 empty:hidden">
+          {!isLoading && !isError && pageItems.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              pageSize={limit}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={(l) => { setLimit(l); setPage(1); }}
+            />
+          )}
+        </div>
       </Card>
-
-      {!isLoading && !isError && pageItems.length > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={limit}
-          total={total}
-          onPageChange={setPage}
-          onPageSizeChange={(l) => { setLimit(l); setPage(1); }}
-        />
-      )}
 
       {/* Create / Edit */}
       <Dialog open={formOpen} onOpenChange={(v) => !isSubmitting && setFormOpen(v)}>

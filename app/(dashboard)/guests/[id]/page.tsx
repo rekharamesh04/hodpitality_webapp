@@ -78,12 +78,13 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
 
   if (isLoading) {
     return (
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-56 w-full rounded-2xl" />
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Skeleton className="h-64 w-full rounded-2xl lg:col-span-2" />
-          <Skeleton className="h-64 w-full rounded-2xl" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-16 w-full" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <Skeleton className="h-64 w-full lg:col-span-4" />
+          <Skeleton className="h-64 w-full lg:col-span-8" />
         </div>
       </div>
     );
@@ -111,113 +112,105 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
 
   return (
     <TooltipProvider delayDuration={200}>
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         <Button variant="ghost" size="sm" onClick={() => router.push('/guests')} className="-ml-2">
           <ArrowLeft className="mr-2 h-4 w-4" />
           All {t.person.many.toLowerCase()}
         </Button>
 
-        {/* Hero */}
-        <Card className="overflow-hidden">
-          <div className="h-20 border-b border-border bg-muted/70 sm:h-24" />
-          <CardContent className="relative px-4 pb-6 pt-0 sm:px-6">
-            <div className="-mt-10 flex flex-col gap-5 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
-              <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:text-left">
-                <Avatar className="h-20 w-20 border-4 border-card shadow-[var(--shadow-medium)] sm:h-24 sm:w-24">
-                  <AvatarImage src={photoSrc} alt={guest.name} />
-                  <AvatarFallback className="bg-primary/10 text-2xl font-bold text-primary">
-                    {guest.name ? getInitials(guest.name) : '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="sm:pb-1">
-                  <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                    <h1 className="text-[23px] font-semibold tracking-tight">{guest.name || 'Unnamed guest'}</h1>
-                    {guest.category && (
-                      <span
-                        className={cn(
-                          'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                          guestCategoryBadgeClass(guest.category, industry)
-                        )}
-                      >
-                        {guest.category}
-                      </span>
+        {/* Identity — who this is, and everything the desk can do with them */}
+        <div className="flex flex-col gap-5 border-b border-border pb-6 md:flex-row md:items-center md:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <Avatar className="h-16 w-16 border border-border sm:h-20 sm:w-20">
+              <AvatarImage src={photoSrc} alt={guest.name} />
+              <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
+                {guest.name ? getInitials(guest.name) : '?'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-[23px] font-semibold tracking-tight">{guest.name || 'Unnamed guest'}</h1>
+                {guest.category && (
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium',
+                      guestCategoryBadgeClass(guest.category, industry)
                     )}
-                    <StatusBadge status={guest.status} />
-                  </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{guest.email || 'No email on file'}</p>
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-center gap-2 sm:pb-1">
-                {!guest.checkedIn && (
-                  <Button size="sm" variant="secondary" onClick={handleCheckIn} loading={checkIn.isPending}>
-                    {!checkIn.isPending && <UserCheck className="mr-2 h-4 w-4" />}
-                    Check In
-                  </Button>
+                  >
+                    {guest.category}
+                  </span>
                 )}
-                <Button size="sm" variant="secondary" onClick={() => setBookOpen(true)}>
-                  <CalendarPlus className="mr-2 h-4 w-4" />
-                  Book {t.visit.one}
-                </Button>
-                <Button size="sm" onClick={() => setEditOpen(true)}>
-                  <Pencil className="mr-2 h-4 w-4" />
-                  Edit
-                </Button>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="icon" variant="outline" aria-label={hasFacePhoto ? 'Retake face photo' : 'Enroll face'} onClick={() => setFaceOpen(true)}>
-                      <Camera className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{hasFacePhoto ? 'Retake face photo' : 'Enroll face'}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.person.one.toLowerCase()}`} onClick={() => setDeleteOpen(true)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Delete {t.person.one.toLowerCase()}</TooltipContent>
-                </Tooltip>
+                <StatusBadge status={guest.status} />
               </div>
+              <p className="mt-1 truncate text-sm text-muted-foreground">{guest.email || 'No email on file'}</p>
             </div>
+          </div>
 
-            {/* Stat strip */}
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <StatChip
-                icon={guest.checkedIn ? UserRoundCheck : UserCheck}
-                label="Check-in"
-                value={guest.checkedIn ? formatCheckInTimestamp(guest.checkInTime) : 'Not checked in'}
-              />
-              <StatChip icon={CalendarDays} label="Registered" value={guest.registrationDate ? formatDate(guest.registrationDate) : '—'} />
-              <StatChip icon={CalendarClock} label="Appointments" value={String(relatedAppointments.length)} />
-              <StatChip icon={Clock} label={`${t.person.one} Since`} value={guest.created_at ? formatDate(guest.created_at) : '—'} />
-            </div>
-          </CardContent>
-        </Card>
+          {/* Actions */}
+          <div className="flex flex-wrap items-center gap-2">
+            {!guest.checkedIn && (
+              <Button size="sm" variant="secondary" onClick={handleCheckIn} loading={checkIn.isPending}>
+                {!checkIn.isPending && <UserCheck className="mr-2 h-4 w-4" />}
+                Check In
+              </Button>
+            )}
+            <Button size="sm" variant="secondary" onClick={() => setBookOpen(true)}>
+              <CalendarPlus className="mr-2 h-4 w-4" />
+              Book {t.visit.one}
+            </Button>
+            <Button size="sm" onClick={() => setEditOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
+            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" variant="outline" aria-label={hasFacePhoto ? 'Retake face photo' : 'Enroll face'} onClick={() => setFaceOpen(true)}>
+                  <Camera className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{hasFacePhoto ? 'Retake face photo' : 'Enroll face'}</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.person.one.toLowerCase()}`} onClick={() => setDeleteOpen(true)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Delete {t.person.one.toLowerCase()}</TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
 
-        {/* Details */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base">{t.person.one} Information</CardTitle>
-            </CardHeader>
-            <CardContent className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <InfoRow icon={Mail} label="Email" value={guest.email} />
-              <InfoRow icon={Phone} label="Phone" value={guest.phone} />
-              <div className="sm:col-span-2">
+        {/* The record at a glance, as one ledger strip */}
+        <div className="metric-ledger grid grid-cols-2 gap-px rounded-lg sm:grid-cols-4">
+          <StatChip
+            icon={guest.checkedIn ? UserRoundCheck : UserCheck}
+            label="Check-in"
+            value={guest.checkedIn ? formatCheckInTimestamp(guest.checkInTime) : 'Not checked in'}
+          />
+          <StatChip icon={CalendarDays} label="Registered" value={guest.registrationDate ? formatDate(guest.registrationDate) : '—'} />
+          <StatChip icon={CalendarClock} label="Appointments" value={String(relatedAppointments.length)} />
+          <StatChip icon={Clock} label={`${t.person.one} Since`} value={guest.created_at ? formatDate(guest.created_at) : '—'} />
+        </div>
+
+        {/* Record: who they are (left) beside what has happened and what is next (right) */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+          <aside className="min-w-0 space-y-6 lg:col-span-4" aria-label={`${t.person.one} details`}>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">{t.person.one} Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                <InfoRow icon={Mail} label="Email" value={guest.email} />
+                <InfoRow icon={Phone} label="Phone" value={guest.phone} />
                 <InfoRow icon={MapPin} label="Address" value={guest.address} />
-              </div>
-              {guest.notes && (
-                <div className="sm:col-span-2">
-                  <InfoRow icon={StickyNote} label="Notes" value={guest.notes} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                {guest.notes && <InfoRow icon={StickyNote} label="Notes" value={guest.notes} />}
+                {!guest.email && !guest.phone && !guest.address && !guest.notes && (
+                  <p className="text-sm text-muted-foreground">No contact details yet — add them with Edit.</p>
+                )}
+              </CardContent>
+            </Card>
 
-          <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Face &amp; Account</CardTitle>
@@ -254,60 +247,62 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
             </Card>
             {/* A hospital sends prescriptions to the patient's own pharmacy. */}
             {t.slug === 'healthcare' && <PreferredPharmacyCard guestId={resolvedId} guest={guest} />}
+          </aside>
+
+          <div className="min-w-0 space-y-6 lg:col-span-8">
+            {/* Current, upcoming and past visits, payments and reports */}
+            <PersonHistory entity="guest" personId={resolvedId} personName={guest.name} onBook={() => setBookOpen(true)} />
+
+            {/* Prescriptions */}
+            {t.has('prescriptions') && <PatientPrescriptionsCard guest={guest} guestId={resolvedId} />}
+
+            {/* Hospitality */}
+            {t.has('hospitality') && (
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-base">Hospitality Requests</CardTitle>
+                  <Button size="sm" variant="outline" onClick={() => router.push('/hospitality?action=add')}>
+                    <Hotel className="mr-2 h-4 w-4" aria-hidden="true" />
+                    New Request
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  {hospitalityLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-12 w-full" />
+                      <Skeleton className="h-12 w-full" />
+                    </div>
+                  ) : hospitalityRequests.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">No hospitality requests for this {t.person.one.toLowerCase()}.</p>
+                  ) : (
+                    <ul className="divide-y rounded-lg border">
+                      {hospitalityRequests.map((h) => (
+                        <li key={h.id}>
+                          <button
+                            type="button"
+                            className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-accent"
+                            onClick={() => router.push(`/hospitality/${h.id}`)}
+                          >
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                              <Hotel className="h-4 w-4 text-primary" aria-hidden="true" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium">{h.type}{h.description ? ` — ${h.description}` : ''}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {formatDate(h.scheduledAt || h.serviceDate)}{h.venue ? ` · ${h.venue}` : ''}
+                              </p>
+                            </div>
+                            <StatusBadge status={h.status} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
-
-        {/* Current, upcoming and past visits, payments and reports */}
-        <PersonHistory entity="guest" personId={resolvedId} personName={guest.name} onBook={() => setBookOpen(true)} />
-
-        {/* Prescriptions */}
-        {t.has('prescriptions') && <PatientPrescriptionsCard guest={guest} guestId={resolvedId} />}
-
-        {/* Hospitality */}
-        {t.has('hospitality') && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <CardTitle className="text-base">Hospitality Requests</CardTitle>
-              <Button size="sm" variant="outline" onClick={() => router.push('/hospitality?action=add')}>
-                <Hotel className="mr-2 h-4 w-4" aria-hidden="true" />
-                New Request
-              </Button>
-            </CardHeader>
-            <CardContent>
-              {hospitalityLoading ? (
-                <div className="space-y-2">
-                  <Skeleton className="h-12 w-full" />
-                  <Skeleton className="h-12 w-full" />
-                </div>
-              ) : hospitalityRequests.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No hospitality requests for this {t.person.one.toLowerCase()}.</p>
-              ) : (
-                <ul className="divide-y rounded-lg border">
-                  {hospitalityRequests.map((h) => (
-                    <li key={h.id}>
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-3 p-3 text-left transition-colors hover:bg-accent"
-                        onClick={() => router.push(`/hospitality/${h.id}`)}
-                      >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                          <Hotel className="h-4 w-4 text-primary" aria-hidden="true" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">{h.type}{h.description ? ` — ${h.description}` : ''}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {formatDate(h.scheduledAt || h.serviceDate)}{h.venue ? ` · ${h.venue}` : ''}
-                          </p>
-                        </div>
-                        <StatusBadge status={h.status} />
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </CardContent>
-          </Card>
-        )}
 
         {/* Edit dialog */}
         <GuestFormDialog
@@ -364,14 +359,12 @@ function StatChip({
   value: string;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-        <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
-      </div>
+    <div className="flex min-w-0 items-start justify-between gap-2 bg-card p-4">
       <div className="min-w-0">
-        <p className="truncate text-sm font-semibold leading-tight">{value}</p>
-        <p className="text-xs text-muted-foreground">{label}</p>
+        <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
+        <p className="mt-1.5 truncate text-sm font-semibold">{value}</p>
       </div>
+      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
     </div>
   );
 }

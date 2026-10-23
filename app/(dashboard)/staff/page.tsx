@@ -264,47 +264,47 @@ function StaffPageInner() {
         </div>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <SearchInput
-          placeholder="Search staff…"
-          defaultValue={search}
-          onSearch={handleSearch}
-          className="max-w-sm"
-        />
-        <Select value={department || 'all'} onValueChange={handleDepartmentChange}>
-          <SelectTrigger className="w-full sm:w-[170px]" aria-label="Filter by department">
-            <SelectValue placeholder="All departments" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All departments</SelectItem>
-            {departmentOptions.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={role || 'all'} onValueChange={handleRoleChange}>
-          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by role">
-            <SelectValue placeholder="All roles" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All roles</SelectItem>
-            {existingRoleValues.map((r) => <SelectItem key={r} value={r}>{roleLabel(r, industry)}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={status || 'all'} onValueChange={handleStatusChange}>
-          <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by status">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
-        )}
-      </div>
-
-      <Card>
+      <Card className="overflow-hidden">
+        {/* Toolbar: search and filters sit on the list they filter */}
+        <div className="border-b border-border bg-muted/40 p-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <SearchInput
+            placeholder="Search staff…"
+            defaultValue={search}
+            onSearch={handleSearch}
+            className="max-w-sm"
+          />
+          <Select value={department || 'all'} onValueChange={handleDepartmentChange}>
+            <SelectTrigger className="w-full sm:w-[170px]" aria-label="Filter by department">
+              <SelectValue placeholder="All departments" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All departments</SelectItem>
+              {departmentOptions.map((d) => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={role || 'all'} onValueChange={handleRoleChange}>
+            <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by role">
+              <SelectValue placeholder="All roles" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All roles</SelectItem>
+              {existingRoleValues.map((r) => <SelectItem key={r} value={r}>{roleLabel(r, industry)}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={status || 'all'} onValueChange={handleStatusChange}>
+            <SelectTrigger className="w-full sm:w-[150px]" aria-label="Filter by status">
+              <SelectValue placeholder="All statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>Reset</Button>
+          )}
+        </div>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6">
@@ -420,18 +420,20 @@ function StaffPageInner() {
             </div>
           )}
         </CardContent>
+        {/* Paging sits on the panel's foot */}
+        <div className="border-t border-border px-3 py-2.5 empty:hidden">
+          {!isLoading && !isError && pageItems.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              pageSize={limit}
+              total={total}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          )}
+        </div>
       </Card>
-
-      {!isLoading && !isError && pageItems.length > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={limit}
-          total={total}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      )}
 
       <StaffFormDialog
         open={formOpen}

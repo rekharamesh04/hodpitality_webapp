@@ -298,43 +298,42 @@ function GuestsPageInner() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <SearchInput
-          placeholder={`Search ${t.person.many.toLowerCase()}…`}
-          defaultValue={search}
-          onSearch={handleSearch}
-          className="max-w-sm"
-        />
-        <Select value={category || 'all'} onValueChange={handleCategoryChange}>
-          <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by category">
-            <SelectValue placeholder="All categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All categories</SelectItem>
-            {guestCategories(industry).map((c) => (
-              <SelectItem key={c} value={c}>{c}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
-          <p className="text-sm font-medium">
-            {selectedIds.size} {selectedIds.size === 1 ? t.person.one.toLowerCase() : t.person.many.toLowerCase()} selected
-          </p>
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
-            <X className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-            Clear selection
-          </Button>
-          <Button variant="destructive" size="sm" className="ml-auto" onClick={() => setBulkDeleteOpen(true)}>
-            <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
-            Delete selected
-          </Button>
+      <Card className="overflow-hidden">
+        {/* Toolbar: search and filters sit on the list they filter */}
+        <div className="border-b border-border bg-muted/40 p-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchInput
+            placeholder={`Search ${t.person.many.toLowerCase()}…`}
+            defaultValue={search}
+            onSearch={handleSearch}
+            className="max-w-sm"
+          />
+          <Select value={category || 'all'} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by category">
+              <SelectValue placeholder="All categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All categories</SelectItem>
+              {guestCategories(industry).map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-      )}
-
-      <Card>
+        {selectedIds.size > 0 && (
+          <div className="flex flex-wrap items-center gap-3 border-b border-primary/30 bg-primary/5 px-4 py-2.5">
+            <p className="text-sm font-medium">
+              {selectedIds.size} {selectedIds.size === 1 ? t.person.one.toLowerCase() : t.person.many.toLowerCase()} selected
+            </p>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())}>
+              <X className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              Clear selection
+            </Button>
+            <Button variant="destructive" size="sm" className="ml-auto" onClick={() => setBulkDeleteOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />
+              Delete selected
+            </Button>
+          </div>
+        )}
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6">
@@ -491,18 +490,20 @@ function GuestsPageInner() {
             </div>
           )}
         </CardContent>
+        {/* Paging sits on the panel's foot */}
+        <div className="border-t border-border px-3 py-2.5 empty:hidden">
+          {!isLoading && !isError && guests.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalPages={totalPages}
+              pageSize={limit}
+              total={total}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+            />
+          )}
+        </div>
       </Card>
-
-      {!isLoading && !isError && guests.length > 0 && (
-        <Pagination
-          currentPage={page}
-          totalPages={totalPages}
-          pageSize={limit}
-          total={total}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
-      )}
 
       <GuestFormDialog
         open={formOpen}

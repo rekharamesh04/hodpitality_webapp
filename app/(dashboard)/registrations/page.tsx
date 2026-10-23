@@ -142,47 +142,47 @@ function RegistrationsPageInner() {
         )}
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <SearchInput
-          key={searchResetKey}
-          placeholder={`Search ${t.person.one.toLowerCase()}, email or event…`}
-          defaultValue={search}
-          onSearch={(v) => { setSearch(v); setPage(1); }}
-          className="w-full sm:max-w-xs"
-        />
-        <Select value={status || 'all'} onValueChange={(v) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
-          <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by status">
-            <SelectValue placeholder="All statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={paymentStatus || 'all'} onValueChange={(v) => { setPaymentStatus(v === 'all' ? '' : v); setPage(1); }}>
-          <SelectTrigger className="w-full sm:w-[190px]" aria-label="Filter by payment status">
-            <SelectValue placeholder="All payment statuses" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All payment statuses</SelectItem>
-            {PAYMENT_STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        {eventOptions.length > 0 && (
-          <Select value={eventFilter || 'all'} onValueChange={(v) => { setEventFilter(v === 'all' ? '' : v); setPage(1); }}>
-            <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by event">
-              <SelectValue placeholder="All events" />
+      <Card className="overflow-hidden">
+        {/* Toolbar: search and filters sit on the list they filter */}
+        <div className="border-b border-border bg-muted/40 p-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+          <SearchInput
+            key={searchResetKey}
+            placeholder={`Search ${t.person.one.toLowerCase()}, email or event…`}
+            defaultValue={search}
+            onSearch={(v) => { setSearch(v); setPage(1); }}
+            className="w-full sm:max-w-xs"
+          />
+          <Select value={status || 'all'} onValueChange={(v) => { setStatus(v === 'all' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="w-full sm:w-[160px]" aria-label="Filter by status">
+              <SelectValue placeholder="All statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All events</SelectItem>
-              {eventOptions.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}
+              <SelectItem value="all">All statuses</SelectItem>
+              {STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
             </SelectContent>
           </Select>
-        )}
-        {hasActiveFilters && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear Filters</Button>}
-      </div>
-
-      <Card>
+          <Select value={paymentStatus || 'all'} onValueChange={(v) => { setPaymentStatus(v === 'all' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="w-full sm:w-[190px]" aria-label="Filter by payment status">
+              <SelectValue placeholder="All payment statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All payment statuses</SelectItem>
+              {PAYMENT_STATUS_OPTIONS.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {eventOptions.length > 0 && (
+            <Select value={eventFilter || 'all'} onValueChange={(v) => { setEventFilter(v === 'all' ? '' : v); setPage(1); }}>
+              <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by event">
+                <SelectValue placeholder="All events" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All events</SelectItem>
+                {eventOptions.map(([id, label]) => <SelectItem key={id} value={id}>{label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          {hasActiveFilters && <Button variant="ghost" size="sm" onClick={clearFilters}>Clear Filters</Button>}
+        </div>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6"><TableSkeleton rows={8} /></div>
@@ -280,18 +280,20 @@ function RegistrationsPageInner() {
             </div>
           )}
         </CardContent>
+        {/* Paging sits on the panel's foot */}
+        <div className="border-t border-border px-3 py-2.5 empty:hidden">
+          {!isLoading && !isError && pageItems.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={limit}
+              total={total}
+              onPageChange={setPage}
+              onPageSizeChange={(l) => { setLimit(l); setPage(1); }}
+            />
+          )}
+        </div>
       </Card>
-
-      {!isLoading && !isError && pageItems.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={limit}
-          total={total}
-          onPageChange={setPage}
-          onPageSizeChange={(l) => { setLimit(l); setPage(1); }}
-        />
-      )}
 
       <CompleteRegistrationDialog open={registrationDialogOpen} onOpenChange={setRegistrationDialogOpen} />
       <RecordPaymentDialog open={!!paymentTarget} onOpenChange={(v) => !v && setPaymentTarget(null)} registration={paymentTarget} />
