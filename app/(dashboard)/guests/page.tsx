@@ -271,28 +271,40 @@ function GuestsPageInner() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">{t.person.many}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.person.many}</h1>
           <p className="text-muted-foreground">{t.person.one} records, event attendance &amp; check-in management</p>
         </div>
+        {/* One primary action; the occasional ones wait behind "More". */}
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
-            <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
+          <Button variant="outline" onClick={() => setFindByFaceOpen(true)}>
+            <ScanFace className="h-4 w-4" aria-hidden="true" />
             Find by face
           </Button>
-          <Button variant="outline" size="sm" onClick={() => router.push('/registrations')}>
-            <ClipboardList className="mr-2 h-4 w-4" aria-hidden="true" />
-            Registrations
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
-            <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
-            Import
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} loading={isExporting}>
-            {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
-            Export
-          </Button>
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" loading={isExporting} aria-label="More actions">
+                {!isExporting && <MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                More
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem className="cursor-pointer" onClick={() => setImportOpen(true)}>
+                <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
+                Import from CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={handleExport} disabled={isExporting}>
+                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                Export to CSV
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/registrations')}>
+                <ClipboardList className="mr-2 h-4 w-4" aria-hidden="true" />
+                Registrations
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button onClick={openCreate} className="order-first sm:order-none">
+            <Plus className="h-4 w-4" aria-hidden="true" />
             Add {t.person.one}
           </Button>
         </div>
@@ -576,7 +588,7 @@ function GuestsPageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">{t.person.many}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.person.many}</h1>
         <p className="text-muted-foreground">{t.person.one} records, event attendance &amp; check-in management</p>
       </div>
       <Card>

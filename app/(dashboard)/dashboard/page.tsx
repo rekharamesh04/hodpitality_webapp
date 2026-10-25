@@ -45,19 +45,24 @@ export default function DashboardPage() {
   const notifications = useNotifications({ limit: 5 });
   const markAllRead = useMarkAllNotificationsRead();
 
+  // Feeds that are quiet today are left out rather than shown as empty boxes;
+  // the bell in the top bar still reaches every notification.
+  const showActivity = activity.isLoading || activity.isError || (activity.data?.length ?? 0) > 0;
+  const showNotifications = notifications.isLoading || notifications.isError || (notifications.data?.length ?? 0) > 0;
+
   return (
     <div className="space-y-6">
       <TimezoneNudge />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <WelcomeHeader />
         {/* The two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
         <div className="flex shrink-0 flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
-            <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
+          <Button variant="outline" onClick={() => setFindByFaceOpen(true)}>
+            <ScanFace className="h-4 w-4" aria-hidden="true" />
             Find by face
           </Button>
-          <Button size="sm" onClick={() => router.push('/guests?action=add')}>
-            <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
+          <Button onClick={() => router.push('/guests?action=add')}>
+            <UserPlus className="h-4 w-4" aria-hidden="true" />
             Add {t.person.one}
           </Button>
         </div>
@@ -73,20 +78,20 @@ export default function DashboardPage() {
         onRetry={() => stats.refetch()}
       />
 
-      {/* With a workflow, the flow itself is the set of quick actions. */}
-      {workflow.length > 0 ? <WorkflowGuide steps={workflow} /> : <QuickActions />}
-
-      {/* Work area: what is happening (main) beside what needs watching (side).
+      {/* Work area: who is here (main) beside how to start the next task and what needs watching (side).
           Cards for modules this industry is not offered are left out rather than shown empty. */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         <div className="min-w-0 space-y-6 lg:col-span-8">
-          <ActivityFeed
-            activities={activity.data ?? []}
-            isLoading={activity.isLoading}
-            isError={activity.isError}
-            error={activity.error}
-            onRetry={() => activity.refetch()}
+          <CheckInOverview
+            checkIns={checkIns.data ?? []}
+            stats={checkInStats.data}
+            isLoading={checkIns.isLoading}
+            isError={checkIns.isError}
+            error={checkIns.error}
+            onRetry={() => checkIns.refetch()}
           />
+          {/* Phones stack the columns, so the task list comes up here rather than below every feed. */}
+          <div className="lg:hidden">{workflow.length > 0 ? <WorkflowGuide steps={workflow} /> : <QuickActions />}</div>
           <RecentGuests
             guests={guests.data?.data ?? []}
             isLoading={guests.isLoading}
@@ -104,24 +109,29 @@ export default function DashboardPage() {
             />
           )}
         </div>
-        <aside className="min-w-0 space-y-6 lg:col-span-4" aria-label="Watch list">
-          <CheckInOverview
-            checkIns={checkIns.data ?? []}
-            stats={checkInStats.data}
-            isLoading={checkIns.isLoading}
-            isError={checkIns.isError}
-            error={checkIns.error}
-            onRetry={() => checkIns.refetch()}
-          />
-          <NotificationsPanel
-            notifications={notifications.data ?? []}
-            isLoading={notifications.isLoading}
-            isError={notifications.isError}
-            error={notifications.error}
-            onRetry={() => notifications.refetch()}
-            onMarkAllRead={() => markAllRead.mutate()}
-            isMarkingAllRead={markAllRead.isPending}
-          />
+        <aside className="min-w-0 space-y-6 lg:col-span-4" aria-label="Start and watch">
+          {/* With a workflow, the flow itself is the set of quick actions. */}
+          <div className="hidden lg:block">{workflow.length > 0 ? <WorkflowGuide steps={workflow} /> : <QuickActions />}</div>
+          {showNotifications && (
+            <NotificationsPanel
+              notifications={notifications.data ?? []}
+              isLoading={notifications.isLoading}
+              isError={notifications.isError}
+              error={notifications.error}
+              onRetry={() => notifications.refetch()}
+              onMarkAllRead={() => markAllRead.mutate()}
+              isMarkingAllRead={markAllRead.isPending}
+            />
+          )}
+          {showActivity && (
+            <ActivityFeed
+              activities={activity.data ?? []}
+              isLoading={activity.isLoading}
+              isError={activity.isError}
+              error={activity.error}
+              onRetry={() => activity.refetch()}
+            />
+          )}
           {t.has('events') && (
             <UpcomingEvents
               events={upcomingEvents.data ?? []}

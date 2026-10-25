@@ -108,7 +108,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
         {/* Hero */}
         <Card className="overflow-hidden">
-          <div className="h-20 bg-gradient-to-r from-primary/25 via-primary/10 to-transparent sm:h-24" />
+          <div className="h-20 border-b bg-muted/60 sm:h-24" />
           <CardContent className="relative px-4 pb-6 pt-0 sm:px-6">
             <div className="-mt-10 flex flex-col gap-5 sm:-mt-12 sm:flex-row sm:items-end sm:justify-between">
               <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:items-end sm:text-left">

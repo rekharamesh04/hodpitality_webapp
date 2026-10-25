@@ -3,70 +3,49 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { buttonVariants } from '@/components/ui/button';
 import type { WorkflowStep } from '@/constants/workflow';
 import { useTerminology } from '@/hooks';
-import { cn } from '@/lib/utils';
 
 /**
- * The whole flow on one card, start to finish, each step with the one action
- * that begins it. Takes the place of the generic quick actions for an industry
- * that has a workflow — every useful shortcut is a step here, in its order.
+ * The whole flow as a short numbered list, each step with the one action that
+ * begins it. Takes the place of the generic quick actions for an industry that
+ * has a workflow — every useful shortcut is a step here, in its order. The
+ * sidebar lists the same steps for getting around; this is for starting work.
  */
 export function WorkflowGuide({ steps }: { steps: WorkflowStep[] }) {
   const t = useTerminology();
 
   return (
     <Card>
-      <CardHeader className="pb-3">
-        <CardTitle>How a {t.person.one.toLowerCase()} moves through your {t.org.toLowerCase()}</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Start to finish, in order. Each screen shows these steps along its top, with a link to the next one.
+      <CardHeader className="border-b px-5 py-4">
+        <CardTitle>Start a task</CardTitle>
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          How a {t.person.one.toLowerCase()} moves through your {t.org.toLowerCase()}, in order.
         </p>
       </CardHeader>
-      <CardContent>
-        <ol
-          className={cn(
-            'grid gap-3 sm:grid-cols-2',
-            steps.length >= 6 ? 'lg:grid-cols-6' : steps.length === 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
-          )}
-        >
-          {steps.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <li key={s.href} className="relative flex flex-col rounded-lg border bg-card p-3">
-                <div className="flex items-center gap-2">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                    {i + 1}
+      <CardContent className="p-0">
+        <ol className="divide-y">
+          {steps.map((s, i) => (
+            <li key={s.href}>
+              <Link
+                href={s.action?.href ?? s.href}
+                title={s.description}
+                className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-accent focus-visible:bg-accent focus-visible:outline-none"
+              >
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums text-muted-foreground group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground">
+                  {i + 1}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    <span className="truncate">{s.action?.label ?? s.label}</span>
+                    {s.optional && <span className="shrink-0 text-[10px] font-normal text-muted-foreground">Optional</span>}
                   </span>
-                  <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
-                  {s.optional && (
-                    <span className="ml-auto rounded border px-1 text-[10px] text-muted-foreground">Optional</span>
-                  )}
-                </div>
-                <Link
-                  href={s.href}
-                  className="mt-2 rounded-sm text-sm font-semibold hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  {s.label}
-                </Link>
-                <p className="mt-1 flex-1 text-xs leading-snug text-muted-foreground">{s.description}</p>
-                <Link
-                  href={s.action?.href ?? s.href}
-                  className={cn(buttonVariants({ size: 'sm', variant: 'outline' }), 'mt-3 w-full justify-between')}
-                >
-                  <span className="truncate">{s.action?.label ?? `Open ${s.label}`}</span>
-                  <ArrowRight className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                </Link>
-                {i < steps.length - 1 && (
-                  <ArrowRight
-                    className="absolute -right-[11px] top-1/2 z-10 hidden h-4 w-4 -translate-y-1/2 rounded-full bg-background text-muted-foreground lg:block"
-                    aria-hidden="true"
-                  />
-                )}
-              </li>
-            );
-          })}
+                  <span className="block truncate text-xs text-muted-foreground">{s.label}</span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" aria-hidden="true" />
+              </Link>
+            </li>
+          ))}
         </ol>
       </CardContent>
     </Card>

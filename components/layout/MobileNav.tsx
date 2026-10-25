@@ -7,15 +7,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, LayoutDashboard, CheckCircle2, Users, ClipboardList, CreditCard, Menu } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useAuthStore, useUIStore } from '@/store';
-import { useNotifications } from '@/hooks/use-notifications';
-import { getVisibleNavSections, isNavItemActive } from '@/constants/navigation';
+import { useUIStore } from '@/store';
+import { isNavItemActive } from '@/constants/navigation';
 import { getWorkflow } from '@/constants/workflow';
 import { industryPack, type IndustryModule } from '@/constants/industry';
 import { useIndustry } from '@/hooks';
 import { cn } from '@/lib/utils';
-import { BrandMark } from '@/components/layout/AppHeader';
+import { BrandMark, SearchButton, SidebarNav } from '@/components/layout/AppSidebar';
 
 interface TabItem { label: string; short?: string; href: string; icon: LucideIcon }
 
@@ -54,15 +52,10 @@ function tabItemsFor(industry: unknown): TabItem[] {
   ];
 }
 
-/** Slide-out drawer with the full navigation (below the `lg` breakpoint). */
+/** Slide-out drawer with the full navigation (below the `lg` breakpoint) — the sidebar's list. */
 export function MobileNavDrawer() {
   const pathname = usePathname();
-  const industry = useIndustry();
-  const { user } = useAuthStore();
   const { sidebarMobileOpen: open, closeMobileSidebar: close } = useUIStore();
-  const { data: notifications } = useNotifications();
-  const unreadCount = (notifications ?? []).filter((n) => !n.read).length;
-  const sections = getVisibleNavSections(user?.role, industry);
 
   // Close after navigating, and on Escape.
   useEffect(() => { close(); }, [pathname, close]);
@@ -82,7 +75,7 @@ export function MobileNavDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-50 bg-slate-950/50 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-50 bg-slate-950/40 lg:hidden"
             onClick={close}
           />
           <motion.aside
@@ -93,62 +86,25 @@ export function MobileNavDrawer() {
             animate={{ x: 0 }}
             exit={{ x: '-100%' }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="fixed inset-y-0 left-0 z-50 flex w-[min(20rem,85vw)] flex-col bg-card shadow-[var(--shadow-floating)] lg:hidden"
+            className="fixed inset-y-0 left-0 z-50 flex w-[min(18rem,85vw)] flex-col border-r border-sidebar-border bg-sidebar shadow-[var(--shadow-floating)] lg:hidden"
           >
-            <div className="flex h-14 shrink-0 items-center justify-between bg-nav bg-gradient-to-r from-nav to-nav-to px-4">
+            <div className="flex h-14 shrink-0 items-center justify-between px-4">
               <BrandMark alwaysShowName />
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={close}
-                className="h-9 w-9 text-nav-muted hover:bg-nav-accent hover:text-nav-foreground"
+                className="-mr-1.5 h-9 w-9 text-muted-foreground"
                 aria-label="Close navigation menu"
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
-            <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4" aria-label="Main">
-              {sections.map((section) => (
-                <div key={section.label}>
-                  <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {section.label}
-                  </p>
-                  <div className="space-y-0.5">
-                    {section.items.map((item) => {
-                      const Icon = item.icon;
-                      const active = isNavItemActive(pathname, item.href);
-                      const badge = item.href === '/notifications' ? unreadCount : 0;
-                      return (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          aria-current={active ? 'page' : undefined}
-                          className={cn(
-                            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors',
-                            active ? 'bg-primary/10 font-semibold text-primary' : 'font-medium text-foreground hover:bg-accent'
-                          )}
-                        >
-                          {item.step ? (
-                            <span
-                              className={cn(
-                                'flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
-                                active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-                              )}
-                            >
-                              <span className="sr-only">Step </span>{item.step}
-                            </span>
-                          ) : (
-                            <Icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-muted-foreground')} />
-                          )}
-                          <span className="flex-1">{item.label}</span>
-                          {item.optional && <span className="text-[10px] text-muted-foreground">Optional</span>}
-                          {badge > 0 && <Badge className="h-5 px-1.5 text-[10px]">{badge > 99 ? '99+' : badge}</Badge>}
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+            <div className="shrink-0 px-3 pb-3">
+              <SearchButton />
+            </div>
+            <nav className="flex-1 overflow-y-auto px-3 pb-4" aria-label="Main">
+              <SidebarNav />
             </nav>
           </motion.aside>
         </>

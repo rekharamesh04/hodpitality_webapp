@@ -202,7 +202,7 @@ function CustomersPageInner() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">{t.account.many}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.account.many}</h1>
           <p className="text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -415,7 +415,7 @@ function CustomersPageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">{t.account.many}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t.account.many}</h1>
         <p className="text-muted-foreground">Manage {t.account.many.toLowerCase()}, tiers and {t.visit.many.toLowerCase()}</p>
       </div>
       <Card>

@@ -37,6 +37,15 @@
   --nav-accent-bg: rgba(255, 255, 255, 0.07);
   --nav-active-bg: rgba(255, 255, 255, 0.12);
 
+  /* Left sidebar — a white rail beside the slate page */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0F172A;
+  --sidebar-muted: #64748B;
+  --sidebar-border: #E2E8F0;
+  --sidebar-accent: #F1F5F9;
+  --sidebar-active: #EEF2FF;
+  --sidebar-active-foreground: #4338CA;
+
   /* brand */
   --brand-accent: #8B5CF6;
   --brand-success: #22C55E;
@@ -73,6 +82,13 @@
   --nav-muted-foreground: rgba(226, 232, 240, 0.7);
   --nav-accent-bg: rgba(255, 255, 255, 0.06);
   --nav-active-bg: rgba(255, 255, 255, 0.1);
+  --sidebar: #0B1120;
+  --sidebar-foreground: #F1F5F9;
+  --sidebar-muted: #94A3B8;
+  --sidebar-border: #1E293B;
+  --sidebar-accent: #1E293B;
+  --sidebar-active: rgba(129, 140, 248, 0.14);
+  --sidebar-active-foreground: #C7D2FE;
 }
 
 /* ─── Tailwind Theme ────────────────────────────────────── */
@@ -106,27 +122,35 @@
   --color-nav-accent: var(--nav-accent-bg);
   --color-nav-active: var(--nav-active-bg);
 
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-muted: var(--sidebar-muted);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-active-foreground: var(--sidebar-active-foreground);
+
   --color-brand-accent: var(--brand-accent);
   --color-success: var(--brand-success);
   --color-warning: var(--brand-warning);
   --color-danger: var(--brand-danger);
   --color-info: var(--brand-info);
 
-  /* radius system */
-  --radius-sm:     8px;
-  --radius:       12px;
-  --radius-md:    14px;
-  --radius-lg:    16px;
-  --radius-xl:    20px;
-  --radius-2xl:   24px;
+  /* radius system — tight and even, so cards read as panels rather than bubbles */
+  --radius-sm:     6px;
+  --radius:        8px;
+  --radius-md:     8px;
+  --radius-lg:    10px;
+  --radius-xl:    12px;
+  --radius-2xl:   16px;
   --radius-full: 9999px;
 
-  /* shadows */
-  --shadow-soft:     0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
-  --shadow-medium:   0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 6px -2px rgb(0 0 0 / 0.05);
-  --shadow-large:    0 10px 30px -5px rgb(0 0 0 / 0.1),  0 4px 10px -5px rgb(0 0 0 / 0.06);
-  --shadow-floating: 0 20px 40px -10px rgb(0 0 0 / 0.15), 0 8px 16px -8px rgb(0 0 0 / 0.08);
-  --shadow-primary:  0 4px 16px -2px rgb(79 70 229 / 0.35);
+  /* shadows — borders carry the structure; shadows only lift what floats (menus, dialogs) */
+  --shadow-soft:     0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow-medium:   0 2px 6px -1px rgb(15 23 42 / 0.06);
+  --shadow-large:    0 8px 24px -6px rgb(15 23 42 / 0.12);
+  --shadow-floating: 0 16px 40px -12px rgb(15 23 42 / 0.22), 0 4px 12px -6px rgb(15 23 42 / 0.08);
+  --shadow-primary:  none;
 }
 
 /* ─── Base Styles ───────────────────────────────────────── */
@@ -226,11 +250,10 @@ h1, h2, h3 {
 
 /* ─── Card hover ────────────────────────────────────────── */
 .card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 .card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-large);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
 }
 
 /* ─── Smooth fade-in ────────────────────────────────────── */

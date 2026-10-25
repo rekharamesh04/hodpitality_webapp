@@ -122,7 +122,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
 
         {/* Identity — who this is, and everything the desk can do with them */}
         <Card className="overflow-hidden">
-          <CardContent className="flex flex-col gap-5 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent p-4 sm:p-6 md:flex-row md:items-center md:justify-between">
+          <CardContent className="flex flex-col gap-5 p-4 sm:p-6 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 items-center gap-4">
               <Avatar className="h-16 w-16 border-4 border-card shadow-[var(--shadow-medium)] sm:h-20 sm:w-20">
                 <AvatarImage src={photoSrc} alt={guest.name} />

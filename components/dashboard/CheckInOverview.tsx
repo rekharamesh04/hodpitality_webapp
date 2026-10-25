@@ -2,10 +2,11 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CHECKIN_METHOD_LABELS } from '@/constants';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, UserCheck, QrCode, ScanFace, MapPin, Calendar } from 'lucide-react';
-import { getRelativeTime, getFriendlyErrorMessage } from '@/lib/utils';
+import { cn, getInitials, getRelativeTime, getFriendlyErrorMessage } from '@/lib/utils';
 import { EmptyState } from '@/components/common/EmptyState';
 import { ErrorState } from '@/components/common/ErrorState';
 import type { CheckIn, CheckInStats } from '@/types';
@@ -45,6 +46,10 @@ function CheckInSkeleton() {
   );
 }
 
+/**
+ * Who has arrived, newest first — the front desk's live queue, and the first
+ * thing on the dashboard. Each name opens the person's record.
+ */
 export function CheckInOverview({ checkIns, stats, isLoading, isError, error, onRetry }: CheckInOverviewProps) {
   const t = useTerminology();
   const safeCheckIns = Array.isArray(checkIns) ? checkIns : [];
@@ -54,63 +59,63 @@ export function CheckInOverview({ checkIns, stats, isLoading, isError, error, on
       const bt = new Date(b.timestamp ?? b.checkInTime ?? 0).getTime();
       return bt - at;
     })
-    .slice(0, 5);
+    .slice(0, 8);
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle>Check-in Overview</CardTitle>
-        <Link href="/check-ins">
-          <Button variant="ghost" size="sm">
-            View all
-            <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-          </Button>
+      <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 border-b px-5 py-4">
+        <div className="min-w-0">
+          <CardTitle>Recent check-ins</CardTitle>
+          {stats && !isLoading && !isError && (
+            <p className="mt-1.5 text-xs text-muted-foreground tabular-nums">
+              {stats.arrived ?? 0} arrived · {stats.onSite ?? 0} on site · {stats.completed ?? 0} completed
+            </p>
+          )}
+        </div>
+        <Link href="/check-ins" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'shrink-0')}>
+          View all
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
         </Link>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {stats && !isLoading && !isError && (
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="rounded-lg border p-2">
-              <p className="text-lg font-bold text-primary">{stats.arrived ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Arrived</p>
-            </div>
-            <div className="rounded-lg border p-2">
-              <p className="text-lg font-bold text-green-700 dark:text-green-400">{stats.onSite ?? 0}</p>
-              <p className="text-xs text-muted-foreground">On Site</p>
-            </div>
-            <div className="rounded-lg border p-2">
-              <p className="text-lg font-bold text-gray-700 dark:text-gray-300">{stats.completed ?? 0}</p>
-              <p className="text-xs text-muted-foreground">Completed</p>
-            </div>
-          </div>
-        )}
-
+      <CardContent className="p-0">
         {isLoading ? (
-          <CheckInSkeleton />
+          <div className="p-5"><CheckInSkeleton /></div>
         ) : isError ? (
-          <ErrorState
-            title="Unable to load check-ins"
-            message={getFriendlyErrorMessage(error)}
-            onRetry={onRetry}
-          />
+          <div className="p-5">
+            <ErrorState
+              title="Unable to load check-ins"
+              message={getFriendlyErrorMessage(error)}
+              onRetry={onRetry}
+            />
+          </div>
         ) : recent.length === 0 ? (
-          <EmptyState icon={UserCheck} title="No recent check-ins" description={`${t.person.one} check-ins will show up here as they happen.`} />
+          <EmptyState icon={UserCheck} title="No check-ins yet today" description={`${t.person.one} check-ins will show up here as they happen.`} />
         ) : (
-          <div className="space-y-3">
+          <ul className="divide-y">
             {recent.map((ci) => {
               const ciId = ci.id ?? ci.PK?.replace('CHECKIN#', '') ?? Math.random().toString(36);
               const method = (ci.method ?? ci.checkInMethod ?? 'manual').toString().toLowerCase();
               const Icon = METHOD_ICON[method] ?? UserCheck;
               const ts = ci.timestamp ?? ci.checkInTime;
+              const name = ci.guestName || ci.guestId || t.person.one;
               return (
-                <div key={ciId} className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
-                  </div>
+                <li key={ciId} className="flex items-center gap-3 px-5 py-3">
+                  <Avatar className="h-9 w-9 shrink-0">
+                    <AvatarFallback className="bg-primary/10 text-xs text-primary">{getInitials(name)}</AvatarFallback>
+                  </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium leading-none">{ci.guestName || ci.guestId || t.person.one}</p>
-                    <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
-                      <span className="capitalize">{CHECKIN_METHOD_LABELS[method] ?? method.replace(/_/g, ' ')}</span>
+                    {ci.guestId ? (
+                      <Link href={`/guests/${ci.guestId}`} className="block truncate text-sm font-medium hover:text-primary hover:underline">
+                        {name}
+                      </Link>
+                    ) : (
+                      <p className="truncate text-sm font-medium">{name}</p>
+                    )}
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1 capitalize">
+                        <Icon className="h-3 w-3" aria-hidden="true" />
+                        {CHECKIN_METHOD_LABELS[method] ?? method.replace(/_/g, ' ')}
+                      </span>
                       {ci.venue && (
                         <span className="flex items-center gap-0.5">
                           <MapPin className="h-3 w-3" aria-hidden="true" />
@@ -123,13 +128,13 @@ export function CheckInOverview({ checkIns, stats, isLoading, isError, error, on
                           {ci.event}
                         </span>
                       )}
-                      <span>{ts ? getRelativeTime(ts) : '—'}</span>
                     </div>
                   </div>
-                </div>
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{ts ? getRelativeTime(ts) : '—'}</span>
+                </li>
               );
             })}
-          </div>
+          </ul>
         )}
       </CardContent>
     </Card>

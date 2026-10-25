@@ -23,12 +23,10 @@ export function StatsCard({ title, value, icon: Icon, trend, className }: StatsC
       className="h-full"
     >
       <Card className={cn('card-hover group relative h-full overflow-hidden', className)}>
-        {/* Brand accent strip, revealed on hover */}
-        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary to-brand-accent opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
         <CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5">
           <div className="min-w-0">
             <p className="text-xs font-medium text-muted-foreground sm:text-sm">{title}</p>
-            <p data-stat className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">{value}</p>
+            <p data-stat className="mt-1.5 text-2xl font-semibold tracking-tight sm:text-3xl">{value}</p>
             {trend && (
               <p className={cn('mt-1 text-xs font-medium', trend.isPositive ? 'text-success' : 'text-danger')}>
                 {trend.isPositive ? '+' : ''}{trend.value}% from last week

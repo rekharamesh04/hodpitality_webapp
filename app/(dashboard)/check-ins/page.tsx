@@ -268,7 +268,7 @@ function CheckInsPageInner() {
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Check-ins</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Check-ins</h1>
           <p className="text-muted-foreground">Live front-desk check-in management</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -599,7 +599,7 @@ function CheckInsPageSkeleton() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold sm:text-3xl">Check-ins</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Check-ins</h1>
         <p className="text-muted-foreground">Live front-desk check-in management</p>
       </div>
       <Card>

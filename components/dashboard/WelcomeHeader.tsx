@@ -1,18 +1,24 @@
 'use client';
 
 import { useAuthStore } from '@/store';
-import { formatDate } from '@/lib/utils';
+import { format } from 'date-fns';
+
+function greeting(hour: number) {
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
 
 export function WelcomeHeader() {
   const { user } = useAuthStore();
-  const currentDate = new Date();
+  const now = new Date();
 
   return (
     <div>
-      <h1 className="text-2xl font-bold sm:text-3xl">Dashboard</h1>
-      <p className="text-muted-foreground">
-        Welcome back, {user?.name?.split(' ')[0] || 'Admin'} — here&apos;s what&apos;s happening today, {formatDate(currentDate, 'MMMM dd, yyyy')}.
-      </p>
+      <p className="text-sm font-medium text-muted-foreground">{format(now, 'EEEE, MMMM d')}</p>
+      <h1 className="mt-0.5 text-2xl font-semibold tracking-tight sm:text-3xl">
+        {greeting(now.getHours())}, {user?.name?.split(' ')[0] || 'Admin'}
+      </h1>
     </div>
   );
 }

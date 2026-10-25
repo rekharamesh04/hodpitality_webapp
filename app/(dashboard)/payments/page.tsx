@@ -541,7 +541,7 @@ function PaymentsPageInner() {
       {/* ─── Header ─── */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold sm:text-3xl">Payments</h1>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Payments</h1>
           <p className="text-muted-foreground">Track revenue, manage refunds, and update payment statuses.</p>
         </div>
         <div className="flex flex-wrap gap-2">
