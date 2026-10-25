@@ -98,9 +98,9 @@ function NotificationsMenu() {
 
 /**
  * The bar above the page. Navigation lives in the sidebar; this carries where
- * the page sits in the workflow (with the next step one click away), the
- * notifications and the account menu. On phones, where the sidebar is a
- * drawer, it also holds the menu button, the logo and search.
+ * the page sits in the workflow (with the next step one click away) and the
+ * notifications. On phones, where the sidebar is a drawer, it also holds the
+ * menu button, the logo, search and the account menu.
  */
 export function AppHeader() {
   // The "mobile sidebar" store flag drives the phone navigation drawer.
@@ -123,8 +123,8 @@ export function AppHeader() {
             <Search className="h-[18px] w-[18px]" />
           </Button>
           <NotificationsMenu />
-          <div className="ml-1">
-            <UserMenu />
+          <div className="ml-1 lg:hidden">
+            <UserMenu variant="compact" />
           </div>
         </div>
       </div>

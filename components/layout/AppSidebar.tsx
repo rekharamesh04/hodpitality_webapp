@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Command, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { LogoMark } from '@/components/brand/LogoMark';
+import { UserMenu } from '@/components/layout/UserMenu';
 import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive, type NavItem, type NavSection } from '@/constants/navigation';
@@ -145,6 +146,9 @@ export function AppSidebar() {
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-4" aria-label="Main">
         <SidebarNav />
       </nav>
+      <div className="shrink-0 border-t border-sidebar-border p-2">
+        <UserMenu variant="sidebar" />
+      </div>
     </aside>
   );
 }
