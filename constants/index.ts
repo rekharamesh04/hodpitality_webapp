@@ -79,6 +79,8 @@ export const API_ENDPOINTS = {
     PASSWORD: '/settings/password',
     /** The standard visit fee checkout charges. */
     BILLING: '/settings/billing',
+    /** The organisation's timezone — what "today" means for its appointments and reports. */
+    TIMEZONE: '/settings/timezone',
   },
   INDUSTRIES: '/industries',
   RESELLERS: '/resellers',

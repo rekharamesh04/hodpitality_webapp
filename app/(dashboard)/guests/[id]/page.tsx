@@ -18,12 +18,13 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { GuestFormDialog } from '@/components/dialogs/GuestFormDialog';
 import { FaceEnrollDialog } from '@/components/faces/FaceEnrollDialog';
 import { PersonHistory } from '@/components/people/PersonHistory';
+import { FaceCheckInCard } from '@/components/faces/FaceCheckInCard';
 import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 import { PatientPrescriptionsCard } from '@/components/prescriptions/PatientPrescriptionsCard';
 import { PreferredPharmacyCard } from '@/components/pharmacy/PreferredPharmacyCard';
 
 import {
-  useGuest, useUpdateGuest, useDeleteGuest, useUnenrollFace,
+  useGuest, useUpdateGuest, useDeleteGuest, useUnenrollFace, useRecordFaceDeclined,
 } from '@/hooks/use-guests';
 import { useCheckIn } from '@/hooks/useCheckins';
 import { useAppointments } from '@/hooks/useAppointments';
@@ -48,6 +49,7 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
   const updateMutation = useUpdateGuest();
   const deleteMutation = useDeleteGuest();
   const unenrollFace = useUnenrollFace();
+  const recordDeclined = useRecordFaceDeclined();
   const checkIn = useCheckIn();
 
   const [editOpen, setEditOpen] = useState(false);
@@ -213,40 +215,17 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Face &amp; Account</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 rounded-lg border p-3">
-                  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full', hasFacePhoto ? 'bg-success/10' : 'bg-muted')}>
-                    <UserRoundCheck className={cn('h-4 w-4', hasFacePhoto ? 'text-success' : 'text-muted-foreground')} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{hasFacePhoto ? 'Face enrolled' : 'Not enrolled'}</p>
-                    <p className="text-xs text-muted-foreground">Facial recognition check-in</p>
-                  </div>
-                  <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-xs" onClick={() => setFaceOpen(true)}>
-                    {hasFacePhoto ? 'Retake' : 'Enroll'}
-                  </Button>
-                  {hasFacePhoto && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 shrink-0 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      loading={unenrollFace.isPending}
-                      onClick={() => unenrollFace.mutate(id)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  New email or phone? Use <span className="font-medium text-foreground">Edit</span> — the face and full
-                  history stay on this record. Don&apos;t register them again.
-                </p>
-              </CardContent>
-            </Card>
+            <FaceCheckInCard
+              enrolled={hasFacePhoto}
+              consent={guest.face_consent}
+              consentAt={guest.face_consent_at}
+              consentSource={guest.face_consent_source}
+              onEnroll={() => setFaceOpen(true)}
+              onRemove={() => unenrollFace.mutate(id)}
+              removing={unenrollFace.isPending}
+              onDecline={() => recordDeclined.mutate(id)}
+              declining={recordDeclined.isPending}
+            />
             {/* A hospital sends prescriptions to the patient's own pharmacy. */}
             {t.slug === 'healthcare' && <PreferredPharmacyCard guestId={resolvedId} guest={guest} />}
           </aside>

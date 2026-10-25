@@ -17,6 +17,8 @@ interface CameraCaptureDialogProps {
   description?: string;
   submitLabel?: string;
   isSubmitting?: boolean;
+  /** Holds the submit back until the form above is complete, e.g. a consent box ticked. */
+  submitDisabled?: boolean;
   /** Extra form fields (e.g. venue picker) rendered above the capture area. */
   children?: React.ReactNode;
   /** Called with a base64 data URL (image/jpeg) when the user confirms the capture. */
@@ -37,7 +39,7 @@ const MAX_UPLOAD_EDGE = 1600;
  * back to a plain file upload when camera permission is unavailable/denied.
  */
 export function CameraCaptureDialog({
-  open, onOpenChange, title, description, submitLabel = 'Submit', isSubmitting, children, onSubmit, glasses,
+  open, onOpenChange, title, description, submitLabel = 'Submit', isSubmitting, submitDisabled, children, onSubmit, glasses,
 }: CameraCaptureDialogProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -250,7 +252,7 @@ export function CameraCaptureDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={!captured || isSubmitting}>
+          <Button type="button" onClick={handleSubmit} disabled={!captured || isSubmitting || submitDisabled}>
             {isSubmitting ? 'Processing…' : submitLabel}
           </Button>
         </DialogFooter>

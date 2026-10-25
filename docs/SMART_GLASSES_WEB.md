@@ -57,7 +57,7 @@ consent, the match threshold and check-in rules all apply exactly as they do for
 - **No industry gate.** Glasses are a desk accessory for any industry.
 
 Endpoints: `POST /glasses-captures`, `GET /glasses-captures/next`, `GET /glasses-captures/{id}`,
-`POST /glasses-captures/{id}/claim|complete|fail|cancel`. They reach the Lambda through the
+`POST /glasses-captures/{id}/claim|complete|fail|cancel|received`. They reach the Lambda through the
 existing Cognito-authorised `{proxy+}` resource, so **no API Gateway change was needed**.
 
 ## 3. Using it
@@ -96,8 +96,9 @@ The phone deletes its copy of the photo as soon as it has uploaded it or given u
   property of the vendor SDK.
 - **The phone screen must stay open.** Polling stops in the background. A foreground service or
   push wake-up would lift this, and is the natural next step.
-- The phone's upload stays in the uploads prefix, like any abandoned upload. An S3 lifecycle rule
-  on `uploads/` would tidy these.
+- Once the portal has the photo it calls `POST /glasses-captures/{id}/received`, and the backend
+  deletes the phone's upload (a face is biometric data; the portal keeps only what it re-uploads
+  through its own flow). A capture the portal never fetches still leaves its upload behind.
 - The mobile `glasses-photo` screen still carries its own copy of the connect step.
   `components/GlassesConnectPanel.tsx` is that step as a component. Move the screen onto it the
   next time someone can test with a pair of glasses in hand.

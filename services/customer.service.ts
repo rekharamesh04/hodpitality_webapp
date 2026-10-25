@@ -25,6 +25,10 @@ export interface Customer {
   nextAppointment?: string;
   face_enrolled?: boolean;
   face_photo_url?: string;
+  /** The latest biometric consent decision; see `Guest.face_consent`. */
+  face_consent?: boolean;
+  face_consent_at?: string;
+  face_consent_source?: string;
   created_at?: string;
   createdAt?: string;
   [key: string]: unknown;
@@ -147,6 +151,20 @@ export const customerService = {
       const status = err?.response?.status;
       const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message;
       console.error('[CUSTOMER-FACE] Unenroll FAILED — status:', status, 'error:', msg);
+      throw err;
+    }
+  },
+
+  /**
+   * Records that this person declined face recognition. The backend answers a refusal with 403
+   * after writing the consent record, so that answer is the success case here; nothing is sent
+   * to Rekognition.
+   */
+  async recordFaceDeclined(id: string): Promise<void> {
+    try {
+      await api.post(`${API_ENDPOINTS.CUSTOMERS}/${id}/face`, { consent: false, consentMethod: 'declined_at_desk' });
+    } catch (err: any) {
+      if (err?.response?.status === 403) return;
       throw err;
     }
   },

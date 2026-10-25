@@ -75,6 +75,14 @@ export interface Guest {
   face_enrolled?: boolean;
   /** Backend-hosted URL of the enrolled face photo. */
   face_photo_url?: string;
+  /**
+   * The latest biometric consent decision, written by the backend on every enrolment, refusal and
+   * withdrawal. False with no face enrolled means they declined: check them in another way.
+   */
+  face_consent?: boolean;
+  face_consent_at?: string;
+  /** "explicit", "staff_attested", "refused" or "withdrawn". */
+  face_consent_source?: string;
   /** The pharmacy this patient's prescriptions are sent to by default (a hospital's patients). */
   preferredPharmacyTenantId?: string;
   preferredPharmacyName?: string;

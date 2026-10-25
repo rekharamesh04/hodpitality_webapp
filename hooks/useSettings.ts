@@ -58,3 +58,24 @@ export function useChangePassword() {
     onError:   (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Failed to change password")),
   });
 }
+
+export function useOrgTimezone(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.SETTINGS, "timezone"],
+    queryFn: settingsService.getTimezone,
+    enabled: options.enabled ?? true,
+    staleTime: 10 * 60_000,
+  });
+}
+
+export function useUpdateOrgTimezone() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (timezone: string) => settingsService.updateTimezone(timezone),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [...QUERY_KEYS.SETTINGS, "timezone"] });
+      popup.success("Timezone saved");
+    },
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Could not save the timezone")),
+  });
+}

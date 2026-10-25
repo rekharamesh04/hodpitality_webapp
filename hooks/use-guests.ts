@@ -131,12 +131,34 @@ export function useEnrollFace() {
   });
 }
 
+/** They said no to face recognition: record it, so the desk stops asking and uses another check-in. */
+export function useRecordFaceDeclined() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => guestService.recordFaceDeclined(id),
+    onSuccess: (_result, id) => {
+      const patch = { face_consent: false, face_consent_source: 'refused', face_consent_at: new Date().toISOString() };
+      qc.setQueryData(guestKeys.detail(id), (old: Guest | undefined) => (old ? { ...old, ...patch } : old));
+      qc.setQueriesData<PaginatedResponse<Guest>>({ queryKey: guestKeys.all }, (old) => {
+        if (!old?.data) return old;
+        return { ...old, data: old.data.map((p) => (resolveGuestId(p) === id ? { ...p, ...patch } : p)) };
+      });
+      popup.success('Recorded: no face check-in');
+    },
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not record that')),
+  });
+}
+
 export function useUnenrollFace() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (guestId: string) => guestService.unenrollFace(guestId),
     onSuccess: (_result, guestId) => {
-      const patch = { face_photo_url: undefined, avatar: undefined, face_enrolled: false };
+      const patch = {
+        face_photo_url: undefined, avatar: undefined, face_enrolled: false,
+        // The backend records a removal as a withdrawal of consent.
+        face_consent: false, face_consent_source: 'withdrawn', face_consent_at: new Date().toISOString(),
+      };
       qc.setQueryData(guestKeys.detail(guestId), (old: Guest | undefined) =>
         old ? { ...old, ...patch } : old
       );

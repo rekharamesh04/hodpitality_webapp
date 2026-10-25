@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Appointment, CheckIn } from '@/types';
-import { kioskDecision, kioskGreetingName, visitFee } from './kiosk';
+import { kioskDecision, kioskGreetingName, kioskPhoneMatch, visitFee } from './kiosk';
 
 const TODAY = '2026-10-13';
 const local = (hhmm: string, day = TODAY) => new Date(`${day}T${hhmm}:00`).toISOString();
@@ -79,5 +79,34 @@ describe('fees and names', () => {
     expect(kioskGreetingName('Asha Rao')).toBe('Asha');
     expect(kioskGreetingName('  ')).toBe('there');
     expect(kioskGreetingName(undefined)).toBe('there');
+  });
+});
+
+describe('checking in by phone number', () => {
+  const people = [
+    { id: 'p1', name: 'Asha Rao', phone: '+1 (512) 555-0134' },
+    { id: 'p2', name: 'Ben Ortiz', phone: '512-555-0199' },
+    { id: 'p3', name: 'Cara Ortiz', phone: '(512) 555 0199' },
+  ];
+
+  it('finds the one person with that number, however it was typed', () => {
+    expect(kioskPhoneMatch(people, '5125550134')?.id).toBe('p1');
+    expect(kioskPhoneMatch(people, '1-512-555-0134')?.id).toBe('p1');
+  });
+
+  it('does not match part of a number', () => {
+    expect(kioskPhoneMatch(people, '5550134')).toBeUndefined();
+  });
+
+  it('sends people who share a number to the desk rather than guessing', () => {
+    expect(kioskPhoneMatch(people, '5125550199')).toBeUndefined();
+  });
+
+  it('counts the same record found twice as one person', () => {
+    expect(kioskPhoneMatch([people[0], people[0]], '5125550134')?.id).toBe('p1');
+  });
+
+  it('ignores a number too short to identify anyone', () => {
+    expect(kioskPhoneMatch([{ id: 'x', phone: '12345' }], '12345')).toBeUndefined();
   });
 });

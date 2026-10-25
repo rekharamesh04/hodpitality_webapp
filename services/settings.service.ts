@@ -2,6 +2,12 @@ import api from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import type { User, Settings } from '@/types';
 
+/** True `isDefault` means never set: the backend then uses Asia/Kolkata. */
+export interface OrgTimezone {
+  timezone: string;
+  isDefault: boolean;
+}
+
 export const settingsService = {
   async getProfile(): Promise<User> {
     const { data } = await api.get<User>(API_ENDPOINTS.SETTINGS.PROFILE);
@@ -20,6 +26,16 @@ export const settingsService = {
 
   async updateNotificationPreferences(prefs: Partial<Settings['notifications']>): Promise<Settings['notifications']> {
     const { data } = await api.put<Settings['notifications']>(API_ENDPOINTS.SETTINGS.NOTIFICATIONS, prefs);
+    return data;
+  },
+
+  async getTimezone(): Promise<OrgTimezone> {
+    const { data } = await api.get<OrgTimezone>(API_ENDPOINTS.SETTINGS.TIMEZONE);
+    return data;
+  },
+
+  async updateTimezone(timezone: string): Promise<OrgTimezone> {
+    const { data } = await api.put<OrgTimezone>(API_ENDPOINTS.SETTINGS.TIMEZONE, { timezone });
     return data;
   },
 

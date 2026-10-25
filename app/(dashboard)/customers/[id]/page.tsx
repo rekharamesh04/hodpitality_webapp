@@ -18,11 +18,12 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog';
 import { FaceEnrollDialog } from '@/components/faces/FaceEnrollDialog';
 import { PersonHistory } from '@/components/people/PersonHistory';
+import { FaceCheckInCard } from '@/components/faces/FaceCheckInCard';
 import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 import { PatientPrescriptionsCard } from '@/components/prescriptions/PatientPrescriptionsCard';
 
 import {
-  useCustomer, useUpdateCustomer, useDeleteCustomer, useUnenrollCustomerFace,
+  useCustomer, useUpdateCustomer, useDeleteCustomer, useUnenrollCustomerFace, useRecordCustomerFaceDeclined,
 } from '@/hooks/useCustomers';
 import { cn, formatCurrency, formatDate, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { tierBadgeClass } from '@/constants';
@@ -44,6 +45,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   const updateMutation = useUpdateCustomer();
   const deleteMutation = useDeleteCustomer();
   const unenrollFace = useUnenrollCustomerFace();
+  const recordDeclined = useRecordCustomerFaceDeclined();
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -194,40 +196,17 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
           </Card>
 
           <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Face &amp; Account</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center gap-3 rounded-lg border p-3">
-                  <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-full', hasFacePhoto ? 'bg-success/10' : 'bg-muted')}>
-                    <UserRoundCheck className={cn('h-4 w-4', hasFacePhoto ? 'text-success' : 'text-muted-foreground')} />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{hasFacePhoto ? 'Face enrolled' : 'Not enrolled'}</p>
-                    <p className="text-xs text-muted-foreground">Facial recognition check-in</p>
-                  </div>
-                  <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-xs" onClick={() => setFaceOpen(true)}>
-                    {hasFacePhoto ? 'Retake' : 'Enroll'}
-                  </Button>
-                  {hasFacePhoto && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 shrink-0 px-2 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      loading={unenrollFace.isPending}
-                      onClick={() => unenrollFace.mutate(id)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  New email or phone? Use <span className="font-medium text-foreground">Edit</span> — the face and full
-                  history stay on this record. Don&apos;t register them again.
-                </p>
-              </CardContent>
-            </Card>
+            <FaceCheckInCard
+              enrolled={hasFacePhoto}
+              consent={customer.face_consent}
+              consentAt={customer.face_consent_at}
+              consentSource={customer.face_consent_source}
+              onEnroll={() => setFaceOpen(true)}
+              onRemove={() => unenrollFace.mutate(id)}
+              removing={unenrollFace.isPending}
+              onDecline={() => recordDeclined.mutate(id)}
+              declining={recordDeclined.isPending}
+            />
 
             {customer.allergyNotes && (
               <Card className="border-destructive/30 bg-destructive/5">

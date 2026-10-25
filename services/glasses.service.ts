@@ -16,7 +16,7 @@ import { API_ENDPOINTS } from '@/constants';
 
 export type GlassesCapturePurpose = 'enroll' | 'identify';
 
-export type GlassesCaptureStatus = 'pending' | 'capturing' | 'captured' | 'failed' | 'cancelled' | 'expired';
+export type GlassesCaptureStatus = 'pending' | 'capturing' | 'captured' | 'received' | 'failed' | 'cancelled' | 'expired';
 
 export interface GlassesCapture {
   id: string;
@@ -75,6 +75,14 @@ export const glassesService = {
   /** Stop waiting. A 409 means it had already finished, which is fine. */
   async cancel(id: string): Promise<void> {
     await api.post(`${API_ENDPOINTS.GLASSES_CAPTURES}/${id}/cancel`).catch(() => undefined);
+  },
+
+  /**
+   * We have the photo: the backend deletes the phone's upload, since a face is biometric data and
+   * whatever the portal keeps goes through its own upload. Best effort — a miss only leaves a file.
+   */
+  async received(id: string): Promise<void> {
+    await api.post(`${API_ENDPOINTS.GLASSES_CAPTURES}/${id}/received`).catch(() => undefined);
   },
 
   /**

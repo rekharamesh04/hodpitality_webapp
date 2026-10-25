@@ -15,6 +15,7 @@ import { useAuthStore } from '@/store';
 import { canManageStaff, roleLabel } from '@/constants/roles';
 import { useTerminology } from '@/hooks';
 import { BillingSettingsCard } from '@/components/settings/BillingSettingsCard';
+import { TimezoneSettingsCard } from '@/components/settings/TimezoneSettingsCard';
 import {
   useSettingsProfile,
   useUpdateProfile,
@@ -30,6 +31,12 @@ export default function SettingsPage() {
   const setUser = useAuthStore((s) => s.setUser);
   // Organisation settings belong to the whole hospital — admins only (the backend enforces this too).
   const canEditOrg = canManageStaff(user?.role);
+  // ?tab=organization opens a tab directly (the dashboard's timezone reminder links there).
+  const [tab, setTab] = useState('general');
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get('tab');
+    if (wanted && (wanted !== 'organization' || canEditOrg)) setTab(wanted);
+  }, [canEditOrg]);
 
   // ── Profile ──────────────────────────────────────────────────────────────
   const profileQuery = useSettingsProfile();
@@ -121,7 +128,7 @@ export default function SettingsPage() {
         {user?.role && <Badge variant="outline">{roleLabel(user.role, industry)}</Badge>}
       </div>
 
-      <Tabs defaultValue="general" className="space-y-6">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-6">
         <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="general"><Settings className="mr-1.5 h-3.5 w-3.5" />General</TabsTrigger>
           {canEditOrg && <TabsTrigger value="organization"><Building2 className="mr-1.5 h-3.5 w-3.5" />Organization</TabsTrigger>}
@@ -236,6 +243,7 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+          <TimezoneSettingsCard />
           <BillingSettingsCard />
         </TabsContent>
 

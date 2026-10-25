@@ -26,6 +26,7 @@ import { getVisibleNavSections, isNavItemActive, type NavItem, type NavSection }
 import { useIndustry } from '@/hooks';
 import { cn, getInitials, getRelativeTime } from '@/lib/utils';
 import { authService } from '@/services/auth.service';
+import { clearKioskPin } from '@/lib/kiosk-lock';
 
 /** Icon button styled for the dark navigation bar. */
 const navIconButton =
@@ -168,6 +169,7 @@ export function AppHeader() {
     // Best-effort — invalidate the session server-side too, but a failure here (e.g. the
     // access token already expired) must never block clearing the local session.
     await authService.logout().catch(() => {});
+    clearKioskPin();
     logout();
     qc.clear();
     router.push('/login');

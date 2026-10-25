@@ -16,6 +16,7 @@ import { RecentPayments } from '@/components/dashboard/RecentPayments';
 import { HospitalityOverview } from '@/components/dashboard/HospitalityOverview';
 import { NotificationsPanel } from '@/components/dashboard/NotificationsPanel';
 import { WorkflowGuide } from '@/components/workflow/WorkflowGuide';
+import { TimezoneNudge } from '@/components/settings/TimezoneNudge';
 import { getWorkflow } from '@/constants/workflow';
 import { useTerminology } from '@/hooks';
 import { useDashboardStats, useDashboardActivity } from '@/hooks/useReports';
@@ -46,6 +47,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      <TimezoneNudge />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <WelcomeHeader />
         {/* The two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}

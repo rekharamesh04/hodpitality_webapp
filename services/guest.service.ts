@@ -162,4 +162,18 @@ export const guestService = {
       throw err;
     }
   },
+
+  /**
+   * Records that this person declined face recognition. The backend answers a refusal with 403
+   * after writing the consent record, so that answer is the success case here; nothing is sent
+   * to Rekognition.
+   */
+  async recordFaceDeclined(id: string): Promise<void> {
+    try {
+      await api.post(`${API_ENDPOINTS.GUESTS}/${id}/face`, { consent: false, consentMethod: 'declined_at_desk' });
+    } catch (err: any) {
+      if (err?.response?.status === 403) return;
+      throw err;
+    }
+  },
 };

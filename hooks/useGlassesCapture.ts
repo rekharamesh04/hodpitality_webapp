@@ -62,6 +62,7 @@ export function useGlassesCapture(onPhoto: (dataUrl: string) => void) {
       } else if (capture.status === 'captured' && capture.photoUrl) {
         setState({ phase: 'fetching', message: 'Getting the photo…' });
         const dataUrl = await glassesService.photoAsDataUrl(capture.photoUrl);
+        void glassesService.received(id);
         if (activeId.current !== id) return;
         activeId.current = null;
         setState(IDLE);

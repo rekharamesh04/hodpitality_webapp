@@ -2,18 +2,24 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, CreditCard, Landmark, Loader2, LogIn, LogOut, ScanFace, ShieldOff, UserX } from 'lucide-react';
+import { CheckCircle2, CreditCard, Delete, KeyRound, Landmark, Loader2, LogIn, LogOut, ScanFace, ShieldCheck, ShieldOff, Smartphone, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { EmptyState } from '@/components/common/EmptyState';
 import { KioskCamera } from '@/components/kiosk/KioskCamera';
+import { LogoMark } from '@/components/brand/LogoMark';
 import { useTerminology } from '@/hooks';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuthStore } from '@/store';
+import { authService } from '@/services/auth.service';
+import { KIOSK_PIN_MAX, KIOSK_PIN_MIN, clearKioskPin, isValidKioskPin, kioskPinMatches, readKioskPinHash, saveKioskPin } from '@/lib/kiosk-lock';
 import { useBillingSettings } from '@/hooks/usePharmacies';
 import { appointmentService } from '@/services/appointment.service';
 import { checkInService } from '@/services/checkin.service';
-import { kioskDecision, kioskGreetingName, type KioskCharge } from '@/constants/kiosk';
+import { guestService } from '@/services/guest.service';
+import { customerService } from '@/services/customer.service';
+import { KIOSK_PHONE_MIN_DIGITS, kioskDecision, kioskGreetingName, kioskPhoneMatch, phoneDigits, type KioskCharge } from '@/constants/kiosk';
 import { assignTokens, opdStageOf } from '@/constants/opd';
-import { formatCurrency, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
+import { cn, formatCurrency, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { Appointment } from '@/types';
 
 /**
@@ -27,18 +33,30 @@ import type { Appointment } from '@/types';
  * OPD queue. The fee is the visit's own, else the organisation's standard visit fee; insurance is
  * not calculated. Only a first name ever appears — this screen faces the waiting room.
  *
+ * Face check-in is optional. Biometric laws (Texas CUBI, Illinois BIPA, India's DPDP) need consent
+ * before a face is captured, and some people say no — so the welcome screen offers a phone number
+ * as an equal way in, and the camera screen says what scanning means before anything is taken.
+ * Both ways lead to the same decision and the same visit.
+ *
+ * Leaving kiosk mode needs the exit PIN staff set on this device the first time (lib/kiosk-lock.ts):
+ * the session behind this screen is a staff member's, and the portal holds every patient's record.
+ *
  * Payment: there is no card-terminal integration yet. "Pay by card" records the fee as paid by
  * card (the person pays on the clinic's existing terminal); a gateway plugs in at `payByCard`.
  */
 
 type Screen =
+  | { name: 'setup'; digits: string; first?: string; error?: string }
+  | { name: 'exit'; digits: string; error?: string }
   | { name: 'idle' }
   | { name: 'camera' }
+  | { name: 'phone'; digits: string }
   | { name: 'working'; message: string }
   | { name: 'checked_in'; first: string; doctor?: string; token?: number; already?: boolean }
   | { name: 'checkout'; first: string; guestId: string; charges: KioskCharge[]; total: number }
   | { name: 'done'; first: string; title: string; detail?: string }
   | { name: 'not_recognised' }
+  | { name: 'phone_not_found' }
   | { name: 'error'; message: string };
 
 /** How long a result stays up before the kiosk is ready for the next person. */
@@ -50,9 +68,16 @@ export default function KioskPage() {
   const t = useTerminology();
   const router = useRouter();
   const { data: billing } = useBillingSettings();
+  const qc = useQueryClient();
+  const tenant = useAuthStore((s) => s.user?.tenant_id ?? '');
+  const logout = useAuthStore((s) => s.logout);
   const [screen, setScreen] = useState<Screen>({ name: 'idle' });
-  const [exitOpen, setExitOpen] = useState(false);
   const busy = useRef(false);
+
+  // First time on this device: staff choose the exit PIN before the kiosk faces the public.
+  useEffect(() => {
+    if (tenant && !readKioskPinHash(tenant)) setScreen({ name: 'setup', digits: '' });
+  }, [tenant]);
 
   const standardFee = billing?.standardVisitFee ?? 100;
   const currency = billing?.currency ?? 'USD';
@@ -61,8 +86,8 @@ export default function KioskPage() {
 
   // Results clear themselves; an abandoned camera closes.
   useEffect(() => {
-    const terminal = ['checked_in', 'done', 'not_recognised', 'error'].includes(screen.name);
-    const ms = terminal ? RESULT_MS : screen.name === 'camera' || screen.name === 'checkout' ? CAMERA_IDLE_MS : 0;
+    const terminal = ['checked_in', 'done', 'not_recognised', 'phone_not_found', 'error'].includes(screen.name);
+    const ms = terminal ? RESULT_MS : ['camera', 'phone', 'checkout', 'exit'].includes(screen.name) ? CAMERA_IDLE_MS : 0;
     if (!ms) return;
     const timer = setTimeout(reset, ms);
     return () => clearTimeout(timer);
@@ -79,22 +104,49 @@ export default function KioskPage() {
     if (busy.current) return;
     busy.current = true;
     setScreen({ name: 'working', message: 'Finding you…' });
+    let match;
     try {
-      let match;
-      try {
-        match = await checkInService.findByFace(image);
-      } catch (err: any) {
-        if (err?.response?.status === 404 || err?.response?.status === 400) {
-          busy.current = false;
-          setScreen({ name: 'not_recognised' });
-          return;
-        }
-        throw err;
-      }
-      const best = match.matches[0];
-      const guestId = best?.id ?? match.guestId;
-      if (!guestId) { busy.current = false; setScreen({ name: 'not_recognised' }); return; }
-      const first = kioskGreetingName(best?.name ?? match.guestName);
+      match = await checkInService.findByFace(image);
+    } catch (err: any) {
+      busy.current = false;
+      if (err?.response?.status === 404 || err?.response?.status === 400) setScreen({ name: 'not_recognised' });
+      else setScreen({ name: 'error', message: getFriendlyErrorMessage(err, 'Something went wrong. Please see the reception desk.') });
+      return;
+    }
+    const best = match.matches[0];
+    const guestId = best?.id ?? match.guestId;
+    if (!guestId) { busy.current = false; setScreen({ name: 'not_recognised' }); return; }
+    await proceed(guestId, best?.name ?? match.guestName, 'Face (kiosk)');
+  }
+
+  /**
+   * The way in without a face: the phone number on their record. The search matches part of a
+   * number, as typed on the record ("(512) 555-0134"), so it is asked for the last four digits and
+   * the full number is then compared exactly.
+   */
+  async function handlePhone(entered: string) {
+    if (busy.current) return;
+    busy.current = true;
+    setScreen({ name: 'working', message: 'Finding you…' });
+    try {
+      const search = phoneDigits(entered).slice(-4);
+      const [guests, customers] = await Promise.all([
+        guestService.getGuests({ search, limit: 200 }).then((r) => r.data ?? []).catch(() => []),
+        customerService.getCustomers({ search, limit: 200 }).then((r) => r.data ?? []).catch(() => []),
+      ]);
+      const person = kioskPhoneMatch([...guests, ...customers], entered);
+      if (!person) { busy.current = false; setScreen({ name: 'phone_not_found' }); return; }
+      await proceed(person.id, person.name, 'Phone (kiosk)');
+    } catch (err) {
+      busy.current = false;
+      setScreen({ name: 'error', message: getFriendlyErrorMessage(err, 'Something went wrong. Please see the reception desk.') });
+    }
+  }
+
+  /** Found them, by face or by phone: check in, say they are waiting, or start checkout. */
+  async function proceed(guestId: string, name: string | undefined, method: string) {
+    try {
+      const first = kioskGreetingName(name);
       const today = toLocalDateInput();
 
       const [appointments, checkIns] = await Promise.all([
@@ -105,7 +157,7 @@ export default function KioskPage() {
 
       if (decision.kind === 'check_in') {
         setScreen({ name: 'working', message: 'Checking you in…' });
-        await checkInService.checkIn({ guestId, method: 'Face (kiosk)', venue: 'Reception kiosk' });
+        await checkInService.checkIn({ guestId, method, venue: 'Reception kiosk' });
         // The check-in marks their next booking today as arrived; read it back for the token.
         const after = await appointmentService.getAppointments({ guestId, date: today });
         const arrived = after.find((a) => opdStageOf(a) === 'waiting');
@@ -149,6 +201,28 @@ export default function KioskPage() {
     }
   }
 
+  async function setupPin(s: Extract<Screen, { name: 'setup' }>) {
+    if (!isValidKioskPin(s.digits)) return;
+    if (!s.first) { setScreen({ name: 'setup', digits: '', first: s.digits }); return; }
+    if (s.first !== s.digits) { setScreen({ name: 'setup', digits: '', error: 'The PINs did not match. Choose one again.' }); return; }
+    await saveKioskPin(tenant, s.digits);
+    setScreen({ name: 'idle' });
+  }
+
+  async function tryExit(digits: string) {
+    if (await kioskPinMatches(tenant, digits)) { router.push('/opd'); return; }
+    setScreen({ name: 'exit', digits: '', error: 'That PIN is not right.' });
+  }
+
+  /** Forgot the PIN: sign out. Whoever signs in next sets a new one; nothing is unlocked. */
+  async function signOut() {
+    clearKioskPin();
+    await authService.logout().catch(() => {});
+    logout();
+    qc.clear();
+    router.push('/login');
+  }
+
   /** Records each fee as paid by card. Where a payment gateway plugs in, when there is one. */
   async function payByCard(charges: KioskCharge[]) {
     for (const c of charges) {
@@ -174,31 +248,115 @@ export default function KioskPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center px-6 py-10 text-center">
-      <button
-        type="button"
-        onClick={() => setExitOpen(true)}
-        className="absolute right-4 top-4 rounded px-2 py-1 text-xs text-muted-foreground/60 hover:text-muted-foreground"
-      >
-        Staff
-      </button>
+      {screen.name !== 'setup' && screen.name !== 'exit' && (
+        <button
+          type="button"
+          onClick={() => setScreen({ name: 'exit', digits: '' })}
+          className="absolute right-4 top-4 rounded px-2 py-1 text-xs text-muted-foreground/60 hover:text-muted-foreground"
+        >
+          Staff
+        </button>
+      )}
 
-      {screen.name === 'idle' && (
-        <div className="flex max-w-xl flex-col items-center gap-8">
-          <div className="flex h-28 w-28 items-center justify-center rounded-full bg-primary/10">
-            <ScanFace className="h-14 w-14 text-primary" aria-hidden="true" />
-          </div>
-          <div>
-            <h1 className="text-4xl font-bold sm:text-5xl">Welcome</h1>
-            <p className="mt-3 text-xl text-muted-foreground">Arriving or leaving? Scan your face to check in or check out.</p>
-          </div>
-          <Button size="lg" className="h-20 w-full max-w-md text-2xl" onClick={() => setScreen({ name: 'camera' })}>
-            Start
+      {screen.name === 'setup' && (
+        <Keypad
+          icon={KeyRound}
+          title={screen.first ? 'Enter the PIN again' : 'Set the kiosk exit PIN'}
+          subtitle={screen.error ?? `${KIOSK_PIN_MIN}–${KIOSK_PIN_MAX} digits. Staff need it to leave kiosk mode, so patients cannot reach the portal. For a locked-down iPad, also turn on Guided Access.`}
+          error={!!screen.error}
+          digits={screen.digits}
+          masked
+          maxDigits={KIOSK_PIN_MAX}
+          ready={isValidKioskPin(screen.digits)}
+          submitLabel={screen.first ? 'Save PIN' : 'Next'}
+          onChange={(digits) => setScreen({ ...screen, digits })}
+          onSubmit={() => setupPin(screen)}
+          onCancel={() => router.push('/opd')}
+          cancelLabel="Back to the portal"
+        />
+      )}
+
+      {screen.name === 'exit' && (
+        <div className="flex w-full flex-col items-center gap-2">
+          <Keypad
+            icon={KeyRound}
+            title="Staff PIN"
+            subtitle={screen.error ?? 'Enter the kiosk exit PIN to return to the staff portal.'}
+            error={!!screen.error}
+            digits={screen.digits}
+            masked
+            maxDigits={KIOSK_PIN_MAX}
+            ready={isValidKioskPin(screen.digits)}
+            submitLabel="Leave kiosk"
+            onChange={(digits) => setScreen({ name: 'exit', digits })}
+            onSubmit={() => tryExit(screen.digits)}
+            onCancel={reset}
+          />
+          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={signOut}>
+            Forgot the PIN? Sign out
           </Button>
-          <p className="text-sm text-muted-foreground">First visit, or no photo on file? Please see the reception desk.</p>
         </div>
       )}
 
-      {screen.name === 'camera' && <KioskCamera onCapture={handleCapture} onCancel={reset} />}
+      {screen.name === 'idle' && (
+        <div className="flex w-full max-w-3xl flex-col items-center gap-10">
+          <LogoMark className="h-14 w-14" title="EntryFlow" />
+          <div>
+            <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">Welcome</h1>
+            <p className="mt-3 text-xl text-muted-foreground">Arriving or leaving? Check in or out here.</p>
+          </div>
+          <div className="grid w-full gap-4 sm:grid-cols-2">
+            <ChoiceCard
+              icon={ScanFace}
+              title="Scan my face"
+              detail="If you set up face check-in at the desk"
+              primary
+              onClick={() => setScreen({ name: 'camera' })}
+            />
+            <ChoiceCard
+              icon={Smartphone}
+              title="Use my phone number"
+              detail="No camera needed"
+              onClick={() => setScreen({ name: 'phone', digits: '' })}
+            />
+          </div>
+          <p className="flex items-start gap-2 text-left text-base text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+            <span>Face check-in is optional and only for people who agreed to it. Your phone number works just the same.</span>
+          </p>
+          <p className="text-sm text-muted-foreground">First visit? Please see the reception desk.</p>
+        </div>
+      )}
+
+      {screen.name === 'camera' && (
+        <div className="flex w-full max-w-xl flex-col items-center gap-4">
+          {/* Notice before capture: nothing is taken until they press the button. */}
+          <p className="rounded-2xl bg-primary/5 px-5 py-3 text-base text-foreground">
+            Pressing <span className="font-semibold">Scan my face</span> compares your face with the photo you agreed to
+            at registration.
+          </p>
+          <KioskCamera onCapture={handleCapture} onCancel={reset} />
+          <Button variant="link" className="text-lg" onClick={() => setScreen({ name: 'phone', digits: '' })}>
+            <Smartphone className="mr-2 h-5 w-5" /> Use my phone number instead
+          </Button>
+        </div>
+      )}
+
+      {screen.name === 'phone' && (
+        <Keypad
+          icon={Smartphone}
+          title="Your phone number"
+          subtitle="The number the clinic has on file for you."
+          placeholder="Tap the numbers"
+          digits={screen.digits}
+          maxDigits={15}
+          ready={phoneDigits(screen.digits).length >= KIOSK_PHONE_MIN_DIGITS}
+          submitLabel="Continue"
+          onChange={(digits) => setScreen({ name: 'phone', digits })}
+          onSubmit={() => handlePhone(screen.digits)}
+          onCancel={reset}
+        />
+      )}
 
       {screen.name === 'working' && (
         <div className="flex flex-col items-center gap-6" role="status" aria-live="polite">
@@ -275,8 +433,20 @@ export default function KioskPage() {
 
       {screen.name === 'not_recognised' && (
         <Result icon={UserX} tone="warn" title={'We couldn\u2019t find you'} onDone={reset}>
-          <p className="text-xl text-muted-foreground">Try again with your face in the oval, or please see the reception desk.</p>
-          <Button size="lg" className="h-14 px-10 text-lg" onClick={() => setScreen({ name: 'camera' })}>Try again</Button>
+          <p className="text-xl text-muted-foreground">Try again with your face in the oval, use your phone number, or please see the reception desk.</p>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" className="h-14 px-10 text-lg" onClick={() => setScreen({ name: 'camera' })}>Try again</Button>
+            <Button size="lg" variant="secondary" className="h-14 px-10 text-lg" onClick={() => setScreen({ name: 'phone', digits: '' })}>
+              <Smartphone className="mr-2 h-5 w-5" /> Use my phone number
+            </Button>
+          </div>
+        </Result>
+      )}
+
+      {screen.name === 'phone_not_found' && (
+        <Result icon={UserX} tone="warn" title={'We couldn\u2019t find that number'} onDone={reset}>
+          <p className="text-xl text-muted-foreground">Check the number and try again, or please see the reception desk.</p>
+          <Button size="lg" className="h-14 px-10 text-lg" onClick={() => setScreen({ name: 'phone', digits: '' })}>Try again</Button>
         </Result>
       )}
 
@@ -286,14 +456,6 @@ export default function KioskPage() {
         </Result>
       )}
 
-      <ConfirmDialog
-        open={exitOpen}
-        onOpenChange={setExitOpen}
-        title="Leave kiosk mode?"
-        description="Returns this device to the staff portal."
-        confirmLabel="Leave kiosk"
-        onConfirm={() => router.push('/opd')}
-      />
     </div>
   );
 }
@@ -314,6 +476,94 @@ function Result({
       <h1 className="text-4xl font-bold">{title}</h1>
       {children}
       <Button variant="outline" size="lg" className="h-14 px-10 text-lg" onClick={onDone}>Done</Button>
+    </div>
+  );
+}
+
+function ChoiceCard({
+  icon: Icon, title, detail, primary, onClick,
+}: {
+  icon: typeof ScanFace;
+  title: string;
+  detail: string;
+  primary?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        'flex min-h-48 flex-col items-center justify-center gap-4 rounded-3xl border-2 p-8 transition-colors focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/40',
+        primary
+          ? 'border-primary bg-primary text-primary-foreground shadow-[var(--shadow-primary)] hover:bg-primary/90'
+          : 'border-border bg-card hover:border-primary/50 hover:bg-primary/5',
+      )}
+    >
+      <Icon className={cn('h-14 w-14', primary ? 'text-primary-foreground' : 'text-primary')} aria-hidden="true" />
+      <span className="text-2xl font-semibold">{title}</span>
+      <span className={cn('text-base', primary ? 'text-primary-foreground/80' : 'text-muted-foreground')}>{detail}</span>
+    </button>
+  );
+}
+
+/** A big on-screen keypad: an iPad's own keyboard covers half the screen and offers letters. */
+function Keypad({
+  icon: Icon, title, subtitle, error, placeholder, digits, masked, maxDigits, ready, submitLabel, onChange, onSubmit, onCancel, cancelLabel = 'Cancel',
+}: {
+  icon: typeof Smartphone;
+  title: string;
+  subtitle: string;
+  /** Shows the subtitle as a problem to fix. */
+  error?: boolean;
+  placeholder?: string;
+  digits: string;
+  /** Dots instead of digits — for a PIN, on a screen the waiting room can see. */
+  masked?: boolean;
+  maxDigits: number;
+  ready: boolean;
+  submitLabel: string;
+  onChange: (digits: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+  cancelLabel?: string;
+}) {
+  const press = (d: string) => digits.length < maxDigits && onChange(digits + d);
+  const key = 'flex h-16 items-center justify-center rounded-2xl border bg-card text-3xl font-semibold tabular-nums transition-colors hover:bg-muted active:bg-primary/10';
+
+  return (
+    <div className="flex w-full max-w-md flex-col items-center gap-5">
+      <Icon className="h-12 w-12 text-primary" aria-hidden="true" />
+      <div>
+        <h1 className="text-4xl font-bold tracking-tight">{title}</h1>
+        <p className={cn('mt-2 text-lg', error ? 'font-medium text-destructive' : 'text-muted-foreground')} role={error ? 'alert' : undefined}>
+          {subtitle}
+        </p>
+      </div>
+      <output
+        aria-live="polite"
+        className="flex h-20 w-full items-center justify-center rounded-2xl border-2 border-primary/40 bg-card px-4 text-4xl font-semibold tabular-nums tracking-wider"
+      >
+        {digits
+          ? masked ? '•'.repeat(digits.length) : digits
+          : <span className="text-2xl font-normal tracking-normal text-muted-foreground">{placeholder ?? ' '}</span>}
+      </output>
+      <div className="grid w-full grid-cols-3 gap-3">
+        {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((d) => (
+          <button key={d} type="button" className={key} onClick={() => press(d)}>{d}</button>
+        ))}
+        <button type="button" className={cn(key, 'text-lg font-medium text-muted-foreground')} onClick={() => onChange('')}>
+          Clear
+        </button>
+        <button type="button" className={key} onClick={() => press('0')}>0</button>
+        <button type="button" className={key} aria-label="Delete last digit" onClick={() => onChange(digits.slice(0, -1))}>
+          <Delete className="h-8 w-8" aria-hidden="true" />
+        </button>
+      </div>
+      <Button size="lg" className="h-16 w-full text-xl" disabled={!ready} onClick={onSubmit}>
+        {submitLabel}
+      </Button>
+      <Button variant="link" className="text-lg" onClick={onCancel}>{cancelLabel}</Button>
     </div>
   );
 }

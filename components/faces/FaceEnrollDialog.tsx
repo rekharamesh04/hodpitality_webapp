@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { DuplicateFaceDialog } from '@/components/faces/DuplicateFaceDialog';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { useEnrollFace } from '@/hooks/use-guests';
 import { useEnrollCustomerFace } from '@/hooks/useCustomers';
 import { getDuplicateFaceConflict } from '@/lib/utils';
@@ -25,12 +27,18 @@ interface FaceEnrollDialogProps {
 /**
  * Capture and enrol a person's face. If the face already belongs to someone else here, shows
  * that record instead (and, for a company admin, an "enrol anyway" for twins or a false match).
+ *
+ * Nothing is enrolled until staff confirm the person agreed: biometric laws (Texas CUBI, Illinois
+ * BIPA, India's DPDP) need consent first, and the backend stores the tick as explicit consent.
  */
 export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, description, personName }: FaceEnrollDialogProps) {
   const enrollGuest = useEnrollFace();
   const enrollCustomer = useEnrollCustomerFace();
   const [conflict, setConflict] = useState<DuplicateFaceConflict | null>(null);
   const [pendingImage, setPendingImage] = useState<string | null>(null);
+  const [consent, setConsent] = useState(false);
+  // Asked afresh for every enrolment.
+  useEffect(() => { if (open) setConsent(false); }, [open]);
   const isPending = enrollGuest.isPending || enrollCustomer.isPending;
 
   function reset() {
@@ -38,8 +46,9 @@ export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, 
     setPendingImage(null);
   }
 
-  function enroll(image: string, options?: FaceEnrollOptions) {
-    if (!personId) return;
+  function enroll(image: string, options: FaceEnrollOptions = {}) {
+    if (!personId || !consent) return;
+    options = { ...options, consent: true };
     const callbacks = {
       onSuccess: (result: { success?: boolean } | undefined) => {
         if (result?.success === false) return;
@@ -70,9 +79,18 @@ export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, 
         description={description}
         submitLabel="Enroll"
         isSubmitting={isPending}
+        submitDisabled={!consent}
         onSubmit={(image) => enroll(image)}
         glasses={{ purpose: 'enroll', subjectLabel: personName }}
-      />
+      >
+        <div className="flex items-start gap-2 rounded-lg border bg-muted/40 p-3">
+          <Checkbox id="enroll-consent" checked={consent} onCheckedChange={(v) => setConsent(v === true)} className="mt-0.5" />
+          <Label htmlFor="enroll-consent" className="text-xs font-normal leading-snug">
+            {personName ? `${personName} agreed` : 'They agreed'} to their face being used for check-in. If they said no,
+            close this — they can check in with their phone number instead.
+          </Label>
+        </div>
+      </CameraCaptureDialog>
       <DuplicateFaceDialog
         conflict={conflict}
         onOpenChange={(v) => !v && reset()}

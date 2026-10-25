@@ -82,3 +82,26 @@ export function kioskDecision({
 export function kioskGreetingName(fullName?: string): string {
   return (fullName ?? '').trim().split(/\s+/)[0] || 'there';
 }
+
+/** The digits of a phone number, with a leading country code dropped so "+1 (512) 555-0134" and "5125550134" agree. */
+export function phoneDigits(phone?: string): string {
+  const digits = (phone ?? '').replace(/\D/g, '');
+  return digits.length > 10 ? digits.slice(-10) : digits;
+}
+
+/** Fewer digits than this could belong to many people, so the kiosk does not try. */
+export const KIOSK_PHONE_MIN_DIGITS = 7;
+
+/**
+ * The kiosk's way in for someone who does not use face check-in: their phone number.
+ *
+ * The number must match one record exactly. The search behind it matches any part of a number,
+ * so a partial number would find strangers; and two people sharing a number (a parent and child)
+ * cannot be told apart on a public screen. Both are sent to the desk instead of guessing.
+ */
+export function kioskPhoneMatch<T extends { id: string; phone?: string }>(people: readonly T[], entered: string): T | undefined {
+  const want = phoneDigits(entered);
+  if (want.length < KIOSK_PHONE_MIN_DIGITS) return undefined;
+  const byId = new Map(people.filter((p) => phoneDigits(p.phone) === want).map((p) => [p.id, p]));
+  return byId.size === 1 ? [...byId.values()][0] : undefined;
+}

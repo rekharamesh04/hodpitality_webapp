@@ -243,18 +243,35 @@ providers; a CVS on the ground floor is not the hospital's. So:
 - Only a typed, active prescription can be sent, once, and only to a live pharmacy.
 
 **Reception kiosk** (`/kiosk`, menu *Reception Kiosk*). An iPad at the entrance, signed in by
-staff, full screen with no portal menus. The patient taps *Start* and scans their face, and the
-kiosk decides from today's records:
+staff, full screen with no portal menus. The patient chooses **Scan my face** or **Use my phone
+number** — two equal choices, because face check-in needs consent (Texas CUBI, Illinois BIPA,
+India's DPDP) and some people say no. The camera screen states what scanning does before anything
+is captured. The phone number must match exactly one record; anything else goes to the desk. Either
+way the kiosk decides from today's records:
 
 | Their situation | The kiosk |
 |---|---|
 | Not checked in | Checks them in, then shows the doctor and **token** |
 | Checked in, waiting or with the doctor | "You're already checked in" |
 | Consultation finished | **Checkout**: the fee, then *Pay by card* / *Pay at the reception desk*; checks them out |
-| Face not recognised | "Please see the reception desk" |
+| Face not recognised | Try again, use the phone number, or see the desk |
+| Phone number not found, or shared by two records | "Please see the reception desk" |
 
-Only the first name appears on screen. Results clear after 12 s. *Staff* (top right) leaves kiosk
-mode. Lock the iPad to the browser with iOS **Guided Access**.
+Only the first name appears on screen. Results clear after 12 s. The first time kiosk mode opens on
+a device, staff set a 4–6 digit **exit PIN** (stored hashed on the device, per organisation);
+*Staff* (top right) asks for it before returning to the portal, so a patient cannot reach anyone's
+records. A forgotten PIN means *Sign out*; signing out anywhere clears it. Also lock the iPad to the
+browser with iOS **Guided Access**.
+
+**Patients who decline face recognition.** The profile's *Check-in method* card records it
+(*They declined* → `consent: false`, which the backend stores as a refusal and never sends to
+Rekognition). They check in with their phone number at the kiosk or by name at the desk; the queue,
+token and checkout are identical. Enrolling a face asks staff to tick that the patient agreed.
+Kiosk and desk scan photos are deleted from S3 as soon as they are matched.
+
+**Timezone.** Settings → Organization → *Timezone* decides which day a visit belongs to. Never set
+means India time, so a clinic elsewhere must set it; the dashboard reminds administrators whose
+device is in a different zone.
 
 **Checkout fee.** The visit's own fee when one was set (a booked consultation, a co-pay), otherwise
 the organisation's **standard visit fee** (Settings → Organization → *Checkout & billing*,
