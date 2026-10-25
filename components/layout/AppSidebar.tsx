@@ -50,19 +50,28 @@ interface NavGroup { label?: string; items: NavItem[]; flow?: boolean }
 /**
  * Sections as the sidebar lists them. The workflow steps get a group of their
  * own, in order and numbered, so the day's flow is always on screen; the rest
- * of Operations follows under its own heading.
+ * of Operations follows under its own heading. Notifications sits at the top,
+ * under Dashboard, with its unread count — the sidebar is where the desktop
+ * shows it, in place of a bell in the top bar.
  */
 function toGroups(sections: NavSection[]): NavGroup[] {
-  return sections.flatMap((section): NavGroup[] => {
-    if (section.items.length === 1 && section.menuLabel === 'Dashboard') return [{ items: section.items }];
-    const steps = section.items.filter((i) => i.step);
-    if (steps.length === 0) return [{ label: section.label, items: section.items }];
-    const others = section.items.filter((i) => !i.step);
-    return [
-      { label: 'Daily workflow', items: steps, flow: true },
-      ...(others.length ? [{ label: 'Operations', items: others }] : []),
-    ];
-  });
+  const inbox = sections.flatMap((s) => s.items).find((i) => i.href === '/notifications');
+  const groups = sections
+    .map((section) => ({ ...section, items: section.items.filter((i) => i.href !== '/notifications') }))
+    .filter((section) => section.items.length > 0)
+    .flatMap((section): NavGroup[] => {
+      if (section.items.length === 1 && section.menuLabel === 'Dashboard') return [{ items: section.items }];
+      const steps = section.items.filter((i) => i.step);
+      if (steps.length === 0) return [{ label: section.label, items: section.items }];
+      const others = section.items.filter((i) => !i.step);
+      return [
+        { label: 'Daily workflow', items: steps, flow: true },
+        ...(others.length ? [{ label: 'Operations', items: others }] : []),
+      ];
+    });
+  if (!inbox) return groups;
+  if (groups[0] && !groups[0].label) return [{ items: [...groups[0].items, inbox] }, ...groups.slice(1)];
+  return [{ items: [inbox] }, ...groups];
 }
 
 /** The full navigation as a vertical list — the desktop sidebar and the phone drawer both use it. */

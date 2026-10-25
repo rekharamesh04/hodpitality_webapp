@@ -98,9 +98,9 @@ function NotificationsMenu() {
 
 /**
  * The bar above the page. Navigation lives in the sidebar; this carries where
- * the page sits in the workflow (with the next step one click away) and the
- * notifications. On phones, where the sidebar is a drawer, it also holds the
- * menu button, the logo, search and the account menu.
+ * the page sits in the workflow (with the next step one click away). Below
+ * `lg`, where the sidebar is a drawer, it also holds the menu button, the
+ * logo, search, notifications and the account menu.
  */
 export function AppHeader() {
   // The "mobile sidebar" store flag drives the phone navigation drawer.
@@ -122,7 +122,10 @@ export function AppHeader() {
           <Button variant="ghost" size="icon" className={cn(iconButton, 'lg:hidden')} onClick={openCommandPalette} aria-label="Search">
             <Search className="h-[18px] w-[18px]" />
           </Button>
-          <NotificationsMenu />
+          {/* From `lg` the sidebar shows Notifications with its unread count. */}
+          <div className="lg:hidden">
+            <NotificationsMenu />
+          </div>
           <div className="ml-1 lg:hidden">
             <UserMenu variant="compact" />
           </div>
