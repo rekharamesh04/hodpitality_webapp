@@ -4,24 +4,22 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useQueryClient } from '@tanstack/react-query';
-import { ChevronsUpDown, LogOut, Moon, Settings, Sun, User } from 'lucide-react';
+import { ChevronDown, LogOut, Moon, Settings, Sun, User } from 'lucide-react';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuthStore } from '@/store';
-import { cn, getInitials } from '@/lib/utils';
+import { getInitials } from '@/lib/utils';
 import { authService } from '@/services/auth.service';
 import { clearKioskPin } from '@/lib/kiosk-lock';
 
 /**
- * The signed-in person: profile, settings, light/dark, sign out.
- *
- * `sidebar` is the full-width row at the foot of the desktop sidebar; `compact`
- * is the avatar alone, for the phone top bar where the sidebar is hidden.
+ * The signed-in person: profile, settings, light/dark, sign out. Sits at the
+ * right end of the top bar; wide screens also show the name and role.
  */
-export function UserMenu({ variant }: { variant: 'sidebar' | 'compact' }) {
+export function UserMenu() {
   const router = useRouter();
   const qc = useQueryClient();
   const { resolvedTheme, setTheme } = useTheme();
@@ -53,35 +51,20 @@ export function UserMenu({ variant }: { variant: 'sidebar' | 'compact' }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        {variant === 'sidebar' ? (
-          <button
-            type="button"
-            className="flex w-full items-center gap-2.5 rounded-md p-1.5 text-left transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Account menu"
-          >
-            {avatar}
-            <span className="min-w-0 flex-1 leading-tight">
-              <span className="block truncate text-sm font-medium text-sidebar-foreground">{user?.name || 'User'}</span>
-              <span className="block truncate text-xs capitalize text-sidebar-muted">{role}</span>
-            </span>
-            <ChevronsUpDown className="h-4 w-4 shrink-0 text-sidebar-muted" aria-hidden="true" />
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="rounded-full p-0.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label="Account menu"
-          >
-            {avatar}
-          </button>
-        )}
+        <button
+          type="button"
+          className="flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring xl:rounded-md xl:py-1 xl:pl-1 xl:pr-2"
+          aria-label="Account menu"
+        >
+          {avatar}
+          <span className="hidden min-w-0 text-left leading-tight xl:block">
+            <span className="block max-w-[10rem] truncate text-sm font-medium">{user?.name || 'User'}</span>
+            <span className="block max-w-[10rem] truncate text-xs capitalize text-muted-foreground">{role}</span>
+          </span>
+          <ChevronDown className="hidden h-4 w-4 shrink-0 text-muted-foreground xl:block" aria-hidden="true" />
+        </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align={variant === 'sidebar' ? 'start' : 'end'}
-        side={variant === 'sidebar' ? 'top' : 'bottom'}
-        sideOffset={8}
-        className={cn(variant === 'sidebar' ? 'w-[var(--radix-dropdown-menu-trigger-width)] min-w-56' : 'w-56')}
-      >
+      <DropdownMenuContent align="end" sideOffset={8} className="w-56">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium">{user?.name || 'User'}</p>
