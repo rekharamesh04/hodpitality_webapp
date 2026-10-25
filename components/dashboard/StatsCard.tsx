@@ -22,19 +22,22 @@ export function StatsCard({ title, value, icon: Icon, trend, className }: StatsC
       transition={{ duration: 0.25 }}
       className="h-full"
     >
-      {/* A metric cell: label, then the figure in mono. Inside a .metric-ledger the cells share one rule. */}
-      <Card className={cn('group relative h-full overflow-hidden transition-colors hover:bg-accent/60', className)}>
-        <CardContent className="flex h-full flex-col gap-3 p-4 sm:p-5">
-          <div className="flex items-start justify-between gap-2">
-            <p className="min-w-0 text-[13px] font-medium leading-snug text-muted-foreground">{title}</p>
-            <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
+      <Card className={cn('card-hover group relative h-full overflow-hidden', className)}>
+        {/* Brand accent strip, revealed on hover */}
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-primary to-brand-accent opacity-0 transition-opacity group-hover:opacity-100" aria-hidden="true" />
+        <CardContent className="flex items-start justify-between gap-3 p-4 sm:p-5">
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-muted-foreground sm:text-sm">{title}</p>
+            <p data-stat className="mt-1.5 text-2xl font-bold tracking-tight sm:text-3xl">{value}</p>
+            {trend && (
+              <p className={cn('mt-1 text-xs font-medium', trend.isPositive ? 'text-success' : 'text-danger')}>
+                {trend.isPositive ? '+' : ''}{trend.value}% from last week
+              </p>
+            )}
           </div>
-          <p data-stat className="font-data mt-auto break-words text-[23px] font-medium leading-none tracking-tight sm:text-[28px]">{value}</p>
-          {trend && (
-            <p className={cn('font-mono text-[11px] font-medium', trend.isPositive ? 'text-success' : 'text-danger')}>
-              {trend.isPositive ? '+' : ''}{trend.value}% from last week
-            </p>
-          )}
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 sm:h-11 sm:w-11 sm:rounded-xl">
+            <Icon className="h-4 w-4 text-primary sm:h-5 sm:w-5" aria-hidden="true" />
+          </div>
         </CardContent>
       </Card>
     </motion.div>

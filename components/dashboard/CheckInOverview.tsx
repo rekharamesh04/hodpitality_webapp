@@ -71,15 +71,15 @@ export function CheckInOverview({ checkIns, stats, isLoading, isError, error, on
         {stats && !isLoading && !isError && (
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-lg border p-2">
-              <p className="font-data text-lg font-medium text-primary">{stats.arrived ?? 0}</p>
+              <p className="text-lg font-bold text-primary">{stats.arrived ?? 0}</p>
               <p className="text-xs text-muted-foreground">Arrived</p>
             </div>
             <div className="rounded-lg border p-2">
-              <p className="font-data text-lg font-medium text-success">{stats.onSite ?? 0}</p>
+              <p className="text-lg font-bold text-green-700 dark:text-green-400">{stats.onSite ?? 0}</p>
               <p className="text-xs text-muted-foreground">On Site</p>
             </div>
             <div className="rounded-lg border p-2">
-              <p className="font-data text-lg font-medium text-muted-foreground">{stats.completed ?? 0}</p>
+              <p className="text-lg font-bold text-gray-700 dark:text-gray-300">{stats.completed ?? 0}</p>
               <p className="text-xs text-muted-foreground">Completed</p>
             </div>
           </div>

@@ -7,7 +7,7 @@ export const contentType = "image/png";
 export default function AppleIcon() {
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", background: "#0F766E" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", background: "linear-gradient(135deg, #818CF8, #8B5CF6)" }}>
         <svg width="180" height="180" viewBox="0 0 32 32">
           <g fill="none" stroke="#FFFFFF" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round">
             <path d="M22.5 8.5H9.75v15H22.5" />

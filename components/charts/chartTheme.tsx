@@ -9,8 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
  */
 export const axisProps = {
   stroke: 'var(--muted-foreground)',
-  fontSize: 11,
-  fontFamily: 'var(--font-plex-mono), ui-monospace, monospace',
+  fontSize: 12,
   tickLine: false,
   axisLine: false,
   tickMargin: 8,
@@ -28,7 +27,7 @@ export const tooltipProps = {
     backgroundColor: 'var(--popover)',
     color: 'var(--popover-foreground)',
     border: '1px solid var(--border)',
-    borderRadius: 6,
+    borderRadius: 10,
     boxShadow: 'var(--shadow-medium)',
     fontSize: 12,
     padding: '8px 10px',

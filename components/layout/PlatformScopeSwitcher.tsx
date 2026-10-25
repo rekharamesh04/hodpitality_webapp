@@ -71,9 +71,9 @@ export function PlatformScopeSwitcher() {
     : 'All organisations';
 
   return (
-    <div className={cn('border-t border-nav-border', scope.kind !== 'all' ? 'bg-primary/[0.07]' : 'bg-background/60')}>
+    <div className={cn('border-t border-nav-border/60', scope.kind !== 'all' && 'bg-indigo-500/15')}>
       <div className="mx-auto flex h-10 w-full max-w-[1600px] items-center gap-2 px-4 text-xs sm:px-6 lg:px-8">
-        <span className="shrink-0 font-mono text-[11px] uppercase tracking-wide text-nav-muted">Viewing</span>
+        <span className="shrink-0 text-nav-muted">Viewing</span>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -82,8 +82,8 @@ export function PlatformScopeSwitcher() {
               className={cn(
                 'h-7 min-w-0 gap-1.5 border px-2',
                 scope.kind === 'all'
-                  ? 'border-input bg-card text-nav-foreground hover:bg-nav-accent hover:text-nav-foreground'
-                  : 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
+                  ? 'border-nav-border bg-white/5 text-nav-foreground hover:bg-white/10 hover:text-nav-foreground'
+                  : 'border-indigo-400/50 bg-indigo-400/15 text-indigo-100 hover:bg-indigo-400/25 hover:text-white',
               )}
               aria-label={`Viewing ${label}. Change which organisations you see.`}
             >
@@ -153,13 +153,13 @@ export function PlatformScopeSwitcher() {
           </PopoverContent>
         </Popover>
         {scope.kind === 'company' && (
-          <span className="hidden truncate text-primary sm:inline">{industryPack(scope.industry).label}</span>
+          <span className="hidden truncate text-indigo-200/90 sm:inline">{industryPack(scope.industry).label}</span>
         )}
         {scope.kind !== 'all' && (
           <button
             type="button"
             onClick={() => choose(ALL_ORGANISATIONS)}
-            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-nav-muted hover:bg-nav-accent hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="ml-auto inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-nav-muted hover:bg-white/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             <X className="h-3 w-3" aria-hidden="true" /> Show all
           </button>

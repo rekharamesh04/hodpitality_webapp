@@ -74,18 +74,18 @@ export function QuickActions() {
         <CardTitle>Quick Actions</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {actions.map((action) => {
             const Icon = action.icon;
             return (
               <Button
                 key={action.label}
                 variant="outline"
-                className="group h-auto items-start justify-start gap-3 whitespace-normal p-3.5 shadow-none hover:border-primary/50 hover:bg-primary/[0.04]"
+                className="group h-auto flex-col items-start gap-2 whitespace-normal p-4 hover:border-primary/40 hover:bg-primary/5"
                 onClick={action.onClick}
               >
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border bg-background transition-colors group-hover:border-primary/50">
-                  <Icon className="h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary" aria-hidden="true" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                  <Icon className="h-5 w-5 text-primary group-hover:text-primary-foreground" aria-hidden="true" />
                 </div>
                 <div className="text-left">
                   <p className="font-semibold">{action.label}</p>

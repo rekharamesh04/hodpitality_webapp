@@ -118,10 +118,10 @@ function RegistrationsPageInner() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">Registrations</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Track event registrations and payments.</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Registrations</h1>
+          <p className="text-muted-foreground">Track event registrations and payments.</p>
         </div>
         <Button size="sm" onClick={() => setRegistrationDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -129,15 +129,15 @@ function RegistrationsPageInner() {
         </Button>
       </div>
 
-      <div className="metric-ledger grid grid-cols-2 gap-px md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         {isLoading ? (
           Array.from({ length: 4 }).map((_, i) => <StatsCardSkeleton key={i} />)
         ) : (
           <>
-            <Card><CardContent className="p-4 sm:p-5"><p className="text-[13px] font-medium text-muted-foreground">Total Registrations</p><p className="font-data mt-3 break-words text-[23px] font-medium leading-none sm:text-[28px]">{total}</p></CardContent></Card>
-            <Card><CardContent className="p-4 sm:p-5"><p className="text-[13px] font-medium text-muted-foreground">Confirmed</p><p className="font-data mt-3 break-words text-[23px] font-medium leading-none sm:text-[28px]">{confirmed}</p></CardContent></Card>
-            <Card><CardContent className="p-4 sm:p-5"><p className="text-[13px] font-medium text-muted-foreground">Pending</p><p className="font-data mt-3 break-words text-[23px] font-medium leading-none sm:text-[28px]">{pending}</p></CardContent></Card>
-            <Card><CardContent className="p-4 sm:p-5"><p className="text-[13px] font-medium text-muted-foreground">Paid Revenue</p><p className="font-data mt-3 break-words text-[23px] font-medium leading-none sm:text-[28px]">{formatCurrency(revenue)}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Total Registrations</p><p className="mt-1 text-2xl font-bold tabular-nums">{total}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Confirmed</p><p className="mt-1 text-2xl font-bold tabular-nums">{confirmed}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Pending</p><p className="mt-1 text-2xl font-bold tabular-nums">{pending}</p></CardContent></Card>
+            <Card><CardContent className="p-4"><p className="text-xs font-medium text-muted-foreground">Paid Revenue</p><p className="mt-1 text-2xl font-bold tabular-nums">{formatCurrency(revenue)}</p></CardContent></Card>
           </>
         )}
       </div>

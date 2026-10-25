@@ -113,10 +113,10 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-end justify-between gap-4 border-b border-border pb-5">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">Settings</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Manage your application settings and preferences</p>
+          <h1 className="text-2xl font-bold sm:text-3xl">Settings</h1>
+          <p className="text-muted-foreground">Manage your application settings and preferences</p>
         </div>
         {user?.role && <Badge variant="outline">{roleLabel(user.role, industry)}</Badge>}
       </div>

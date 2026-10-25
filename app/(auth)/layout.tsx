@@ -15,55 +15,51 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
       {/* Product panel, desktop only. Decorative: the form beside it carries every instruction. */}
       <aside
         aria-hidden="true"
-        className="relative hidden flex-col justify-between overflow-hidden border-r border-[#222833] bg-[#0B1220] p-12 text-[#E6E9EE] lg:col-span-5 lg:flex xl:p-16"
+        className="relative hidden flex-col justify-between overflow-hidden bg-nav bg-gradient-to-br from-nav via-nav to-nav-to p-12 text-nav-foreground lg:col-span-5 lg:flex xl:p-16"
       >
-        <div className="flex items-center gap-2.5">
-          <LogoMark className="h-8 w-8" tileClassName="fill-[#2DD4BF]" glyphClassName="stroke-[#04201C]" />
-          <span className="flex flex-col leading-none">
-            <span className="text-[15px] font-semibold tracking-tight">EntryFlow</span>
-            <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8A93A3]">Front-of-house console</span>
+        <div className="pointer-events-none absolute -right-24 top-1/3 h-[28rem] w-[28rem] rounded-full bg-violet-500/20 blur-3xl" />
+
+        <div className="relative flex items-center gap-2.5">
+          <LogoMark className="h-8 w-8 rounded-lg shadow-[0_4px_12px_-2px_rgb(99_102_241_/_0.6)]" />
+          <span className="text-[15px] font-semibold tracking-tight">
+            EntryFlow <span className="font-normal text-nav-muted">Admin</span>
           </span>
         </div>
 
-        <div>
-          <p className="max-w-md text-balance text-[34px] font-semibold leading-[1.15] tracking-tight xl:text-[40px]">
-            Every arrival, accounted for.
+        <div className="relative">
+          <p className="max-w-md text-balance text-4xl font-bold leading-tight tracking-tight xl:text-5xl">
+            Every arrival, <span className="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">accounted for.</span>
           </p>
-          <p className="mt-4 max-w-sm text-sm leading-relaxed text-[#8A93A3]">
+          <p className="mt-4 max-w-sm text-sm leading-relaxed text-nav-muted">
             One line from the front door to the final payment — for hotels, clinics and pharmacies.
           </p>
 
-          {/* The flow line, drawn vertically */}
-          <ol className="relative mt-10 space-y-6 pl-8">
-            <span className="absolute bottom-2 left-[7px] top-2 w-0.5 rounded-full bg-[#222833]" />
+          {/* The workflow, step by step */}
+          <ol className="mt-10 space-y-5">
             {STATIONS.map((s, i) => (
-              <li key={s.label} className="relative">
-                <span
-                  className={
-                    i === 1
-                      ? 'station-live absolute -left-8 top-0.5 flex h-4 w-4 items-center justify-center rounded-full border-2 border-[#2DD4BF] bg-[#0B1220] motion-reduce:animate-none'
-                      : 'absolute -left-8 top-0.5 h-4 w-4 rounded-full border-2 border-[#2B323E] bg-[#0B1220]'
-                  }
-                >
-                  {i === 1 && <span className="h-1.5 w-1.5 rounded-full bg-[#2DD4BF]" />}
+              <li key={s.label} className="flex items-start gap-3">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-indigo-200 ring-1 ring-white/15">
+                  {i + 1}
                 </span>
-                <p className="text-sm font-medium">
-                  <span className="mr-2 font-mono text-[11px] text-[#8A93A3]">{String(i + 1).padStart(2, '0')}</span>
-                  {s.label}
-                </p>
-                <p className="mt-0.5 text-[13px] text-[#8A93A3]">{s.detail}</p>
+                <div>
+                  <p className="text-sm font-semibold">{s.label}</p>
+                  <p className="mt-0.5 text-sm text-nav-muted">{s.detail}</p>
+                </div>
               </li>
             ))}
           </ol>
         </div>
 
-        <div className="flex items-center justify-between border-t border-[#222833] pt-6 font-mono text-[11px] text-[#8A93A3]">
+        <div className="relative flex items-center justify-between border-t border-nav-border pt-6 text-xs text-nav-muted">
           <span>© {new Date().getFullYear()} EntryFlow</span>
           <span>Staff sign-in</span>
         </div>
       </aside>
 
-      <div className="relative min-h-screen lg:col-span-7">{children}</div>
+      <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-background via-background to-primary/5 lg:col-span-7">
+        <div className="pointer-events-none absolute left-1/2 top-0 h-[32rem] w-[32rem] -translate-x-1/2 -translate-y-1/3 rounded-full bg-primary/10 blur-3xl" />
+        <div className="relative">{children}</div>
+      </div>
     </div>
   );
 }

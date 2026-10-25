@@ -22,7 +22,7 @@ export function BarChartComponent({ title, description, data, dataKey, xAxisKey,
           <XAxis dataKey={xAxisKey} {...axisProps} interval="preserveStartEnd" minTickGap={12} />
           <YAxis {...axisProps} allowDecimals={false} width={44} />
           <Tooltip {...tooltipProps} />
-          <Bar dataKey={dataKey} fill={CHART_COLORS.PRIMARY} radius={[3, 3, 0, 0]} maxBarSize={48} />
+          <Bar dataKey={dataKey} fill={CHART_COLORS.PRIMARY} radius={[6, 6, 0, 0]} maxBarSize={48} />
         </BarChart>
       </ResponsiveContainer>
     </ChartFrame>

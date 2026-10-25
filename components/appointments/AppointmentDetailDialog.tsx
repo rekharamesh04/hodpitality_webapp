@@ -68,7 +68,7 @@ export function AppointmentDetailDialog({ appointment, open, onOpenChange }: App
                 {a.customerTier}
               </span>
             )}
-            <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold', APPOINTMENT_STATUS_STYLES[status] ?? 'bg-muted text-muted-foreground border-border')}>
+            <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold', APPOINTMENT_STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-700 border-gray-300 dark:bg-gray-900/30 dark:text-gray-300 dark:border-gray-700')}>
               {APPOINTMENT_STATUS_LABELS[status] ?? status}
             </span>
             <span className={cn('rounded-full border px-2 py-0.5 text-xs font-semibold capitalize', getStatusColor(paymentStatus))}>

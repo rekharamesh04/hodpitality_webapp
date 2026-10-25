@@ -130,10 +130,10 @@ export default function FrontDeskPage() {
     <TooltipProvider delayDuration={200}>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="text-[23px] font-semibold tracking-tight sm:text-[28px]">Front Desk</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
+            <h1 className="text-2xl font-bold sm:text-3xl">Front Desk</h1>
+            <p className="text-muted-foreground">
               Arrivals, departures and {t.place.one.toLowerCase()} availability
             </p>
           </div>

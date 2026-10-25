@@ -80,11 +80,11 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
     return (
       <div className="mx-auto max-w-6xl space-y-6">
         <Skeleton className="h-8 w-40" />
-        <Skeleton className="h-20 w-full" />
-        <Skeleton className="h-16 w-full" />
+        <Skeleton className="h-32 w-full rounded-2xl" />
+        <Skeleton className="h-16 w-full rounded-2xl" />
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <Skeleton className="h-64 w-full lg:col-span-4" />
-          <Skeleton className="h-64 w-full lg:col-span-8" />
+          <Skeleton className="h-64 w-full rounded-2xl lg:col-span-4" />
+          <Skeleton className="h-64 w-full rounded-2xl lg:col-span-8" />
         </div>
       </div>
     );
@@ -119,70 +119,72 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
         </Button>
 
         {/* Identity — who this is, and everything the desk can do with them */}
-        <div className="flex flex-col gap-5 border-b border-border pb-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex min-w-0 items-center gap-4">
-            <Avatar className="h-16 w-16 border border-border sm:h-20 sm:w-20">
-              <AvatarImage src={photoSrc} alt={guest.name} />
-              <AvatarFallback className="bg-primary/10 text-xl font-semibold text-primary">
-                {guest.name ? getInitials(guest.name) : '?'}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-[23px] font-semibold tracking-tight">{guest.name || 'Unnamed guest'}</h1>
-                {guest.category && (
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-xs font-medium',
-                      guestCategoryBadgeClass(guest.category, industry)
-                    )}
-                  >
-                    {guest.category}
-                  </span>
-                )}
-                <StatusBadge status={guest.status} />
+        <Card className="overflow-hidden">
+          <CardContent className="flex flex-col gap-5 bg-gradient-to-r from-primary/15 via-primary/5 to-transparent p-4 sm:p-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <Avatar className="h-16 w-16 border-4 border-card shadow-[var(--shadow-medium)] sm:h-20 sm:w-20">
+                <AvatarImage src={photoSrc} alt={guest.name} />
+                <AvatarFallback className="bg-primary/10 text-2xl font-bold text-primary">
+                  {guest.name ? getInitials(guest.name) : '?'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold tracking-tight">{guest.name || 'Unnamed guest'}</h1>
+                  {guest.category && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                        guestCategoryBadgeClass(guest.category, industry)
+                      )}
+                    >
+                      {guest.category}
+                    </span>
+                  )}
+                  <StatusBadge status={guest.status} />
+                </div>
+                <p className="mt-1 truncate text-sm text-muted-foreground">{guest.email || 'No email on file'}</p>
               </div>
-              <p className="mt-1 truncate text-sm text-muted-foreground">{guest.email || 'No email on file'}</p>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex flex-wrap items-center gap-2">
-            {!guest.checkedIn && (
-              <Button size="sm" variant="secondary" onClick={handleCheckIn} loading={checkIn.isPending}>
-                {!checkIn.isPending && <UserCheck className="mr-2 h-4 w-4" />}
-                Check In
+            {/* Actions */}
+            <div className="flex flex-wrap items-center gap-2">
+              {!guest.checkedIn && (
+                <Button size="sm" variant="secondary" onClick={handleCheckIn} loading={checkIn.isPending}>
+                  {!checkIn.isPending && <UserCheck className="mr-2 h-4 w-4" />}
+                  Check In
+                </Button>
+              )}
+              <Button size="sm" variant="secondary" onClick={() => setBookOpen(true)}>
+                <CalendarPlus className="mr-2 h-4 w-4" />
+                Book {t.visit.one}
               </Button>
-            )}
-            <Button size="sm" variant="secondary" onClick={() => setBookOpen(true)}>
-              <CalendarPlus className="mr-2 h-4 w-4" />
-              Book {t.visit.one}
-            </Button>
-            <Button size="sm" onClick={() => setEditOpen(true)}>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon" variant="outline" aria-label={hasFacePhoto ? 'Retake face photo' : 'Enroll face'} onClick={() => setFaceOpen(true)}>
-                  <Camera className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{hasFacePhoto ? 'Retake face photo' : 'Enroll face'}</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.person.one.toLowerCase()}`} onClick={() => setDeleteOpen(true)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Delete {t.person.one.toLowerCase()}</TooltipContent>
-            </Tooltip>
-          </div>
-        </div>
+              <Button size="sm" onClick={() => setEditOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" aria-label={hasFacePhoto ? 'Retake face photo' : 'Enroll face'} onClick={() => setFaceOpen(true)}>
+                    <Camera className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{hasFacePhoto ? 'Retake face photo' : 'Enroll face'}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.person.one.toLowerCase()}`} onClick={() => setDeleteOpen(true)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete {t.person.one.toLowerCase()}</TooltipContent>
+              </Tooltip>
+            </div>
+          </CardContent>
+        </Card>
 
-        {/* The record at a glance, as one ledger strip */}
-        <div className="metric-ledger grid grid-cols-2 gap-px rounded-lg sm:grid-cols-4">
+        {/* The record at a glance */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatChip
             icon={guest.checkedIn ? UserRoundCheck : UserCheck}
             label="Check-in"
@@ -359,12 +361,14 @@ function StatChip({
   value: string;
 }) {
   return (
-    <div className="flex min-w-0 items-start justify-between gap-2 bg-card p-4">
-      <div className="min-w-0">
-        <p className="text-[13px] font-medium text-muted-foreground">{label}</p>
-        <p className="mt-1.5 truncate text-sm font-semibold">{value}</p>
+    <div className="flex items-center gap-3 rounded-xl border bg-card p-3">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+        <Icon className="h-4 w-4 text-primary" aria-hidden="true" />
       </div>
-      <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold leading-tight">{value}</p>
+        <p className="text-xs text-muted-foreground">{label}</p>
+      </div>
     </div>
   );
 }

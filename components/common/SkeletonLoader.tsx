@@ -33,12 +33,14 @@ export function CardSkeleton() {
 export function StatsCardSkeleton() {
   return (
     <Card>
-      <CardContent className="space-y-4 p-4 sm:p-5">
+      <CardContent className="pt-6">
         <div className="flex items-center justify-between">
-          <Skeleton className="h-3.5 w-24" />
-          <Skeleton className="h-4 w-4" />
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-8 w-16" />
+          </div>
+          <Skeleton className="h-10 w-10 rounded-lg" />
         </div>
-        <Skeleton className="h-7 w-16" />
       </CardContent>
     </Card>
   );

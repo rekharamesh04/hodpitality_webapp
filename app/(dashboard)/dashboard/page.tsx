@@ -46,15 +46,15 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {/* Command bar — today, and the two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
-      <div className="flex flex-col gap-4 border-b border-border pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <WelcomeHeader />
+        {/* The two desk jobs that start from a face: find a returning person, or register a new one with their photo. */}
         <div className="flex shrink-0 flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setFindByFaceOpen(true)}>
+          <Button variant="outline" size="sm" onClick={() => setFindByFaceOpen(true)}>
             <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
             Find by face
           </Button>
-          <Button onClick={() => router.push('/guests?action=add')}>
+          <Button size="sm" onClick={() => router.push('/guests?action=add')}>
             <UserPlus className="mr-2 h-4 w-4" aria-hidden="true" />
             Add {t.person.one}
           </Button>
@@ -62,7 +62,7 @@ export default function DashboardPage() {
       </div>
       <FindByFaceDialog open={findByFaceOpen} onOpenChange={setFindByFaceOpen} />
 
-      {/* The day in numbers, as one ledger strip. */}
+      {/* The day in numbers. */}
       <DashboardStatsGrid
         stats={stats.data}
         isLoading={stats.isLoading}

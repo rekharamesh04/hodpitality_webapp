@@ -27,17 +27,16 @@ import { useIndustry } from '@/hooks';
 import { cn, getInitials, getRelativeTime } from '@/lib/utils';
 import { authService } from '@/services/auth.service';
 
-/** Icon button for the console bar. */
+/** Icon button styled for the dark navigation bar. */
 const navIconButton =
-  'relative h-9 w-9 text-nav-muted hover:bg-nav-accent hover:text-nav-foreground';
+  'relative h-9 w-9 text-nav-muted hover:bg-nav-accent hover:text-nav-foreground focus-visible:ring-offset-nav';
 
 export function BrandMark({ className, alwaysShowName }: { className?: string; alwaysShowName?: boolean }) {
   return (
     <Link href="/dashboard" className={cn('flex shrink-0 items-center gap-2.5', className)} aria-label="EntryFlow Admin — Dashboard">
-      <LogoMark className="h-8 w-8" />
-      <span className={cn('flex-col leading-none', alwaysShowName ? 'flex' : 'hidden sm:flex')}>
-        <span className="text-[15px] font-semibold tracking-tight text-nav-foreground">EntryFlow</span>
-        <span className="mt-1 font-mono text-[10px] uppercase tracking-[0.12em] text-nav-muted">Front-of-house console</span>
+      <LogoMark className="h-8 w-8 rounded-lg shadow-[0_4px_12px_-2px_rgb(99_102_241_/_0.6)]" />
+      <span className={cn('text-[15px] font-semibold tracking-tight text-nav-foreground', alwaysShowName ? 'inline' : 'hidden sm:inline')}>
+        EntryFlow <span className="font-normal text-nav-muted">Admin</span>
       </span>
     </Link>
   );
@@ -46,13 +45,13 @@ export function BrandMark({ className, alwaysShowName }: { className?: string; a
 function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pathname: string; unreadCount: number }) {
   const active = section.items.some((item) => isNavItemActive(pathname, item.href));
   const triggerClass = cn(
-    'relative flex h-11 items-center gap-1 px-3 text-[13px] font-medium transition-colors outline-none',
-    'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-    active ? 'text-nav-foreground' : 'text-nav-muted hover:text-nav-foreground'
+    'relative flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-medium transition-colors outline-none',
+    'focus-visible:ring-2 focus-visible:ring-indigo-400',
+    active ? 'bg-nav-active text-nav-foreground' : 'text-nav-muted hover:bg-nav-accent hover:text-nav-foreground'
   );
-  // Active tab: a teal rule on the tab row's bottom edge.
+  // Active-section marker sitting on the menu row's bottom edge.
   const indicator = active && (
-    <span className="absolute inset-x-3 bottom-0 h-0.5 bg-primary" aria-hidden="true" />
+    <span className="absolute inset-x-3 -bottom-[6px] h-0.5 rounded-full bg-indigo-400" aria-hidden="true" />
   );
 
   if (section.items.length === 1) {
@@ -114,12 +113,12 @@ function NavGroup({ section, pathname, unreadCount }: { section: NavSection; pat
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger className={cn(triggerClass, 'data-[state=open]:bg-nav-accent data-[state=open]:text-nav-foreground')}>
+      <DropdownMenuTrigger className={cn(triggerClass, 'data-[state=open]:bg-nav-active data-[state=open]:text-nav-foreground')}>
         {section.menuLabel}
         <ChevronDown className="h-3.5 w-3.5 opacity-70 transition-transform [[data-state=open]>&]:rotate-180" aria-hidden="true" />
         {indicator}
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" sideOffset={1} className={cn('p-2', wide ? 'w-[560px]' : steps.length ? 'w-[400px]' : 'w-[320px]')}>
+      <DropdownMenuContent align="start" sideOffset={7} className={cn('p-2', wide ? 'w-[560px]' : steps.length ? 'w-[400px]' : 'w-[320px]')}>
         <DropdownMenuLabel className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
           {section.label}
         </DropdownMenuLabel>
@@ -175,8 +174,8 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-nav-border bg-nav text-nav-foreground">
-      {/* Row 1 — brand, the command bar, and status */}
+    <header className="sticky top-0 z-40 border-b border-nav-border bg-nav bg-gradient-to-r from-nav via-nav to-nav-to text-nav-foreground shadow-[0_1px_0_0_rgb(255_255_255_/_0.04),0_8px_24px_-12px_rgb(2_6_23_/_0.5)]">
+      {/* Row 1 — brand, search, and status */}
       <div className="mx-auto flex h-14 w-full max-w-[1600px] items-center gap-3 px-4 sm:px-6 lg:px-8">
         <Button
           variant="ghost"
@@ -190,16 +189,16 @@ export function AppHeader() {
 
         <BrandMark className="mr-1" />
 
-        {/* Command bar — the centre of the console; opens the ⌘K palette */}
+        {/* Search — opens the ⌘K command palette */}
         <div className="hidden min-w-0 flex-1 justify-center px-2 md:flex">
           <button
             type="button"
             onClick={openCommandPalette}
-            className="flex h-9 w-full max-w-lg items-center gap-2.5 rounded-md border border-input bg-background px-3 text-sm text-nav-muted transition-colors hover:border-foreground/25 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="flex h-9 w-full max-w-lg items-center gap-2 rounded-lg border border-nav-border bg-white/5 pl-3 pr-2 text-sm text-nav-muted transition-colors hover:bg-white/10 hover:text-nav-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400"
           >
             <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <span className="min-w-0 flex-1 truncate text-left">Search people, bookings and pages…</span>
-            <kbd className="flex h-5 shrink-0 items-center gap-0.5 rounded-sm border border-input bg-card px-1.5 font-mono text-[10px] text-nav-muted">
+            <span className="min-w-0 flex-1 truncate text-left">Search…</span>
+            <kbd className="flex h-5 shrink-0 items-center gap-0.5 rounded border border-nav-border bg-white/5 px-1.5 font-mono text-[10px]">
               <Command className="h-3 w-3" />K
             </kbd>
           </button>
@@ -237,7 +236,7 @@ export function AppHeader() {
                   <motion.span
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
-                    className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-primary px-1 font-mono text-[10px] font-medium text-primary-foreground ring-2 ring-nav"
+                    className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-semibold text-white ring-2 ring-nav"
                   >
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </motion.span>
@@ -295,12 +294,12 @@ export function AppHeader() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-nav-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring 2xl:rounded-md 2xl:py-1 2xl:pl-1 2xl:pr-2.5"
+                className="ml-1 flex items-center gap-2 rounded-full p-0.5 transition-colors hover:bg-nav-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 2xl:rounded-lg 2xl:py-1 2xl:pl-1 2xl:pr-2.5"
                 aria-label="Account menu"
               >
-                <Avatar className="h-8 w-8 ring-1 ring-nav-border">
+                <Avatar className="h-8 w-8 ring-2 ring-white/15">
                   <AvatarImage src={user?.avatar} alt={user?.name} />
-                  <AvatarFallback className="bg-primary font-mono text-xs font-medium text-primary-foreground">
+                  <AvatarFallback className="bg-gradient-to-br from-indigo-400 to-violet-500 text-xs font-semibold text-white">
                     {user?.name ? getInitials(user.name) : 'U'}
                   </AvatarFallback>
                 </Avatar>
@@ -332,9 +331,9 @@ export function AppHeader() {
           </DropdownMenu>
         </div>
       </div>
-      {/* Row 2 — the menu as tabs (desktop; phones use the drawer and the tab bar) */}
+      {/* Row 2 — the menu (desktop; phones use the drawer and the tab bar) */}
       <div className="hidden border-t border-nav-border lg:block">
-        <nav className="mx-auto flex w-full max-w-[1600px] items-stretch px-4 sm:px-6 lg:px-5" aria-label="Main">
+        <nav className="mx-auto flex h-12 w-full max-w-[1600px] items-center gap-0.5 px-4 sm:px-6 lg:px-6" aria-label="Main">
           {sections.map((section) => (
             <NavGroup key={section.label} section={section} pathname={pathname} unreadCount={unreadCount} />
           ))}

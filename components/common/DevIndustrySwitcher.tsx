@@ -35,7 +35,7 @@ export function DevIndustrySwitcher() {
         <Button
           variant="ghost"
           size="sm"
-          className="hidden h-9 gap-2 border border-amber-500/40 bg-amber-400/10 px-2.5 text-amber-800 hover:bg-amber-400/20 hover:text-amber-900 dark:text-amber-200 dark:hover:text-amber-100 sm:flex"
+          className="hidden h-9 gap-2 border border-amber-400/40 bg-amber-400/10 px-2.5 text-amber-200 hover:bg-amber-400/20 hover:text-amber-100 sm:flex"
           aria-label={`Demo industry: ${pack.label}. Change it.`}
         >
           <FlaskConical className="h-4 w-4" aria-hidden="true" />
