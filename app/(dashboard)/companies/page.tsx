@@ -36,6 +36,7 @@ import { StatusBadge } from '@/components/common/StatusBadge';
 import { useCompanies, useCreateCompany, useUpdateCompany, useDeleteCompany, type CompanyHasRecords } from '@/hooks/useCompanies';
 import { useResellers } from '@/hooks/useResellers';
 import { useCreateStaff } from '@/hooks/useStaff';
+import { emailInUseMessage, findEmailOwner } from '@/lib/email-owner';
 import { useAuthStore } from '@/store';
 import { getInitials, formatDate, isValidEmail, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateCompanyPayload, UpdateCompanyPayload } from '@/services/company.service';
@@ -195,6 +196,11 @@ function CompaniesPageInner({
     e.preventDefault();
     if (createMutation.isPending || updateMutation.isPending) return;
     const errors = validate(form);
+    // One email, one login, one organisation: say so now rather than after the round trip.
+    const owner = !errors.email && findEmailOwner(form.email, {
+      companies: allCompanies, resellers: resellersData ?? [], exceptId: editing ? getCompanyId(editing) : undefined,
+    });
+    if (owner) errors.email = emailInUseMessage(owner);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -241,6 +247,8 @@ function CompaniesPageInner({
 
   const isSubmitting = createMutation.isPending || updateMutation.isPending;
   const submitError = createMutation.error ?? updateMutation.error;
+  // The backend's own check (it also sees staff and logins) lands on the email field.
+  const emailInUse = (submitError as { response?: { data?: { code?: string } } } | null)?.response?.data?.code === 'EMAIL_IN_USE';
 
   return (
     <div className="space-y-6">
@@ -429,7 +437,7 @@ function CompaniesPageInner({
                   value={form.email}
                   onChange={(e) => updateField('email', e.target.value)}
                   placeholder="admin@company.example"
-                  aria-invalid={!!fieldErrors.email}
+                  aria-invalid={!!fieldErrors.email || emailInUse}
                   aria-describedby={fieldErrors.email ? 'company-email-error' : 'company-email-hint'}
                 />
                 {fieldErrors.email && <p id="company-email-error" className="text-xs text-destructive">{fieldErrors.email}</p>}

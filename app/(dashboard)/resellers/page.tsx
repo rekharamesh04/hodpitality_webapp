@@ -33,6 +33,8 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { StatusBadge } from '@/components/common/StatusBadge';
 import { useResellers, useCreateReseller, useUpdateReseller, useDeleteReseller } from '@/hooks/useResellers';
+import { useCompanies } from '@/hooks/useCompanies';
+import { emailInUseMessage, findEmailOwner } from '@/lib/email-owner';
 import { useAuthStore } from '@/store';
 import { getInitials, formatDate, isValidEmail, isValidPhone, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateResellerPayload, UpdateResellerPayload } from '@/services/reseller.service';
@@ -103,6 +105,8 @@ function ResellersPageInner() {
   const deleteMutation = useDeleteReseller();
 
   const allResellers = useMemo(() => resellers ?? [], [resellers]);
+  // For the instant "email already in use" check: a company admin's email cannot be a reseller's too.
+  const { data: companies } = useCompanies();
   const hasStatusData = useMemo(() => allResellers.some((r) => !!r.status), [allResellers]);
 
   const filtered = useMemo(() => {
@@ -140,6 +144,10 @@ function ResellersPageInner() {
     e.preventDefault();
     if (createMutation.isPending || updateMutation.isPending) return;
     const errors = validate(form);
+    const owner = !errors.email && findEmailOwner(form.email, {
+      companies: companies ?? [], resellers: allResellers, exceptId: editing ? getResellerId(editing) : undefined,
+    });
+    if (owner) errors.email = emailInUseMessage(owner);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
