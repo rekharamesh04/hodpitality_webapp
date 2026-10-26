@@ -18,12 +18,13 @@ import { PrescriptionPhotos } from '@/components/prescriptions/PrescriptionPhoto
 import {
   usePrescription, useUpdatePrescription, useDeletePrescription,
 } from '@/hooks/usePrescriptions';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 import { PrescriptionRoutingCard } from '@/components/pharmacy/PrescriptionRoutingCard';
 import { useMarkPrescriptionReady } from '@/hooks/usePharmacies';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
 import {
   attachmentsOf, awaitingTyping, isWithPharmacy, medicineLabel, medicinesOf, patientNameOf, prescriberNameOf,
+  writtenHere,
 } from '@/types/prescription';
 
 /**
@@ -42,6 +43,7 @@ export default function PrescriptionDetailPage({
 }) {
   const { id } = use(params);
   const t = useTerminology();
+  const { isAdmin, canPrescribe } = usePermissions();
   const router = useRouter();
 
   const { data: rx, isLoading, isError, error, refetch } = usePrescription(id);
@@ -86,6 +88,8 @@ export default function PrescriptionDetailPage({
   const created = rx.created_at ?? rx.createdAt;
   const isActive = rx.status === 'active';
   const sentElsewhere = isWithPharmacy(rx);
+  // A prescription in one of our own prescriber's names is theirs (or an admin's) to amend or cancel.
+  const mayRewrite = canPrescribe || !writtenHere(rx);
 
   function setStatus(status: 'completed' | 'cancelled') {
     updateMutation.mutate({ id, data: { status } });
@@ -119,7 +123,7 @@ export default function PrescriptionDetailPage({
 
             <div className="flex flex-wrap gap-2">
               {/* Sent to a pharmacy: filled there. Only cancelling (which withdraws it) stays here. */}
-              {!sentElsewhere && (
+              {!sentElsewhere && mayRewrite && (
                 <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>
                   <Pencil className="mr-2 h-4 w-4" /> Amend
                 </Button>
@@ -143,6 +147,7 @@ export default function PrescriptionDetailPage({
                     <CheckCircle2 className="mr-2 h-4 w-4" /> Complete
                   </Button>
                   )}
+                  {mayRewrite && (
                   <Button
                     size="sm"
                     variant="outline"
@@ -151,11 +156,14 @@ export default function PrescriptionDetailPage({
                   >
                     <XCircle className="mr-2 h-4 w-4" /> Cancel
                   </Button>
+                  )}
                 </>
               )}
-              <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
-              </Button>
+              {isAdmin && (
+                <Button size="sm" variant="destructive" onClick={() => setDeleteOpen(true)}>
+                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>
@@ -184,9 +192,13 @@ export default function PrescriptionDetailPage({
                 : 'No medicines are recorded. Type them in before it can be handed over or completed.'}
             </p>
           </div>
-          <Button size="sm" onClick={() => setEditOpen(true)}>
-            <Keyboard className="mr-2 h-4 w-4" /> Type medicines
-          </Button>
+          {mayRewrite ? (
+            <Button size="sm" onClick={() => setEditOpen(true)}>
+              <Keyboard className="mr-2 h-4 w-4" /> Type medicines
+            </Button>
+          ) : (
+            <p className="text-xs text-amber-800/80 dark:text-amber-400/80">Ask the prescriber to type them.</p>
+          )}
         </div>
       )}
 
@@ -264,7 +276,7 @@ export default function PrescriptionDetailPage({
         {/* Side */}
         <div className="space-y-6">
           {/* A hospital sends to the patient's pharmacy; a pharmacy sees who sent it. */}
-          <PrescriptionRoutingCard prescription={rx} canSend={t.slug === 'healthcare'} />
+          <PrescriptionRoutingCard prescription={rx} canSend={t.slug === 'healthcare' && canPrescribe} />
           <Card>
             <CardHeader><CardTitle className="text-base">{t.person.one}</CardTitle></CardHeader>
             <CardContent className="space-y-4">

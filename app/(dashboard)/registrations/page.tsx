@@ -27,7 +27,7 @@ import { TableSkeleton, StatsCardSkeleton } from '@/components/common/SkeletonLo
 import { Badge } from '@/components/ui/badge';
 import { cn, formatDate, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
 import { guestCategoryBadgeClass } from '@/constants';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 import {
   useRegistrations, useConfirmRegistration, useDeleteRegistration,
 } from '@/hooks/useRegistrations';
@@ -48,6 +48,7 @@ export default function RegistrationsPage() {
 
 function RegistrationsPageInner() {
   const t = useTerminology();
+  const { isAdmin } = usePermissions();
   const industry = t.slug;
   const router = useRouter();
   const [registrationDialogOpen, setRegistrationDialogOpen] = useState(false);
@@ -266,10 +267,14 @@ function RegistrationsPageInner() {
                                 <CreditCard className="mr-2 h-4 w-4" /> Record Payment
                               </DropdownMenuItem>
                             )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(reg)}>
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
+                            {isAdmin && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(reg)}>
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

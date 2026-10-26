@@ -26,7 +26,7 @@ import { usePayments } from '@/hooks/usePayments';
 import { Badge } from '@/components/ui/badge';
 import { getInitials, formatDate, formatCurrency, formatCheckInTimestamp, getFriendlyErrorMessage } from '@/lib/utils';
 import type { UpdateEventPayload } from '@/services/event.service';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 
 function methodLabel(ci: { checkInMethod?: string; method?: string }): string {
   const raw = ci.checkInMethod ?? ci.method ?? '';
@@ -47,6 +47,7 @@ function getCheckInGuestId(ciGuestId?: string): string {
 
 export default function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTerminology();
+  const { isAdmin } = usePermissions();
   const { id } = use(params);
   const router = useRouter();
 
@@ -162,14 +163,16 @@ export default function EventDetailPage({ params }: { params: Promise<{ id: stri
                 <CalendarDays className="mr-2 h-4 w-4" />
                 View on Calendar
               </Button>
-              <Button
-                size="icon" variant="outline"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Delete event"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {isAdmin && (
+                <Button
+                  size="icon" variant="outline"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Delete event"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
 

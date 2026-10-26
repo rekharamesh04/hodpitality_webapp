@@ -33,7 +33,7 @@ import {
 } from '@/hooks/useHospitality';
 import { useActionParam } from '@/hooks/useActionParam';
 import type { Guest, Hospitality, Status } from '@/types';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 
 // The kinds of request a tenant can raise come from its industry: a hospital
 // was being offered "Hotel" and "Airport Pickup". Hotels keep the same list.
@@ -63,6 +63,7 @@ export default function HospitalityPage() {
 
 function HospitalityPageInner() {
   const t = useTerminology();
+  const { isAdmin } = usePermissions();
   const TYPES = t.requestTypes;
   const router = useRouter();
   const [status, setStatus] = useState('');
@@ -306,10 +307,14 @@ function HospitalityPageInner() {
                                 Mark {s}
                               </DropdownMenuItem>
                             ))}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(item)}>
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
+                            {isAdmin && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(item)}>
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

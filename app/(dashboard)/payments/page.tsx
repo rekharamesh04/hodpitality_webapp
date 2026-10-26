@@ -39,13 +39,25 @@ import { useActionParam } from '@/hooks/useActionParam';
 import { paymentService } from '@/services/payment.service';
 import { formatDate, formatCurrency, getFriendlyErrorMessage, exportToCSV, toLocalDateInput } from '@/lib/utils';
 import type { Payment, PaymentStatus, PaymentMethodType, Registration } from '@/types';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS: PaymentStatus[] = [
   'pending', 'processing', 'paid', 'failed', 'cancelled', 'refunded', 'partially_refunded',
 ];
+
+/** What Update Status may set. A refund goes through Refund, so its amount and reason are kept. */
+const SETTABLE_STATUSES: PaymentStatus[] = ['pending', 'processing', 'paid', 'failed', 'cancelled'];
+
+/**
+ * Money has been taken. Changing such a payment undoes a receipt, so only an administrator may,
+ * and a refunded one does not change status at all — the backend enforces both.
+ */
+function canChangeStatus(status: string | undefined, isAdmin: boolean): boolean {
+  if (status === 'refunded' || status === 'partially_refunded') return false;
+  return isAdmin || (status !== 'paid' && status !== 'completed');
+}
 
 const METHOD_OPTIONS: PaymentMethodType[] = ['credit_card', 'cash', 'card', 'upi', 'bank_transfer', 'online', 'other'];
 
@@ -187,7 +199,7 @@ function StatusDialog({ payment, onClose }: StatusDialogProps) {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {STATUS_OPTIONS.map((s) => (
+                {SETTABLE_STATUSES.map((s) => (
                   <SelectItem key={s} value={s} className="capitalize">
                     {s.replace(/_/g, ' ')}
                   </SelectItem>
@@ -414,6 +426,8 @@ export default function PaymentsPage() {
 
 function PaymentsPageInner() {
   const t = useTerminology();
+  // Refunds, reversing a taken payment and exporting are an administrator's.
+  const { isAdmin } = usePermissions();
   const router = useRouter();
   const searchParams = useSearchParams();
   const eventIdFilter = searchParams.get('eventId') || '';
@@ -545,10 +559,12 @@ function PaymentsPageInner() {
           <p className="text-muted-foreground">Track revenue, manage refunds, and update payment statuses.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport} loading={isExporting}>
-            {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
-            Export
-          </Button>
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={handleExport} loading={isExporting}>
+              {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
+              Export
+            </Button>
+          )}
           {hasRegistrations && (
             <Button variant="outline" size="sm" onClick={() => setEventPaymentOpen(true)}>
               <ClipboardList className="mr-2 h-4 w-4" aria-hidden="true" />
@@ -762,6 +778,8 @@ function PaymentsPageInner() {
                           {paidDate ? formatDate(paidDate) : '—'}
                         </TableCell>
                         <TableCell className="text-right">
+                          {(payment.registrationId || canChangeStatus(payment.status, isAdmin)
+                            || (isAdmin && (payment.status === 'paid' || payment.status === 'partially_refunded'))) && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -783,14 +801,16 @@ function PaymentsPageInner() {
                                   View Registration
                                 </DropdownMenuItem>
                               )}
-                              <DropdownMenuItem
-                                className="cursor-pointer"
-                                onClick={() => setStatusTarget(payment)}
-                              >
-                                <SlidersHorizontal className="mr-2 h-4 w-4" />
-                                Update Status
-                              </DropdownMenuItem>
-                              {payment.status === 'paid' || payment.status === 'partially_refunded' ? (
+                              {canChangeStatus(payment.status, isAdmin) && (
+                                <DropdownMenuItem
+                                  className="cursor-pointer"
+                                  onClick={() => setStatusTarget(payment)}
+                                >
+                                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                                  Update Status
+                                </DropdownMenuItem>
+                              )}
+                              {isAdmin && (payment.status === 'paid' || payment.status === 'partially_refunded') ? (
                                 <>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem
@@ -804,6 +824,7 @@ function PaymentsPageInner() {
                               ) : null}
                             </DropdownMenuContent>
                           </DropdownMenu>
+                          )}
                         </TableCell>
                       </TableRow>
                     );

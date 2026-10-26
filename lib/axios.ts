@@ -100,6 +100,9 @@ function scheduleProactiveRefresh(token: string) {
   }, delay);
 }
 
+/** Where the login page finds why the last session ended, when the app ended it. */
+export const SIGN_OUT_REASON_KEY = 'entryflow_sign_out_reason';
+
 /** Clears the session everywhere (store + storage + cookie) and sends the user to /login. Idempotent — safe to call even if already logged out or already on /login. */
 function performLogout() {
   if (typeof window === 'undefined') return;
@@ -235,6 +238,15 @@ api.interceptors.response.use(
     const backendMsg = error.response?.data?.error ?? error.response?.data?.message;
     if (backendMsg && error.message !== backendMsg) {
       (error as any).backendMessage = backendMsg;
+    }
+
+    // The organisation or reseller account behind this login was suspended or removed. Every
+    // request will now be refused, so end the session and say why rather than leave a portal
+    // where nothing loads.
+    if (status === 403 && (error.response?.data as { code?: string } | undefined)?.code === 'ACCOUNT_INACTIVE') {
+      try { sessionStorage.setItem(SIGN_OUT_REASON_KEY, backendMsg || 'This account is no longer active.'); } catch { /* storage unavailable */ }
+      performLogout();
+      return Promise.reject(error);
     }
 
     // The organisation a super admin was looking at is gone (deleted, or no longer theirs).

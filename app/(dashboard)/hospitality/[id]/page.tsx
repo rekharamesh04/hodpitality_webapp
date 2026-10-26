@@ -17,6 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { useHospitalityBooking, useUpdateBookingStatus, useDeleteBooking } from '@/hooks/useHospitality';
+import { usePermissions } from '@/hooks/usePermissions';
 import { formatDate, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
 import type { Status } from '@/types';
 
@@ -24,6 +25,7 @@ const STATUSES: Status[] = ['pending', 'confirmed', 'completed', 'cancelled'];
 
 export default function HospitalityDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { isAdmin } = usePermissions();
   const router = useRouter();
 
   const { data: booking, isLoading, isError, error, refetch } = useHospitalityBooking(id);
@@ -96,14 +98,16 @@ export default function HospitalityDetailPage({ params }: { params: Promise<{ id
                   {STATUSES.map((s) => <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <Button
-                size="icon" variant="outline"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Delete request"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {isAdmin && (
+                <Button
+                  size="icon" variant="outline"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Delete request"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

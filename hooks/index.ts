@@ -2,6 +2,7 @@
 export { useTerminology, useIndustry, type Terminology } from './useTerminology';
 export { useSyncIdentity } from './useSyncIdentity';
 export { useIndustries } from './useIndustries';
+export { usePermissions } from './usePermissions';
 export { useNotifications, useMarkNotificationRead, useMarkAllNotificationsRead, useDeleteAllNotifications } from './use-notifications';
 
 // TanStack Query hooks

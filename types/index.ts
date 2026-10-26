@@ -36,6 +36,9 @@ export interface AuthResponse {
   ChallengeName?: string;
   Session?: string;
   email?: string;
+  /** Set when the challenge asks for an authenticator-app code. */
+  mfaRequired?: boolean;
+  message?: string;
 }
 
 export interface LoginCredentials {
@@ -43,11 +46,6 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterCredentials {
-  name: string;
-  email: string;
-  password: string;
-}
 
 export interface Guest {
   id: string;

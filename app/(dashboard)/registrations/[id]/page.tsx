@@ -19,7 +19,7 @@ import {
   useRegistrations, useConfirmRegistration, useDeleteRegistration,
 } from '@/hooks/useRegistrations';
 import { formatDate, formatCurrency, getFriendlyErrorMessage } from '@/lib/utils';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 
 /** There is no GET /registrations/{id} on the backend — only PUT/DELETE at that path.
  * This page fetches the full (unfiltered) list, same as the Registrations list page, and
@@ -27,6 +27,7 @@ import { useTerminology } from '@/hooks';
  * use, just as a full route here since the task specifically asked for /registrations/{id}. */
 export default function RegistrationDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTerminology();
+  const { isAdmin } = usePermissions();
   const { id } = use(params);
   const router = useRouter();
 
@@ -110,14 +111,16 @@ export default function RegistrationDetailPage({ params }: { params: Promise<{ i
                   <CreditCard className="mr-2 h-4 w-4" /> Record Payment
                 </Button>
               )}
-              <Button
-                size="icon" variant="outline"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                aria-label="Delete registration"
-                onClick={() => setDeleteOpen(true)}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              {isAdmin && (
+                <Button
+                  size="icon" variant="outline"
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Delete registration"
+                  onClick={() => setDeleteOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </CardContent>

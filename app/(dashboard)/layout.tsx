@@ -9,6 +9,7 @@ import { Loading } from '@/components/common/Loading';
 import { ModuleGate } from '@/components/layout/ModuleGate';
 import { useAuthStore } from '@/store';
 import { useSyncIdentity } from '@/hooks';
+import { isKioskActive } from '@/lib/kiosk-lock';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -19,6 +20,9 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthStore();
+  const tenant = useAuthStore((s) => s.user?.tenant_id ?? '');
+  // This device is a reception kiosk: the portal stays shut until staff enter the exit PIN there.
+  const kioskLocked = !isLoading && isAuthenticated && isKioskActive(tenant);
   // Picks up a reclassification made while this session was open, so the
   // vocabulary does not stay stale until the next sign-in.
   useSyncIdentity();
@@ -26,10 +30,12 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       router.push('/login');
+    } else if (kioskLocked) {
+      router.replace('/kiosk');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, kioskLocked, router]);
 
-  if (isLoading) return <Loading />;
+  if (isLoading || kioskLocked) return <Loading />;
   if (!isAuthenticated) return null;
 
   return (

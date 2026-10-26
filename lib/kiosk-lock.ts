@@ -44,7 +44,36 @@ export async function kioskPinMatches(tenant: string, pin: string): Promise<bool
 export function clearKioskPin(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(ACTIVE_KEY);
   } catch {
     // Storage unavailable: nothing to clear.
+  }
+}
+
+/**
+ * Whether this device is in kiosk mode.
+ *
+ * The PIN used to guard only the kiosk's own "Staff" button: the back button, or typing /guests in
+ * the address bar, opened the full portal on a staff session in front of the waiting room. While
+ * this is set, the portal's layout sends every page back to /kiosk; only the PIN (or signing out)
+ * clears it. It survives a reload for the same reason.
+ */
+const ACTIVE_KEY = 'entryflow_kiosk_active';
+
+export function setKioskActive(tenant: string, active: boolean): void {
+  try {
+    if (active) localStorage.setItem(ACTIVE_KEY, tenant);
+    else localStorage.removeItem(ACTIVE_KEY);
+  } catch {
+    // Storage unavailable: kiosk mode cannot be held across pages on this device.
+  }
+}
+
+export function isKioskActive(tenant: string): boolean {
+  if (typeof window === 'undefined' || !tenant) return false;
+  try {
+    return localStorage.getItem(ACTIVE_KEY) === tenant && readKioskPinHash(tenant) !== null;
+  } catch {
+    return false;
   }
 }

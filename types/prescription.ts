@@ -76,6 +76,15 @@ export const PHARMACY_ROUTE_LABELS: Record<PharmacyRouteStatus, string> = {
  * amended, completed or handed over here (the API answers 409 SENT_TO_PHARMACY), only cancelled,
  * which withdraws it from the pharmacy too.
  */
+/**
+ * Issued in the name of one of this organisation's own prescribers. Only a prescriber or an
+ * administrator may amend or cancel such a prescription (the backend's _written_here); paper from an
+ * outside prescriber, and a pharmacy's copy of one sent to it, are the desk's to file and fill.
+ */
+export function writtenHere(p: Pick<Prescription, 'staffId' | 'externalPrescriber'>): boolean {
+  return !!p.staffId && !p.externalPrescriber;
+}
+
 export function isWithPharmacy(p: Pick<Prescription, 'pharmacyTenantId' | 'pharmacyStatus'>): boolean {
   return !!p.pharmacyTenantId && (p.pharmacyStatus === 'sent' || p.pharmacyStatus === 'ready' || !p.pharmacyStatus);
 }

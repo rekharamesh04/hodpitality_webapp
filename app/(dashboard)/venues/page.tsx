@@ -36,7 +36,7 @@ import { useEvents } from '@/hooks/useEvents';
 import { cn, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateVenuePayload, UpdateVenuePayload } from '@/services/venue.service';
 import type { Venue, Event } from '@/types';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 
 function getVenueId(v: Venue): string {
   return v.id ?? (v.PK ? v.PK.replace('VENUE#', '') : '') ?? '';
@@ -66,6 +66,7 @@ export default function VenuesPage() {
 
 function VenuesPageInner() {
   const t = useTerminology();
+  const { isAdmin } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -362,10 +363,14 @@ function VenuesPageInner() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit(v)}>
                                 <Pencil className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(v)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                              {isAdmin && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(v)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

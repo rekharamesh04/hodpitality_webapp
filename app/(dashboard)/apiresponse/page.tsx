@@ -361,12 +361,15 @@ function ResponsePreview({ result }: { result: TestResult | undefined }) {
 
 // A developer tool, not a product screen. "Run all" writes to live data —
 // it renames the caller's profile and organisation and creates test records —
-// so only a super admin may open it; every other role gets the same
-// access-denied state as the other admin-only pages.
+// so only a super admin may open it, and never in a production build, where
+// that data is real. `next build` sets NODE_ENV to production, so this is
+// folded to a constant there.
+const API_TESTER_ENABLED = process.env.NODE_ENV !== 'production';
+
 export default function ApiResponsePage() {
   const { user } = useAuthStore();
 
-  if (user?.role !== 'super_admin') {
+  if (!API_TESTER_ENABLED || user?.role !== 'super_admin') {
     return (
       <div className="space-y-6">
         <div>
@@ -374,7 +377,9 @@ export default function ApiResponsePage() {
         </div>
         <ErrorState
           title="Access denied"
-          message="The API tester is restricted to platform admins."
+          message={API_TESTER_ENABLED
+            ? 'The API tester is restricted to platform admins.'
+            : 'The API tester is only available in development builds.'}
         />
       </div>
     );

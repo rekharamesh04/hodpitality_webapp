@@ -18,7 +18,7 @@ import { useSendToPharmacy } from '@/hooks/usePharmacies';
 import {
   useAddPrescriptionAttachments, useCreatePrescription, useUpdatePrescription,
 } from '@/hooks/usePrescriptions';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 import { popup } from '@/lib/popup';
 import { cn } from '@/lib/utils';
 import { DOCUMENT_ACCEPT } from '@/services/document.service';
@@ -77,6 +77,9 @@ export function PrescriptionFormDialog({
   appointmentId?: string;
 }) {
   const t = useTerminology();
+  // Writing in a staff prescriber's name, and sending to a pharmacy, are a prescriber's or an
+  // admin's. Anyone at the desk may file paper from an outside prescriber (the API enforces both).
+  const { canPrescribe } = usePermissions();
   const create = useCreatePrescription();
   const update = useUpdatePrescription();
   const addPhotos = useAddPrescriptionAttachments();
@@ -84,7 +87,7 @@ export function PrescriptionFormDialog({
   const isEdit = !!existing;
   // A hospital sends the prescription to the patient's own pharmacy (as a US clinic does);
   // a pharmacy, or a hospital filling it in-house, leaves it here.
-  const canSend = t.slug === 'healthcare' && !isEdit;
+  const canSend = t.slug === 'healthcare' && !isEdit && canPrescribe;
   const pending = create.isPending || update.isPending || addPhotos.isPending || sendToPharmacy.isPending;
 
   const fileRef = useRef<HTMLInputElement>(null);
@@ -125,7 +128,7 @@ export function PrescriptionFormDialog({
     } else {
       setGuest(defaultGuest ?? null); setStaffId(defaultStaffId ?? ''); setDiagnosis(''); setNotes('');
       setSendTo(null);
-      setPrescriberMode('staff'); setOutsideName('');
+      setPrescriberMode(canPrescribe ? 'staff' : 'outside'); setOutsideName('');
       setMedicines([emptyMedicine()]);
     }
     // defaultGuest and defaultStaffId are read only when the dialog opens, so a parent re-render
@@ -247,7 +250,7 @@ export function PrescriptionFormDialog({
                 <div className="flex items-center justify-between gap-2">
                   <Label htmlFor={prescriberMode === 'outside' ? 'rx-outside' : undefined}>{t.practitioner}</Label>
                   <div className="inline-flex rounded-md border p-0.5 text-xs" role="radiogroup" aria-label={`Who wrote it`}>
-                    {(['staff', 'outside'] as const).map((mode) => (
+                    {(canPrescribe ? (['staff', 'outside'] as const) : (['outside'] as const)).map((mode) => (
                       <button
                         key={mode}
                         type="button"

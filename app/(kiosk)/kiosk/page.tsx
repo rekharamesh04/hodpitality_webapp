@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, CreditCard, Delete, KeyRound, Landmark, Loader2, LogIn, LogOut, ScanFace, ShieldCheck, ShieldOff, Smartphone, UserX } from 'lucide-react';
+import { CheckCircle2, Delete, KeyRound, Landmark, Loader2, LogIn, LogOut, ScanFace, ShieldCheck, ShieldOff, Smartphone, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { KioskCamera } from '@/components/kiosk/KioskCamera';
@@ -11,7 +11,9 @@ import { useTerminology } from '@/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store';
 import { authService } from '@/services/auth.service';
-import { KIOSK_PIN_MAX, KIOSK_PIN_MIN, clearKioskPin, isValidKioskPin, kioskPinMatches, readKioskPinHash, saveKioskPin } from '@/lib/kiosk-lock';
+import {
+  KIOSK_PIN_MAX, KIOSK_PIN_MIN, clearKioskPin, isValidKioskPin, kioskPinMatches, readKioskPinHash, saveKioskPin, setKioskActive,
+} from '@/lib/kiosk-lock';
 import { useBillingSettings } from '@/hooks/usePharmacies';
 import { appointmentService } from '@/services/appointment.service';
 import { checkInService } from '@/services/checkin.service';
@@ -40,9 +42,15 @@ import type { Appointment } from '@/types';
  *
  * Leaving kiosk mode needs the exit PIN staff set on this device the first time (lib/kiosk-lock.ts):
  * the session behind this screen is a staff member's, and the portal holds every patient's record.
+ * While the kiosk is active the portal's own layout sends every page back here, so the address bar
+ * and the back button lead nowhere either.
  *
- * Payment: there is no card-terminal integration yet. "Pay by card" records the fee as paid by
- * card (the person pays on the clinic's existing terminal); a gateway plugs in at `payByCard`.
+ * Payment: there is no card-terminal integration, so the kiosk never marks a fee paid. It used to
+ * offer "Pay by card", which recorded the fee as paid by card on a tap, with nothing confirming any
+ * money moved. Checkout now leaves the fee owed, with a note, for the desk to take.
+ *
+ * A phone number is not a secret, so it checks a person in but never out: checking out shows what
+ * they owe, which is not for whoever typed their number. Checking out by face, or at the desk.
  */
 
 type Screen =
@@ -74,9 +82,12 @@ export default function KioskPage() {
   const [screen, setScreen] = useState<Screen>({ name: 'idle' });
   const busy = useRef(false);
 
-  // First time on this device: staff choose the exit PIN before the kiosk faces the public.
+  // First time on this device: staff choose the exit PIN before the kiosk faces the public. With a
+  // PIN set, the device is in kiosk mode until the PIN is entered (see isKioskActive).
   useEffect(() => {
-    if (tenant && !readKioskPinHash(tenant)) setScreen({ name: 'setup', digits: '' });
+    if (!tenant) return;
+    if (readKioskPinHash(tenant)) setKioskActive(tenant, true);
+    else setScreen({ name: 'setup', digits: '' });
   }, [tenant]);
 
   const standardFee = billing?.standardVisitFee ?? 100;
@@ -136,7 +147,7 @@ export default function KioskPage() {
       ]);
       const person = kioskPhoneMatch([...guests, ...customers], entered);
       if (!person) { busy.current = false; setScreen({ name: 'phone_not_found' }); return; }
-      await proceed(person.id, person.name, 'Phone (kiosk)');
+      await proceed(person.id, person.name, 'Phone (kiosk)', { mayCheckOut: false });
     } catch (err) {
       busy.current = false;
       setScreen({ name: 'error', message: getFriendlyErrorMessage(err, 'Something went wrong. Please see the reception desk.') });
@@ -144,7 +155,7 @@ export default function KioskPage() {
   }
 
   /** Found them, by face or by phone: check in, say they are waiting, or start checkout. */
-  async function proceed(guestId: string, name: string | undefined, method: string) {
+  async function proceed(guestId: string, name: string | undefined, method: string, { mayCheckOut = true } = {}) {
     try {
       const first = kioskGreetingName(name);
       const today = toLocalDateInput();
@@ -167,6 +178,11 @@ export default function KioskPage() {
           name: 'checked_in', first, already: true,
           doctor: decision.appointment?.staffName, token: await tokenFor(decision.appointment),
         });
+      } else if (!mayCheckOut) {
+        setScreen({
+          name: 'done', first, title: `Please see the reception desk, ${first}`,
+          detail: 'They will check you out. To check out here next time, scan your face.',
+        });
       } else {
         setScreen({ name: 'checkout', first, guestId, charges: decision.charges, total: decision.total });
       }
@@ -177,20 +193,18 @@ export default function KioskPage() {
     }
   }
 
-  async function finishCheckout(s: Extract<Screen, { name: 'checkout' }>, mode: 'card' | 'desk' | 'free') {
+  async function finishCheckout(s: Extract<Screen, { name: 'checkout' }>, mode: 'desk' | 'free') {
     if (busy.current) return;
     busy.current = true;
-    setScreen({ name: 'working', message: mode === 'card' ? 'Recording your payment…' : 'Checking you out…' });
+    setScreen({ name: 'working', message: 'Checking you out…' });
     try {
-      if (mode === 'card') await payByCard(s.charges);
+      // The fee stays owed: the desk takes the money and records it, by card or otherwise.
       await checkInService.checkOutGuest(s.guestId, mode === 'desk' ? `Pay ${money(s.total)} at reception` : undefined);
       setScreen({
         name: 'done',
         first: s.first,
         title: mode === 'desk' ? 'Please pay at the reception desk' : 'You’re checked out',
-        detail: mode === 'card'
-          ? `${money(s.total)} paid. Thank you, and get well soon.`
-          : mode === 'desk'
+        detail: mode === 'desk'
           ? `${money(s.total)} to pay. You’re checked out — the desk will take payment.`
           : 'Nothing to pay. Thank you, and get well soon.',
       });
@@ -206,11 +220,16 @@ export default function KioskPage() {
     if (!s.first) { setScreen({ name: 'setup', digits: '', first: s.digits }); return; }
     if (s.first !== s.digits) { setScreen({ name: 'setup', digits: '', error: 'The PINs did not match. Choose one again.' }); return; }
     await saveKioskPin(tenant, s.digits);
+    setKioskActive(tenant, true);
     setScreen({ name: 'idle' });
   }
 
   async function tryExit(digits: string) {
-    if (await kioskPinMatches(tenant, digits)) { router.push('/opd'); return; }
+    if (await kioskPinMatches(tenant, digits)) {
+      setKioskActive(tenant, false);
+      router.push('/opd');
+      return;
+    }
     setScreen({ name: 'exit', digits: '', error: 'That PIN is not right.' });
   }
 
@@ -221,15 +240,6 @@ export default function KioskPage() {
     logout();
     qc.clear();
     router.push('/login');
-  }
-
-  /** Records each fee as paid by card. Where a payment gateway plugs in, when there is one. */
-  async function payByCard(charges: KioskCharge[]) {
-    for (const c of charges) {
-      await appointmentService.updatePaymentStatus(c.appointmentId, {
-        paymentStatus: 'paid', amount: c.amount, method: 'card', payer: 'self',
-      });
-    }
   }
 
   // The kiosk belongs to a hospital's front door, as the OPD queue does.
@@ -401,11 +411,8 @@ export default function KioskPage() {
                 </div>
               </div>
               <div className="flex w-full flex-col gap-3">
-                <Button size="lg" className="h-16 text-xl" onClick={() => finishCheckout(screen, 'card')}>
-                  <CreditCard className="mr-3 h-6 w-6" /> Pay {money(screen.total)} by card
-                </Button>
-                <Button size="lg" variant="outline" className="h-16 text-xl" onClick={() => finishCheckout(screen, 'desk')}>
-                  Pay at the reception desk
+                <Button size="lg" className="h-16 text-xl" onClick={() => finishCheckout(screen, 'desk')}>
+                  <LogOut className="mr-3 h-6 w-6" /> Check out — pay at the reception desk
                 </Button>
                 {/* The way in for insurance, kept visible and disabled until a payer integration exists. */}
                 <Button size="lg" variant="ghost" className="h-12 text-base" disabled>

@@ -33,7 +33,7 @@ import {
 import { cn, formatDate, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { CreateEventPayload, UpdateEventPayload } from '@/services/event.service';
 import type { Event } from '@/types';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 
 function getEventId(e: Event): string {
   return e.id ?? (e.PK ? e.PK.replace('EVENT#', '') : '') ?? '';
@@ -59,6 +59,7 @@ export default function EventsPage() {
 
 function EventsPageInner() {
   const t = useTerminology();
+  const { isAdmin } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -336,10 +337,14 @@ function EventsPageInner() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit(e)}>
                                 <Pencil className="mr-2 h-4 w-4" /> Edit
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(e)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                              {isAdmin && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(e)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

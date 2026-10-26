@@ -28,6 +28,7 @@ import { useVenues } from '@/hooks/useVenues';
 import { useStaff } from '@/hooks/useStaff';
 import { useCustomers } from '@/hooks/useCustomers';
 import { useAuthStore } from '@/store';
+import { isOrgAdmin } from '@/constants/roles';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import type { AnalyticsDistribution, VenueUtilization } from '@/types/analytics';
 import { useTerminology } from '@/hooks';
@@ -63,7 +64,8 @@ function normalizeCheckInMethod(raw: string): string {
 
 export default function AnalyticsPage() {
   const { user } = useAuthStore();
-  const canView = user?.role === 'super_admin' || user?.role === 'reseller';
+  // Administrators: the platform's, a reseller's own companies', or a company admin's own.
+  const canView = isOrgAdmin(user?.role);
 
   if (!canView) {
     return (
@@ -74,7 +76,7 @@ export default function AnalyticsPage() {
         </div>
         <ErrorState
           title="Access denied"
-          message="Analytics is restricted to admins and reseller admins. Contact your platform administrator if you believe this is a mistake."
+          message="Analytics is restricted to administrators. Contact your administrator if you believe this is a mistake."
         />
       </div>
     );

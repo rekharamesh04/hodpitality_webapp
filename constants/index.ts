@@ -53,7 +53,6 @@ export const PAGINATION = {
 export const API_ENDPOINTS = {
   AUTH: {
     LOGIN: '/auth/login',
-    REGISTER: '/auth/register',
     GOOGLE: '/auth/google',
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
@@ -71,6 +70,17 @@ export const API_ENDPOINTS = {
      * with the backend team before relying on it in production. See lib/axios.ts.
      */
     REFRESH: '/auth/refresh',
+    /** Answers the authenticator-app code a login asked for. Runs before there is a session. */
+    MFA_RESPOND: '/auth/mfa/respond',
+  },
+  /**
+   * The signed-in user's own two-factor settings. Kept out of AUTH on purpose: every AUTH path is
+   * treated as unauthenticated by lib/axios.ts, and these need the session (and its refresh).
+   */
+  MFA: {
+    STATUS: '/auth/mfa',
+    SETUP: '/auth/mfa/setup',
+    VERIFY: '/auth/mfa/verify',
   },
   SETTINGS: {
     PROFILE: '/settings/profile',

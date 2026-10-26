@@ -111,11 +111,25 @@ export function canManageStaff(role: string | undefined): boolean {
 
 /**
  * Company admin and above. Besides managing staff, these roles may override a
- * duplicate-face warning, reopen or correct a closed session, and delete any
- * document on a person's record — the backend enforces the same list.
+ * duplicate-face warning, reopen or correct a closed session, delete any
+ * document on a person's record, delete records, refund or reverse a payment
+ * already taken, and export data in bulk — the backend enforces the same list
+ * (_require_org_admin) and answers anyone else 403.
  */
 export function isOrgAdmin(role: string | undefined): boolean {
   return canManageStaff(role);
+}
+
+/** Mirrors PRESCRIBER_ROLES in the backend's app/roles.py. */
+export const PRESCRIBER_ROLES: readonly UserRole[] = ['doctor', 'practitioner'];
+
+/**
+ * May issue a prescription in a staff prescriber's name, change or cancel one,
+ * and send it to a pharmacy. Anyone at the desk may still file and type up a
+ * prescription written by an outside prescriber.
+ */
+export function canPrescribe(role: string | undefined): boolean {
+  return isOrgAdmin(role) || (!!role && (PRESCRIBER_ROLES as readonly string[]).includes(role));
 }
 
 /** A manager may only edit or remove staff whose role they could have assigned. */

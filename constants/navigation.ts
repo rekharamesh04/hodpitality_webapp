@@ -154,7 +154,8 @@ function getGroupedNavSections(industry?: unknown): NavSection[] {
       menuLabel: "Insights",
       items: [
         { label: "Reports", href: "/reports", icon: BarChart2, description: "Operational metrics and CSV exports" },
-        { label: "Analytics", href: "/analytics", icon: TrendingUp, description: "Trends, revenue and performance", roles: ADMIN_AND_RESELLER },
+        // Company admins see their own organisation's; the data endpoints are already scoped to it.
+        { label: "Analytics", href: "/analytics", icon: TrendingUp, description: "Trends, revenue and performance", roles: COMPANY_ROLES },
       ],
     },
     {

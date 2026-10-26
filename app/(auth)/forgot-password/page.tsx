@@ -39,10 +39,11 @@ export default function ForgotPasswordPage() {
       await authService.forgotPassword(data.email);
       // Persist email so verify-otp and reset-password can use it
       sessionStorage.setItem('reset_email', data.email);
-      popup.success('OTP sent to your email!');
+      // The same words whether or not the email has an account — the backend answers both alike.
+      popup.success('If an account exists for that email, a code is on its way.');
       router.push('/verify-otp');
-    } catch {
-      popup.error('Failed to send OTP. Please try again.');
+    } catch (err: any) {
+      popup.error(err?.backendMessage ?? 'Failed to send the code. Please try again.');
     } finally {
       setIsLoading(false);
     }

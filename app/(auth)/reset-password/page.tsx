@@ -46,8 +46,14 @@ export default function ResetPasswordPage() {
       sessionStorage.removeItem('reset_otp');
       popup.success('Password reset successfully!');
       router.push('/login');
-    } catch {
-      popup.error('Failed to reset password. Please try again.');
+    } catch (err: any) {
+      const code = err?.response?.data?.code;
+      popup.error(err?.backendMessage ?? 'Failed to reset password. Please try again.');
+      if (code === 'CODE_MISMATCH' || code === 'CODE_EXPIRED') {
+        // The code, not the password, was the problem: go back and enter it (or ask for a new one).
+        sessionStorage.removeItem('reset_otp');
+        router.push('/verify-otp');
+      }
     } finally {
       setIsLoading(false);
     }

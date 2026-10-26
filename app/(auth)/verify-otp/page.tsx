@@ -23,16 +23,13 @@ export default function VerifyOTPPage() {
       return;
     }
 
+    // Cognito checks the code only together with the new password, so it is not checked here —
+    // this used to announce "OTP verified" for any six digits. A wrong code is reported on the next
+    // step, which sends the person back here.
     setIsLoading(true);
     try {
-      const { authService } = await import('@/services/auth.service');
-      await authService.verifyOtp(otp);
-      // Persist OTP for reset-password step
       sessionStorage.setItem('reset_otp', otp);
-      popup.success('OTP verified successfully!');
       router.push('/reset-password');
-    } catch {
-      popup.error('Invalid OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -72,7 +69,7 @@ export default function VerifyOTPPage() {
                 <Shield className="h-6 w-6 text-white" />
               </div>
             </div>
-            <CardTitle className="text-2xl">Verify OTP</CardTitle>
+            <CardTitle className="text-2xl">Enter your code</CardTitle>
             <CardDescription>
               Enter the 6-digit code sent to your email
             </CardDescription>
@@ -95,7 +92,7 @@ export default function VerifyOTPPage() {
 
               <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Verify OTP
+                Continue
               </Button>
 
               <div className="text-center text-sm text-muted-foreground">

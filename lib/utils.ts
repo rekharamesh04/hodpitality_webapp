@@ -207,8 +207,15 @@ export function extractInvitationWarning(data: unknown): string | null {
 
 /** Maps a failed request into safe, user-facing copy — never surfaces raw backend error text or stack traces. */
 export function getFriendlyErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.'): string {
-  const err = error as { response?: { status?: number }; request?: unknown } | undefined;
+  const err = error as { response?: { status?: number; data?: { code?: unknown; error?: unknown } }; request?: unknown } | undefined;
   const status = err?.response?.status;
+  // A refusal the backend tagged with a `code` (ADMIN_ONLY, PRESCRIBER_ONLY, SCOPE_REQUIRED…) carries
+  // a sentence written for the person reading it — "Only administrators can refund payments." —
+  // which says far more than a generic line about permissions.
+  const data = err?.response?.data;
+  if (typeof data?.code === 'string' && typeof data.error === 'string' && data.error && status !== undefined && status < 500) {
+    return data.error;
+  }
   if (status === 401) return 'Your session has expired. Please sign in again.';
   if (status === 403) return "You don't have permission to view this data.";
   if (status === 404) return 'The requested item could not be found.';

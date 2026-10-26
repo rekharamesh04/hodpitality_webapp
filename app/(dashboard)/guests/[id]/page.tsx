@@ -31,7 +31,7 @@ import { useAppointments } from '@/hooks/useAppointments';
 import { useGuestHospitality } from '@/hooks/useHospitality';
 import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { guestCategoryBadgeClass } from '@/constants';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 import { personDeleteWarning } from '@/lib/person-delete';
 import type { UpdateGuestPayload } from '@/services/guest.service';
 
@@ -41,6 +41,7 @@ function getGuestId(id: string, pk?: string): string {
 
 export default function GuestDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const t = useTerminology();
+  const { isAdmin } = usePermissions();
   const industry = t.slug;
   const { id } = use(params);
   const router = useRouter();
@@ -173,14 +174,16 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                 </TooltipTrigger>
                 <TooltipContent>{hasFacePhoto ? 'Retake face photo' : 'Enroll face'}</TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.person.one.toLowerCase()}`} onClick={() => setDeleteOpen(true)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Delete {t.person.one.toLowerCase()}</TooltipContent>
-              </Tooltip>
+              {isAdmin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="outline" className="text-destructive hover:bg-destructive/10 hover:text-destructive" aria-label={`Delete ${t.person.one.toLowerCase()}`} onClick={() => setDeleteOpen(true)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete {t.person.one.toLowerCase()}</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </CardContent>
         </Card>

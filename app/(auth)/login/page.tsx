@@ -1,24 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, KeyRound, Mail, User, Sparkles } from 'lucide-react';
+import { Loader2, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
 import { LogoMark } from '@/components/brand/LogoMark';
 import { useAuthStore } from '@/store';
 import { authService } from '@/services/auth.service';
 import { getFriendlyErrorMessage } from '@/lib/utils';
+import { SIGN_OUT_REASON_KEY } from '@/lib/axios';
 import { isKnownRole } from '@/constants/roles';
 import { popup } from '@/lib/popup';
+import type { AuthResponse } from '@/types';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -33,63 +36,90 @@ const newPasswordSchema = z.object({
   path: ['confirm'],
 });
 
-const registerSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Must be at least 8 characters'),
-  confirm: z.string(),
-}).refine((d) => d.password === d.confirm, {
-  message: 'Passwords do not match',
-  path: ['confirm'],
+const mfaSchema = z.object({
+  code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 type NewPasswordFormData = z.infer<typeof newPasswordSchema>;
-type RegisterFormData = z.infer<typeof registerSchema>;
+type MfaFormData = z.infer<typeof mfaSchema>;
 
+/** A step Cognito asks for before it issues a session. */
 interface PendingChallenge {
+  kind: 'new_password' | 'mfa';
   session: string;
   email: string;
 }
 
-const SHOW_GOOGLE_AND_REGISTER = true;
+/**
+ * Staff accounts are created by an administrator (Staff page, or a company or reseller invite), so
+ * there is no self sign-up: the backend has no such route. Google sign-in is offered only where it
+ * is configured, and only signs in an account that already exists.
+ */
+const GOOGLE_ENABLED = !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 export default function LoginPage() {
   const { login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [challenge, setChallenge] = useState<PendingChallenge | null>(null);
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  // Why the app ended the last session (e.g. the organisation was suspended), shown once.
+  const [signOutReason, setSignOutReason] = useState<string | null>(null);
 
   const loginForm = useForm<LoginFormData>({ resolver: zodResolver(loginSchema) });
   const newPwForm = useForm<NewPasswordFormData>({ resolver: zodResolver(newPasswordSchema) });
-  const registerForm = useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) });
+  const mfaForm = useForm<MfaFormData>({ resolver: zodResolver(mfaSchema) });
+
+  useEffect(() => {
+    try {
+      const reason = sessionStorage.getItem(SIGN_OUT_REASON_KEY);
+      if (reason) {
+        setSignOutReason(reason);
+        sessionStorage.removeItem(SIGN_OUT_REASON_KEY);
+      }
+    } catch {
+      // Storage unavailable: nothing to show.
+    }
+  }, []);
+
+  /** A login response is a session, or a step still to take. */
+  function handleAuthResult(result: AuthResponse, email: string) {
+    if (result.ChallengeName === 'NEW_PASSWORD_REQUIRED' || result.ChallengeName === 'SOFTWARE_TOKEN_MFA') {
+      if (!result.Session) {
+        popup.error('Unexpected response from server. Please try again.');
+        return;
+      }
+      newPwForm.reset();
+      mfaForm.reset();
+      setChallenge({
+        kind: result.ChallengeName === 'SOFTWARE_TOKEN_MFA' ? 'mfa' : 'new_password',
+        session: result.Session,
+        email: result.email ?? email,
+      });
+      return;
+    }
+    if (result.ChallengeName) {
+      // MFA_SETUP and friends: only offered when the pool requires MFA, which it does not.
+      setChallenge(null);
+      popup.error(result.message || 'This account needs a sign-in step the portal cannot complete. Contact your administrator.');
+      return;
+    }
+    if (!result.token) {
+      popup.error('Login failed: no session token received.');
+      return;
+    }
+    completeLogin(result);
+  }
 
   const onLoginSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
+    setSignOutReason(null);
     try {
-      const result = await authService.login(data);
-
-      if (result.ChallengeName === 'NEW_PASSWORD_REQUIRED') {
-        if (!result.Session) {
-          popup.error('Unexpected response from server. Please try again.');
-          return;
-        }
-        setChallenge({ session: result.Session, email: result.email ?? data.email });
-        return;
-      }
-
-      if (!result.token) {
-        popup.error('Login failed: no session token received.');
-        return;
-      }
-
-      completeLogin(result);
+      handleAuthResult(await authService.login(data), data.email);
     } catch (err: any) {
       const status = err?.response?.status;
       const backendMsg = err?.backendMessage ?? err?.response?.data?.error ?? err?.response?.data?.message;
-      console.error('[LOGIN] failed — status:', status, 'body:', err?.response?.data);
+      console.error('[LOGIN] failed — status:', status);
 
-      // Diagnose specific backend configuration issues
       const rawError = String(backendMsg ?? '');
       const isCognitoMisconfigured =
         rawError.includes('ResourceNotFoundException') ||
@@ -97,17 +127,11 @@ export default function LoginPage() {
         rawError.includes('User pool client');
 
       if (isCognitoMisconfigured) {
-        console.error(
-          '[LOGIN] ── DIAGNOSIS: The Cognito User Pool Client ID configured on the backend Lambda does not exist.\n' +
-          '   This is an AWS backend configuration issue, NOT a frontend problem.\n' +
-          '   Fix: Go to AWS Console → Cognito → User Pool → App clients and verify the client ID.\n' +
-          '   Then update the Lambda environment variable (e.g. COGNITO_CLIENT_ID) with the correct value.'
-        );
+        console.error('[LOGIN] The Cognito User Pool Client configured on the backend does not exist. Check the Lambda environment.');
         popup.error('Backend misconfiguration: Cognito User Pool Client not found. Contact your administrator.');
       } else if (status === 401) {
         popup.error('Invalid email or password.');
       } else if (status === 500) {
-        console.error('[LOGIN] ── Backend 500 error. Raw message:', rawError);
         popup.error(backendMsg || 'Server error. Please try again later or contact support.');
       } else {
         popup.error(backendMsg || 'Login failed. Please try again.');
@@ -126,16 +150,9 @@ export default function LoginPage() {
         session: challenge.session,
         newPassword: data.newPassword,
       });
-      if (!result.token) {
-        console.warn('[CHALLENGE] No token in response — cannot complete login');
-        popup.error('Password set, but no token received. Please log in again.');
-        setChallenge(null);
-        return;
-      }
-      popup.success('Password set! Logging you in…');
-      completeLogin(result);
+      // Setting a first password can itself be followed by a code request.
+      handleAuthResult(result, challenge.email);
     } catch (err: any) {
-      console.error('[CHALLENGE] HTTP status:', err?.response?.status, err?.response?.data);
       const msg = err?.response?.data?.error ?? err?.response?.data?.message ?? err?.message ?? 'Unknown error';
       popup.error(`Failed to set password: ${msg}`);
     } finally {
@@ -143,20 +160,24 @@ export default function LoginPage() {
     }
   };
 
-  const onRegisterSubmit = async (data: RegisterFormData) => {
+  const onMfaSubmit = async (data: MfaFormData) => {
+    if (!challenge) return;
     setIsLoading(true);
     try {
-      await authService.register({ name: data.name, email: data.email, password: data.password });
-      popup.success('Account created! Please sign in.');
-      loginForm.setValue('email', data.email);
-      registerForm.reset();
-      setMode('login');
+      const result = await authService.respondMfa({
+        email: challenge.email,
+        session: challenge.session,
+        code: data.code,
+      });
+      handleAuthResult(result, challenge.email);
     } catch (err: any) {
-      const status = err?.response?.status;
-      const body = err?.response?.data;
-      console.error('[REGISTER] caught error — status:', status, 'body:', body);
-      const msg = body?.error ?? body?.message ?? err?.message ?? 'Unknown error';
-      popup.error(`Registration failed (${status ?? 'no status'}): ${msg}`);
+      const msg = err?.backendMessage ?? err?.response?.data?.error;
+      if (err?.response?.status === 401 && /expired/i.test(String(msg ?? ''))) {
+        // The Cognito session behind this step lasts minutes; start again.
+        setChallenge(null);
+      }
+      popup.error(msg || 'That code was not accepted. Please try again.');
+      mfaForm.reset();
     } finally {
       setIsLoading(false);
     }
@@ -164,58 +185,27 @@ export default function LoginPage() {
 
   const onGoogleCredential = async (idToken: string) => {
     setIsLoading(true);
+    setSignOutReason(null);
     try {
-      const result = await authService.loginWithGoogle(idToken);
-      completeLogin(result);
+      handleAuthResult(await authService.loginWithGoogle(idToken), '');
     } catch (err: any) {
       const status = err?.response?.status;
       const body = err?.response?.data;
       const backendMsg = err?.backendMessage ?? body?.message ?? body?.error;
-      console.error('[GOOGLE-LOGIN] ── Step 4: Backend returned ERROR ❌', {
-        status,
-        body,
-        backendMsg,
-        fullError: err?.message,
-      });
+      console.error('[GOOGLE-LOGIN] failed — status:', status);
 
-      // Diagnose specific backend configuration issues
       const rawError = String(backendMsg ?? '');
-      const isCognitoMisconfigured =
-        rawError.includes('ResourceNotFoundException') ||
-        rawError.includes('does not exist') ||
-        rawError.includes('User pool client');
-      const isSessionIssueFailed = rawError.includes('Failed to issue session');
-
-      if (isCognitoMisconfigured) {
-        console.error(
-          '[GOOGLE-LOGIN] ── DIAGNOSIS: Cognito User Pool Client is missing/deleted.\n' +
-          '   The Lambda tried to create a Cognito session after verifying the Google token,\n' +
-          '   but the User Pool Client ID it\'s configured with does not exist.\n' +
-          '   Fix: AWS Console → Cognito → User Pool → App clients → copy correct client ID → update Lambda env var.'
-        );
+      if (rawError.includes('ResourceNotFoundException') || rawError.includes('does not exist') || rawError.includes('User pool client')) {
         popup.error('Backend misconfiguration: Cognito User Pool Client not found. Contact your administrator.');
-      } else if (isSessionIssueFailed) {
-        console.error(
-          '[GOOGLE-LOGIN] ── DIAGNOSIS: Google token was verified OK, but the Lambda failed to create a Cognito session.\n' +
-          '   Likely causes:\n' +
-          '   1. The Cognito User Pool Client ID on the Lambda is wrong or deleted\n' +
-          '   2. The user (manikanta@araisolution.com) does not exist in the Cognito User Pool\n' +
-          '   3. The Lambda\'s IAM role lacks cognito-idp:AdminInitiateAuth permission\n' +
-          '   Check the Lambda\'s CloudWatch logs for the full stack trace.'
-        );
+      } else if (rawError.includes('Failed to issue session')) {
         popup.error('Google sign-in failed. Please try again, or sign in with your email and password.');
       } else if (status === 501) {
-        console.error('[GOOGLE-LOGIN] ── Diagnosis: GOOGLE_CLIENT_ID is not set on the Lambda. Ask your backend admin to add it.');
         popup.error('Google sign-in is not enabled yet. Please sign in with your email and password.');
       } else if (status === 403) {
-        console.error('[GOOGLE-LOGIN] ── Diagnosis: This Google email is NOT registered as a staff member in Cognito.',
-          'Ask an administrator to invite this email from the Staff page before signing in with Google.');
         popup.error(backendMsg || 'This Google account is not registered. Ask your administrator to invite you first.');
       } else if (status === 401) {
-        console.error('[GOOGLE-LOGIN] ── Diagnosis: Lambda could not verify the Google token. Check that GOOGLE_CLIENT_ID on Lambda matches NEXT_PUBLIC_GOOGLE_CLIENT_ID in .env.local.');
         popup.error(backendMsg ?? 'Google token verification failed. Please try again.');
       } else {
-        console.error('[GOOGLE-LOGIN] ── Unhandled error. Status:', status, 'Message:', rawError);
         popup.error(backendMsg ?? getFriendlyErrorMessage(err, 'Google sign-in failed.'));
       }
     } finally {
@@ -223,12 +213,13 @@ export default function LoginPage() {
     }
   };
 
-  function completeLogin(result: Awaited<ReturnType<typeof authService.login>>) {
+  function completeLogin(result: AuthResponse) {
     // Only the official staff roles (constants/roles.ts) get in. The backend 403s every other
     // role (patient, a blank role, or an old value like "manager"), so letting the session
     // through would land them on a dashboard where nothing loads.
     if (!isKnownRole(result.user.role)) {
       console.warn('[COMPLETE-LOGIN] ── BLOCKED: unrecognised role', result.user.role);
+      setChallenge(null);
       popup.error(
         (result.user.role as string) === 'patient'
           ? 'This portal is for staff only.'
@@ -247,6 +238,18 @@ export default function LoginPage() {
     window.location.href = '/dashboard';
   }
 
+  const backToLogin = (
+    <Button
+      type="button"
+      variant="ghost"
+      className="w-full text-sm"
+      onClick={() => setChallenge(null)}
+      disabled={isLoading}
+    >
+      ← Back to login
+    </Button>
+  );
+
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <motion.div
@@ -262,64 +265,78 @@ export default function LoginPage() {
             </div>
             <AnimatePresence mode="wait">
               {challenge ? (
-                <motion.div key="challenge" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                <motion.div key={`challenge-${challenge.kind}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
                   <div className="mb-2 flex justify-center">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <KeyRound className="h-5 w-5 text-primary" />
+                      {challenge.kind === 'mfa'
+                        ? <ShieldCheck className="h-5 w-5 text-primary" />
+                        : <KeyRound className="h-5 w-5 text-primary" />}
                     </div>
                   </div>
-                  <h1 className="text-2xl font-semibold tracking-tight">Set your password</h1>
+                  <h1 className="text-2xl font-semibold tracking-tight">
+                    {challenge.kind === 'mfa' ? 'Two-factor authentication' : 'Set your password'}
+                  </h1>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    You received a temporary password. Create a permanent one to continue.
+                    {challenge.kind === 'mfa'
+                      ? 'Enter the 6-digit code from your authenticator app.'
+                      : 'You received a temporary password. Create a permanent one to continue.'}
                   </p>
                 </motion.div>
               ) : (
                 <motion.div key="header" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                  <h1 className="text-2xl font-semibold tracking-tight">
-                    {mode === 'register' ? 'Create your account' : 'Welcome back'}
-                  </h1>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {mode === 'register'
-                      ? 'Sign up for your EntryFlow Admin account'
-                      : 'Sign in to your EntryFlow Admin account'}
-                  </p>
+                  <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+                  <p className="mt-1 text-sm text-muted-foreground">Sign in to your EntryFlow Admin account</p>
                 </motion.div>
               )}
             </AnimatePresence>
-
-            {!challenge && SHOW_GOOGLE_AND_REGISTER && (
-              <div className="mx-auto mt-5 flex w-full max-w-[280px] rounded-full bg-muted p-1">
-                <button
-                  type="button"
-                  onClick={() => setMode('login')}
-                  disabled={isLoading}
-                  className={`flex-1 rounded-full py-1.5 text-sm font-medium transition-colors ${
-                    mode === 'login'
-                      ? 'bg-card text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Sign in
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMode('register')}
-                  disabled={isLoading}
-                  className={`flex-1 rounded-full py-1.5 text-sm font-medium transition-colors ${
-                    mode === 'register'
-                      ? 'bg-card text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Create account
-                </button>
-              </div>
-            )}
           </CardHeader>
 
           <CardContent className="pt-6">
+            {signOutReason && !challenge && (
+              <Alert variant="destructive" className="mb-5">
+                <AlertDescription>{signOutReason}</AlertDescription>
+              </Alert>
+            )}
             <AnimatePresence mode="wait">
-              {challenge ? (
+              {challenge?.kind === 'mfa' ? (
+                <motion.form
+                  key="mfa-form"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  onSubmit={mfaForm.handleSubmit(onMfaSubmit)}
+                  className="space-y-4"
+                >
+                  <p className="text-sm text-muted-foreground">
+                    Signing in as <span className="font-medium text-foreground">{challenge.email}</span>
+                  </p>
+                  <div className="space-y-2">
+                    <Label htmlFor="mfa-code">Authentication code</Label>
+                    <Input
+                      id="mfa-code"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      placeholder="123456"
+                      className="text-center text-lg tracking-[0.4em]"
+                      autoFocus
+                      {...mfaForm.register('code')}
+                      disabled={isLoading}
+                    />
+                    {mfaForm.formState.errors.code && (
+                      <p className="text-sm text-destructive">{mfaForm.formState.errors.code.message}</p>
+                    )}
+                  </div>
+                  <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Verify &amp; Sign In
+                  </Button>
+                  <p className="text-center text-xs text-muted-foreground">
+                    Lost your phone? Ask your administrator to reset your account.
+                  </p>
+                  {backToLogin}
+                </motion.form>
+              ) : challenge?.kind === 'new_password' ? (
                 <motion.form
                   key="new-password-form"
                   initial={{ opacity: 0, x: 20 }}
@@ -361,100 +378,8 @@ export default function LoginPage() {
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Set Password &amp; Sign In
                   </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="w-full text-sm"
-                    onClick={() => setChallenge(null)}
-                    disabled={isLoading}
-                  >
-                    ← Back to login
-                  </Button>
+                  {backToLogin}
                 </motion.form>
-              ) : mode === 'register' && SHOW_GOOGLE_AND_REGISTER ? (
-                <motion.div
-                  key="register-form"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-5"
-                >
-                  <GoogleSignInButton onCredential={onGoogleCredential} disabled={isLoading} text="signup_with" />
-
-                  <div className="flex items-center gap-3">
-                    <div className="h-px flex-1 bg-border" />
-                    <span className="text-xs uppercase tracking-wide text-muted-foreground">or continue with email</span>
-                    <div className="h-px flex-1 bg-border" />
-                  </div>
-
-                  <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full name</Label>
-                      <div className="relative">
-                        <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="name"
-                          type="text"
-                          placeholder="Jane Doe"
-                          className="pl-9"
-                          {...registerForm.register('name')}
-                          disabled={isLoading}
-                        />
-                      </div>
-                      {registerForm.formState.errors.name && (
-                        <p className="text-sm text-destructive">{registerForm.formState.errors.name.message}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-email">Email</Label>
-                      <div className="relative">
-                        <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                        <Input
-                          id="reg-email"
-                          type="email"
-                          placeholder="admin@entryflow.com"
-                          className="pl-9"
-                          {...registerForm.register('email')}
-                          disabled={isLoading}
-                        />
-                      </div>
-                      {registerForm.formState.errors.email && (
-                        <p className="text-sm text-destructive">{registerForm.formState.errors.email.message}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-password">Password</Label>
-                      <PasswordInput
-                        showLeftIcon
-                        id="reg-password"
-                        placeholder="Min. 8 characters"
-                        {...registerForm.register('password')}
-                        disabled={isLoading}
-                      />
-                      {registerForm.formState.errors.password && (
-                        <p className="text-sm text-destructive">{registerForm.formState.errors.password.message}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="reg-confirm">Confirm password</Label>
-                      <PasswordInput
-                        showLeftIcon
-                        id="reg-confirm"
-                        placeholder="Re-enter password"
-                        {...registerForm.register('confirm')}
-                        disabled={isLoading}
-                      />
-                      {registerForm.formState.errors.confirm && (
-                        <p className="text-sm text-destructive">{registerForm.formState.errors.confirm.message}</p>
-                      )}
-                    </div>
-                    <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-                      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      <Sparkles className="mr-1 h-4 w-4" />
-                      Create account
-                    </Button>
-                  </form>
-                </motion.div>
               ) : (
                 <motion.div
                   key="login-form"
@@ -463,7 +388,7 @@ export default function LoginPage() {
                   exit={{ opacity: 0, x: 20 }}
                   className="space-y-5"
                 >
-                  {SHOW_GOOGLE_AND_REGISTER && (
+                  {GOOGLE_ENABLED && (
                     <>
                       <GoogleSignInButton onCredential={onGoogleCredential} disabled={isLoading} text="signin_with" />
 
@@ -516,6 +441,9 @@ export default function LoginPage() {
                       Sign in
                     </Button>
                   </form>
+                  <p className="text-center text-xs text-muted-foreground">
+                    Accounts are created by your administrator. Check your email for an invitation.
+                  </p>
                 </motion.div>
               )}
             </AnimatePresence>

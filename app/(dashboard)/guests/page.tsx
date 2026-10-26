@@ -45,7 +45,7 @@ import { personDeleteWarning } from '@/lib/person-delete';
 import { guestService } from '@/services/guest.service';
 import type { CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
 import { guestCategories, guestCategoryBadgeClass, QUERY_KEYS } from '@/constants';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 import {
   cn, formatDate, formatCheckInTimestamp, getInitials, exportToCSV, getFriendlyErrorMessage, toLocalDateInput,
 } from '@/lib/utils';
@@ -71,6 +71,8 @@ export default function GuestsPage() {
 
 function GuestsPageInner() {
   const t = useTerminology();
+  // Delete, bulk delete, import and export are an administrator's (the API refuses the rest).
+  const { isAdmin } = usePermissions();
   const industry = t.slug;
   const router = useRouter();
   const pathname = usePathname();
@@ -288,15 +290,19 @@ function GuestsPageInner() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem className="cursor-pointer" onClick={() => setImportOpen(true)}>
-                <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
-                Import from CSV
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer" onClick={handleExport} disabled={isExporting}>
-                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                Export to CSV
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              {isAdmin && (
+                <>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => setImportOpen(true)}>
+                    <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Import from CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer" onClick={handleExport} disabled={isExporting}>
+                    <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Export to CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                </>
+              )}
               <DropdownMenuItem className="cursor-pointer" onClick={() => router.push('/registrations')}>
                 <ClipboardList className="mr-2 h-4 w-4" aria-hidden="true" />
                 Registrations
@@ -331,7 +337,7 @@ function GuestsPageInner() {
             </SelectContent>
           </Select>
         </div>
-        {selectedIds.size > 0 && (
+        {isAdmin && selectedIds.size > 0 && (
           <div className="flex flex-wrap items-center gap-3 border-b border-primary/30 bg-primary/5 px-4 py-2.5">
             <p className="text-sm font-medium">
               {selectedIds.size} {selectedIds.size === 1 ? t.person.one.toLowerCase() : t.person.many.toLowerCase()} selected
@@ -382,13 +388,15 @@ function GuestsPageInner() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-10 pr-0">
-                      <Checkbox
-                        checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
-                        onCheckedChange={(v) => toggleAll(v === true)}
-                        aria-label={`Select all ${t.person.many.toLowerCase()} on this page`}
-                      />
-                    </TableHead>
+                    {isAdmin && (
+                      <TableHead className="w-10 pr-0">
+                        <Checkbox
+                          checked={allOnPageSelected ? true : someOnPageSelected ? 'indeterminate' : false}
+                          onCheckedChange={(v) => toggleAll(v === true)}
+                          aria-label={`Select all ${t.person.many.toLowerCase()} on this page`}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>{t.person.one}</TableHead>
                     <TableHead className="hidden sm:table-cell">Contact</TableHead>
                     <TableHead>Category</TableHead>
@@ -402,13 +410,15 @@ function GuestsPageInner() {
                     const id = getGuestId(g);
                     return (
                       <TableRow key={id} data-state={selectedIds.has(id) ? 'selected' : undefined}>
-                        <TableCell className="w-10 pr-0">
-                          <Checkbox
-                            checked={selectedIds.has(id)}
-                            onCheckedChange={(v) => toggleOne(id, v === true)}
-                            aria-label={`Select ${g.name || 'guest'}`}
-                          />
-                        </TableCell>
+                        {isAdmin && (
+                          <TableCell className="w-10 pr-0">
+                            <Checkbox
+                              checked={selectedIds.has(id)}
+                              onCheckedChange={(v) => toggleOne(id, v === true)}
+                              aria-label={`Select ${g.name || 'guest'}`}
+                            />
+                          </TableCell>
+                        )}
                         <TableCell>
                           <button
                             className="flex items-center gap-3 text-left hover:underline"
@@ -487,10 +497,14 @@ function GuestsPageInner() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => setEnrollTarget(g)}>
                                 <ScanFace className="mr-2 h-4 w-4" /> {g.avatar ? 'Re-enroll Face' : 'Enroll Face'}
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(g)}>
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                              {isAdmin && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(g)}>
+                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  </DropdownMenuItem>
+                                </>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

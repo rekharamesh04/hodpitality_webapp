@@ -32,7 +32,7 @@ import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer }
 import { customerService } from '@/services/customer.service';
 import type { Customer, CreateCustomerPayload, UpdateCustomerPayload } from '@/services/customer.service';
 import { customerTiers, tierBadgeClass } from '@/constants';
-import { useIndustry, useTerminology } from '@/hooks';
+import { useIndustry, usePermissions, useTerminology } from '@/hooks';
 import { cn, formatDate, formatCurrency, getInitials, exportToCSV, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 
 function getCustomerId(c: Customer): string {
@@ -55,6 +55,8 @@ export default function CustomersPage() {
 
 function CustomersPageInner() {
   const t = useTerminology();
+  // Export and delete are an administrator's (the API refuses the rest).
+  const { isAdmin } = usePermissions();
   const industry = useIndustry();
   const router = useRouter();
   const pathname = usePathname();
@@ -210,10 +212,12 @@ function CustomersPageInner() {
             <ScanFace className="mr-2 h-4 w-4" aria-hidden="true" />
             Find by face
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} loading={isExporting}>
-            {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
-            Export
-          </Button>
+          {isAdmin && (
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting} loading={isExporting}>
+              {!isExporting && <Download className="mr-2 h-4 w-4" aria-hidden="true" />}
+              Export
+            </Button>
+          )}
           <Button size="sm" onClick={openCreate}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Add {t.account.one}
@@ -346,9 +350,11 @@ function CustomersPageInner() {
                             <DropdownMenuItem className="cursor-pointer" onClick={() => openEdit(c)}>
                               <Pencil className="mr-2 h-4 w-4" /> Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(c)}>
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </DropdownMenuItem>
+                            {isAdmin && (
+                              <DropdownMenuItem className="cursor-pointer text-destructive" onClick={() => setDeleteTarget(c)}>
+                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>

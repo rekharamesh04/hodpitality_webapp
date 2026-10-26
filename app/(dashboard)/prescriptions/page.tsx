@@ -24,7 +24,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
 import { PrescriptionFormDialog } from '@/components/dialogs/PrescriptionFormDialog';
 import { usePrescriptions, useDeletePrescription } from '@/hooks/usePrescriptions';
-import { useTerminology } from '@/hooks';
+import { usePermissions, useTerminology } from '@/hooks';
 import { useActionParam } from '@/hooks/useActionParam';
 import { PRESCRIPTION_QUEUES } from '@/constants/prescription';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials, getRelativeTime } from '@/lib/utils';
@@ -54,6 +54,7 @@ export default function PrescriptionsPage() {
 
 function PrescriptionsPageInner() {
   const t = useTerminology();
+  const { isAdmin } = usePermissions();
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -310,12 +311,14 @@ function PrescriptionsPageInner() {
                               <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/prescriptions/${p.id}`)}>
                                 <Eye className="mr-2 h-4 w-4" /> Open
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                className="cursor-pointer text-destructive focus:text-destructive"
-                                onClick={() => setToDelete(p)}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" /> Delete
-                              </DropdownMenuItem>
+                              {isAdmin && (
+                                <DropdownMenuItem
+                                  className="cursor-pointer text-destructive focus:text-destructive"
+                                  onClick={() => setToDelete(p)}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>

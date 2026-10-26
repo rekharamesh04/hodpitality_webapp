@@ -22,7 +22,9 @@ import {
   useUpdateOrganisation,
   useUpdateNotificationPrefs,
   useChangePassword,
+  useMfaStatus,
 } from '@/hooks/useSettings';
+import { TwoFactorCard } from '@/components/settings/TwoFactorCard';
 
 export default function SettingsPage() {
   const t = useTerminology();
@@ -95,7 +97,9 @@ export default function SettingsPage() {
 
   // ── Password ─────────────────────────────────────────────────────────────
   const changePassword = useChangePassword();
-  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
+  // With two-factor on, the backend signs in again to change the password, so it needs a code too.
+  const mfaOn = !!useMfaStatus().data?.mfaEnabled;
+  const [pwForm, setPwForm] = useState({ currentPassword: '', newPassword: '', confirm: '', mfaCode: '' });
   const [pwError, setPwError] = useState('');
 
   function handlePasswordSave() {
@@ -112,9 +116,16 @@ export default function SettingsPage() {
     if (pwForm.newPassword !== pwForm.confirm) {
       return setPwError('New passwords do not match.');
     }
+    if (mfaOn && !/^\d{6}$/.test(pwForm.mfaCode)) {
+      return setPwError('Enter the 6-digit code from your authenticator app.');
+    }
     changePassword.mutate(
-      { currentPassword: pwForm.currentPassword, newPassword: pwForm.newPassword },
-      { onSuccess: () => setPwForm({ currentPassword: '', newPassword: '', confirm: '' }) }
+      {
+        currentPassword: pwForm.currentPassword,
+        newPassword: pwForm.newPassword,
+        ...(mfaOn ? { mfaCode: pwForm.mfaCode } : {}),
+      },
+      { onSuccess: () => setPwForm({ currentPassword: '', newPassword: '', confirm: '', mfaCode: '' }) }
     );
   }
 
@@ -318,6 +329,21 @@ export default function SettingsPage() {
                   onChange={(e) => setPwForm((p) => ({ ...p, confirm: e.target.value }))}
                 />
               </div>
+              {mfaOn && (
+                <div className="space-y-2">
+                  <Label htmlFor="pw-mfa">Authenticator code</Label>
+                  <Input
+                    id="pw-mfa"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    placeholder="123456"
+                    className="max-w-[10rem] tracking-[0.3em]"
+                    value={pwForm.mfaCode}
+                    onChange={(e) => setPwForm((p) => ({ ...p, mfaCode: e.target.value.replace(/\D/g, '') }))}
+                  />
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>
               {pwError && <p role="alert" className="text-sm text-destructive">{pwError}</p>}
               <Button onClick={handlePasswordSave} loading={changePassword.isPending}>
@@ -325,6 +351,7 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+          <TwoFactorCard />
         </TabsContent>
       </Tabs>
     </div>
