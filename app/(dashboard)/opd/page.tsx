@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  AlertTriangle, Activity, Clock, CreditCard, HeartPulse, LogIn, Megaphone, MonitorPlay, NotebookPen, Pill, Plus,
+  AlertTriangle, Activity, Clock, CreditCard, HeartPulse, LogIn, LogOut, Megaphone, MonitorPlay, NotebookPen, Pill, Plus,
   Receipt, RefreshCw, ScanFace, Stethoscope, UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ import { WaitingRoomDisplay } from '@/components/opd/WaitingRoomDisplay';
 import { WalkInDialog, type WalkInPatient } from '@/components/opd/WalkInDialog';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCheckIns, useFacialCheckIn } from '@/hooks/useCheckins';
-import { useCallIn, useOpdCheckIn } from '@/hooks/useOpd';
+import { useCallIn, useDeskCheckOut, useOpdCheckIn } from '@/hooks/useOpd';
 import { useBillingSettings } from '@/hooks/usePharmacies';
 import { visitFee } from '@/constants/kiosk';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
@@ -83,6 +83,7 @@ export default function OpdQueuePage() {
   const { data: staff } = useStaff({ limit: 50 });
   const opdCheckIn = useOpdCheckIn();
   const callIn = useCallIn();
+  const deskCheckOut = useDeskCheckOut();
   // A face check-in marks the person's next booking today as arrived — their token —
   // or, with no booking, lists them under "Checked in, no doctor yet".
   const facialCheckIn = useFacialCheckIn();
@@ -351,6 +352,12 @@ export default function OpdQueuePage() {
             onPay={() => setPayOpen(true)}
             onPrescribe={() => setRxOpen(true)}
             onOpenRoom={selected.staffId ? () => router.push(`/consultation?doctor=${selected.staffId}`) : undefined}
+            onSite={onSiteIds.has(selected.customerId || selected.guestId || '')}
+            checkingOut={deskCheckOut.isPending}
+            onCheckOut={() => deskCheckOut.mutate({
+              personId: selected.customerId || selected.guestId || '',
+              name: selected.customerName || selected.guestName,
+            })}
             onOpenRecord={() => router.push(`/guests/${selected.customerId || selected.guestId}`)}
             onPaymentRecords={() => {
               const name = selected.customerName || selected.guestName;
@@ -584,7 +591,8 @@ function QueueRow({
 
 function VisitDetail({
   appointment: a, token, now, isToday, busy, canPrescribe, prescriptions, onOpenPrescription, placeLabel,
-  onClose, onCheckIn, onCallIn, onTriage, onPay, onPrescribe, onOpenRoom, onOpenRecord, onPaymentRecords,
+  onClose, onCheckIn, onCallIn, onTriage, onPay, onPrescribe, onOpenRoom, onSite, checkingOut, onCheckOut,
+  onOpenRecord, onPaymentRecords,
 }: {
   appointment: Appointment;
   token?: number;
@@ -604,6 +612,11 @@ function VisitDetail({
   onPrescribe: () => void;
   /** Open this doctor's Consultation room, where the visit is run. */
   onOpenRoom?: () => void;
+  /** The patient still has an open visit (on site). */
+  onSite: boolean;
+  checkingOut: boolean;
+  /** Close their visit at the desk — they have left. */
+  onCheckOut: () => void;
   onOpenRecord: () => void;
   onPaymentRecords: () => void;
 }) {
@@ -732,6 +745,12 @@ function VisitDetail({
               <CreditCard className="mr-2 h-4 w-4" /> Record payment
             </Button>
           )}
+          {/* Seen and still here: the last step is letting them go. Paid first, as a rule. */}
+          {stage === 'done' && onSite && isToday && (
+            <Button size="sm" variant={unpaid ? 'outline' : 'default'} onClick={onCheckOut} loading={checkingOut}>
+              <LogOut className="mr-2 h-4 w-4" /> Check out
+            </Button>
+          )}
           <Button size="sm" variant="outline" onClick={onOpenRecord}>
             <UserRound className="mr-2 h-4 w-4" /> Patient record
           </Button>
@@ -741,8 +760,11 @@ function VisitDetail({
         </div>
         {stage === 'done' && unpaid && (
           <p className="text-xs text-amber-700 dark:text-amber-400">
-            Consultation over — {formatCurrency(fee.amount)} still to collect.
+            Consultation over — {formatCurrency(fee.amount)} still to collect{onSite ? ', then check them out' : ''}.
           </p>
+        )}
+        {stage === 'done' && !unpaid && !onSite && (
+          <p className="text-xs text-green-700 dark:text-green-400">Visit complete — paid and checked out.</p>
         )}
       </CardContent>
     </Card>

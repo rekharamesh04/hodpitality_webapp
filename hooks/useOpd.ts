@@ -178,3 +178,19 @@ export function useFinishConsultation() {
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not finish the consultation')),
   });
 }
+
+/**
+ * The patient leaves: close their open visit at the desk (the kiosk's "Check out", done for
+ * them). Takes them off "on site" now rather than at the nightly sweep after midnight.
+ */
+export function useDeskCheckOut() {
+  const invalidate = useInvalidateQueue();
+  return useMutation({
+    mutationFn: ({ personId }: { personId: string; name?: string }) => checkInService.checkOutGuest(personId),
+    onSuccess: (_data, { name }) => {
+      invalidate();
+      popup.success(`${name || 'Patient'} checked out`, { description: 'Visit complete.' });
+    },
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not check the patient out')),
+  });
+}
