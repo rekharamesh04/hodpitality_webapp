@@ -48,7 +48,7 @@ describe('the workflow', () => {
     expect(hrefsOf('pharmacy')).toEqual(['/guests', '/calendar', '/prescriptions', '/pickup', '/payments']);
     expect(hrefsOf('wellness')).toEqual(['/guests', '/calendar', '/check-ins', '/treatments', '/hospitality', '/payments']);
     expect(hrefsOf('hospitality')).toEqual(['/guests', '/calendar', '/front-desk', '/hospitality', '/payments']);
-    expect(hrefsOf('healthcare')).toEqual(['/guests', '/opd', '/payments']);
+    expect(hrefsOf('healthcare')).toEqual(['/guests', '/opd', '/consultation', '/payments']);
   });
 
   it('never repeats a page, so "which step am I on" has one answer', () => {

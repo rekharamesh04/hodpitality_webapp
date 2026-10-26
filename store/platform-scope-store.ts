@@ -112,3 +112,21 @@ export function usePlatformMode(): boolean {
   const scope = usePlatformScopeStore((s) => s.scope);
   return isPlatformMode(role, scope);
 }
+
+/**
+ * The organisation the signed-in user is working in: their own, or for a super admin or reseller
+ * the one they have opened (empty in platform mode). Anything kept per organisation on this
+ * device — the reception kiosk's exit PIN — keys on this. Keying it on the login's own tenant left
+ * a super admin, who has none, unable to set a PIN and so unable to leave the kiosk.
+ */
+export function actingTenantOf(role: string | undefined, ownTenant: string | undefined, scope: PlatformScope): string {
+  if (isPlatformRole(role)) return scope.kind === 'company' ? scope.tenantId : '';
+  return ownTenant ?? '';
+}
+
+export function useActingTenant(): string {
+  const role = useAuthStore((s) => s.user?.role);
+  const own = useAuthStore((s) => s.user?.tenant_id);
+  const scope = usePlatformScopeStore((s) => s.scope);
+  return actingTenantOf(role, own, scope);
+}

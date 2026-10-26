@@ -9,6 +9,7 @@ import {
   Hotel,
   CreditCard,
   Stethoscope,
+  NotebookPen,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { industryPack, normalizeIndustry, type IndustryModule, type IndustrySlug } from './industry';
@@ -181,8 +182,17 @@ function buildWorkflow(slug: WorkflowIndustry): WorkflowStep[] {
           href: '/opd',
           label: 'OPD Queue',
           short: 'Queue',
-          description: `Check the ${person} in for a token, record triage, and call them in to the ${t.practitioner.toLowerCase()}.`,
+          description: `Check the ${person} in for a token and record triage. They wait in their ${t.practitioner.toLowerCase()}'s queue.`,
           icon: Stethoscope,
+          module: 'opd',
+        },
+        // The doctor's own screen: the patient in the room, the notes and the prescription in one place.
+        {
+          href: '/consultation',
+          label: 'Consultation',
+          short: 'Consult',
+          description: `The ${t.practitioner.toLowerCase()} calls the next ${person} in, writes the notes and the prescription, and finishes the visit.`,
+          icon: NotebookPen,
           module: 'opd',
         },
         // The visit ends at checkout — the reception kiosk, or the desk — where the fee is taken.

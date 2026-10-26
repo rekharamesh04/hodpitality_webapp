@@ -10,6 +10,7 @@ import { ModuleGate } from '@/components/layout/ModuleGate';
 import { useAuthStore } from '@/store';
 import { useSyncIdentity } from '@/hooks';
 import { isKioskActive } from '@/lib/kiosk-lock';
+import { useActingTenant } from '@/store/platform-scope-store';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -20,7 +21,7 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const { isAuthenticated, isLoading } = useAuthStore();
-  const tenant = useAuthStore((s) => s.user?.tenant_id ?? '');
+  const tenant = useActingTenant();
   // This device is a reception kiosk: the portal stays shut until staff enter the exit PIN there.
   const kioskLocked = !isLoading && isAuthenticated && isKioskActive(tenant);
   // Picks up a reclassification made while this session was open, so the

@@ -144,3 +144,37 @@ export function useWalkIn() {
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not add the walk-in')),
   });
 }
+
+/** Save the doctor's consultation notes onto the visit. Quiet on success: it saves as they type. */
+export function useSaveConsultNotes() {
+  const invalidate = useInvalidateQueue();
+  return useMutation({
+    mutationFn: ({ id, consultNotes }: { id: string; consultNotes: string }) =>
+      appointmentService.updateAppointment(id, { consultNotes }),
+    onSuccess: () => invalidate(),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not save the notes')),
+  });
+}
+
+/**
+ * The doctor is done with this patient. The visit closes as completed and its fee stays owed:
+ * the patient goes on to Payment & checkout, at the desk or the kiosk.
+ */
+export function useFinishConsultation() {
+  const invalidate = useInvalidateQueue();
+  return useMutation({
+    mutationFn: async ({ appointment, consultNotes }: { appointment: Appointment; consultNotes?: string }) => {
+      if (consultNotes !== undefined && consultNotes !== (appointment.consultNotes ?? '')) {
+        await appointmentService.updateAppointment(appointment.id, { consultNotes });
+      }
+      return appointmentService.updateAppointmentStatus(appointment.id, 'completed');
+    },
+    onSuccess: (_data, { appointment }) => {
+      invalidate();
+      popup.success(`${appointment.customerName || appointment.guestName || 'Patient'} — consultation finished`, {
+        description: 'They go to Payment & checkout next.',
+      });
+    },
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not finish the consultation')),
+  });
+}

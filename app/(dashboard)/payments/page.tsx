@@ -40,6 +40,7 @@ import { paymentService } from '@/services/payment.service';
 import { formatDate, formatCurrency, getFriendlyErrorMessage, exportToCSV, toLocalDateInput } from '@/lib/utils';
 import type { Payment, PaymentStatus, PaymentMethodType, Registration } from '@/types';
 import { usePermissions, useTerminology } from '@/hooks';
+import { CheckoutQueue } from '@/components/opd/CheckoutQueue';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -585,6 +586,9 @@ function PaymentsPageInner() {
         or <span className="font-medium text-foreground">Record Payment</span> here — and it also shows on
         that {t.person.one.toLowerCase()}&apos;s profile under Payments.
       </p>
+
+      {/* Hospitals: who the doctor has finished with and still owes the visit fee. */}
+      {t.has('opd') && <CheckoutQueue />}
 
       {/* ─── Stats Row ─── */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">

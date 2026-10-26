@@ -10,6 +10,7 @@ import { LogoMark } from '@/components/brand/LogoMark';
 import { useTerminology } from '@/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/store';
+import { useActingTenant, usePlatformMode } from '@/store/platform-scope-store';
 import { authService } from '@/services/auth.service';
 import {
   KIOSK_PIN_MAX, KIOSK_PIN_MIN, clearKioskPin, isValidKioskPin, kioskPinMatches, readKioskPinHash, saveKioskPin, setKioskActive,
@@ -77,7 +78,9 @@ export default function KioskPage() {
   const router = useRouter();
   const { data: billing } = useBillingSettings();
   const qc = useQueryClient();
-  const tenant = useAuthStore((s) => s.user?.tenant_id ?? '');
+  // The organisation this kiosk serves: the staff member's own, or the one a super admin opened.
+  const tenant = useActingTenant();
+  const platformMode = usePlatformMode();
   const logout = useAuthStore((s) => s.logout);
   const [screen, setScreen] = useState<Screen>({ name: 'idle' });
   const busy = useRef(false);
@@ -240,6 +243,20 @@ export default function KioskPage() {
     logout();
     qc.clear();
     router.push('/login');
+  }
+
+  // A super admin or reseller must open the hospital first: a kiosk serves one front door.
+  if (platformMode || !tenant) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6">
+        <EmptyState
+          icon={ShieldOff}
+          title="Open an organisation first"
+          description="The kiosk serves one hospital's entrance. Open the hospital from Platform overview, then start the kiosk there."
+          action={{ label: 'Back to the portal', onClick: () => router.push('/platform') }}
+        />
+      </div>
+    );
   }
 
   // The kiosk belongs to a hospital's front door, as the OPD queue does.

@@ -573,6 +573,8 @@ export interface Appointment {
   visitPriority?: VisitPriority;
   /** Vitals recorded at triage, stored on the visit. */
   triage?: Triage;
+  /** What the doctor wrote in the consultation: findings, diagnosis, advice. */
+  consultNotes?: string;
   /** Set by the backend when the session is closed as completed or incomplete. */
   sessionClosedAt?: string;
   sessionClosedBy?: string;

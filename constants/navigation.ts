@@ -23,6 +23,7 @@ import {
   Stethoscope,
   Globe2,
   Tablet,
+  NotebookPen,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { DEFAULT_INDUSTRY, industryPack, type IndustryModule } from "./industry";
@@ -126,6 +127,7 @@ function getGroupedNavSections(industry?: unknown): NavSection[] {
         { label: `${t.visit.one} Board`, href: "/treatments", icon: Sparkles, description: `${t.place.one} occupancy, therapists and turnaround`, module: "treatments" },
         { label: "Front Desk", href: "/front-desk", icon: ConciergeBell, description: `Arrivals, departures and ${t.place.one.toLowerCase()} readiness`, module: "frontdesk" },
         { label: "OPD Queue", href: "/opd", icon: Stethoscope, description: `Tokens, triage and each ${t.practitioner.toLowerCase()}'s queue`, module: "opd" },
+        { label: "Consultation room", href: "/consultation", icon: NotebookPen, description: `The ${t.practitioner.toLowerCase()}'s screen: call next, notes, prescription, finish`, module: "opd" },
         { label: "Reception Kiosk", href: "/kiosk", icon: Tablet, description: `Self check-in and checkout by face, on an iPad at the entrance`, module: "opd" },
         { label: "Payments", href: "/payments", icon: CreditCard, description: "Revenue, refunds and statuses", module: "payments" },
         { label: t.visit.many, href: "/calendar", icon: CalendarDays, description: `${t.visit.many} and staff schedule`, module: "appointments" },

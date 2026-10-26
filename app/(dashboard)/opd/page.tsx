@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  AlertTriangle, Activity, Clock, CreditCard, HeartPulse, LogIn, Megaphone, MonitorPlay, Pill, Plus,
+  AlertTriangle, Activity, Clock, CreditCard, HeartPulse, LogIn, Megaphone, MonitorPlay, NotebookPen, Pill, Plus,
   Receipt, RefreshCw, ScanFace, Stethoscope, UserRound,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -135,6 +135,11 @@ export default function OpdQueuePage() {
     [prescriptions, selected],
   );
   const triageFor = rows.find((a) => a.id === triageId) ?? null;
+
+  // The detail card sits under the lanes; bring it into view when a patient is picked.
+  useEffect(() => {
+    if (selectedId) document.getElementById('opd-visit-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [selectedId]);
 
   const scoped = visibleLanes.flatMap((l) => [...l.withDoctor, ...l.waiting, ...l.booked, ...l.done]);
   const waiting = visibleLanes.flatMap((l) => l.waiting);
@@ -319,6 +324,7 @@ export default function OpdQueuePage() {
                 selectedId={selected?.id}
                 onSelect={(a) => setSelectedId(a.id)}
                 onCallNext={() => callNext(lane)}
+                onOpenRoom={() => router.push(`/consultation?doctor=${lane.staffId}`)}
                 canAct={isToday && !busy}
                 practitioner={t.practitioner}
               />
@@ -344,6 +350,7 @@ export default function OpdQueuePage() {
             onTriage={() => setTriageId(selected.id)}
             onPay={() => setPayOpen(true)}
             onPrescribe={() => setRxOpen(true)}
+            onOpenRoom={selected.staffId ? () => router.push(`/consultation?doctor=${selected.staffId}`) : undefined}
             onOpenRecord={() => router.push(`/guests/${selected.customerId || selected.guestId}`)}
             onPaymentRecords={() => {
               const name = selected.customerName || selected.guestName;
@@ -394,7 +401,7 @@ export default function OpdQueuePage() {
 // ── One doctor's lane ────────────────────────────────────────────────────────
 
 function LaneCard({
-  lane, tokens, now, selectedId, onSelect, onCallNext, canAct, practitioner,
+  lane, tokens, now, selectedId, onSelect, onCallNext, onOpenRoom, canAct, practitioner,
 }: {
   lane: OpdLane;
   tokens: Map<string, number>;
@@ -402,6 +409,8 @@ function LaneCard({
   selectedId?: string;
   onSelect: (a: Appointment) => void;
   onCallNext: () => void;
+  /** The doctor's Consultation room: the patient in front of them, notes and prescription. */
+  onOpenRoom: () => void;
   canAct: boolean;
   practitioner: string;
 }) {
@@ -440,7 +449,14 @@ function LaneCard({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">With {practitioner.toLowerCase()}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[11px] font-semibold uppercase tracking-wide text-primary">With {practitioner.toLowerCase()}</p>
+            {lane.staffId && (
+              <Button size="sm" variant="ghost" className="-my-1 h-7 px-2 text-xs text-primary" onClick={onOpenRoom}>
+                <NotebookPen className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" /> Consultation room
+              </Button>
+            )}
+          </div>
           {lane.withDoctor.length === 0 ? (
             <p className="mt-1 text-sm text-muted-foreground">Nobody right now.</p>
           ) : (
@@ -568,7 +584,7 @@ function QueueRow({
 
 function VisitDetail({
   appointment: a, token, now, isToday, busy, canPrescribe, prescriptions, onOpenPrescription, placeLabel,
-  onClose, onCheckIn, onCallIn, onTriage, onPay, onPrescribe, onOpenRecord, onPaymentRecords,
+  onClose, onCheckIn, onCallIn, onTriage, onPay, onPrescribe, onOpenRoom, onOpenRecord, onPaymentRecords,
 }: {
   appointment: Appointment;
   token?: number;
@@ -586,6 +602,8 @@ function VisitDetail({
   onTriage: () => void;
   onPay: () => void;
   onPrescribe: () => void;
+  /** Open this doctor's Consultation room, where the visit is run. */
+  onOpenRoom?: () => void;
   onOpenRecord: () => void;
   onPaymentRecords: () => void;
 }) {
@@ -600,7 +618,7 @@ function VisitDetail({
   const arrived = stage === 'waiting' || stage === 'with_doctor' || stage === 'done';
 
   return (
-    <Card className="border-primary/40">
+    <Card id="opd-visit-detail" className="scroll-mt-24 border-primary/40">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -697,8 +715,13 @@ function VisitDetail({
               <HeartPulse className="mr-2 h-4 w-4" /> {a.triage ? 'Update triage' : 'Triage'}
             </Button>
           )}
+          {stage === 'with_doctor' && onOpenRoom && (
+            <Button size="sm" onClick={onOpenRoom}>
+              <NotebookPen className="mr-2 h-4 w-4" /> Open consultation room
+            </Button>
+          )}
           {canPrescribe && (stage === 'with_doctor' || stage === 'done') && (
-            <Button size="sm" variant={stage === 'with_doctor' ? 'default' : 'outline'} onClick={onPrescribe}>
+            <Button size="sm" variant="outline" onClick={onPrescribe}>
               <Pill className="mr-2 h-4 w-4" /> Write prescription
             </Button>
           )}

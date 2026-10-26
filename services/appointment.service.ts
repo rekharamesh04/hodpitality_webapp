@@ -45,6 +45,8 @@ export interface CreateAppointmentPayload {
  */
 export interface UpdateAppointmentPayload {
   notes?: string;
+  /** The doctor's consultation notes (the Consultation room). */
+  consultNotes?: string;
   room?: string;
   visitPriority?: VisitPriority;
   triage?: Triage;
