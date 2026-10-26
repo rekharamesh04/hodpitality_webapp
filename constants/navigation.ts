@@ -190,11 +190,78 @@ export function getFlatNav(industry?: unknown): NavItem[] {
   return getNavSections(industry).flatMap((s) => s.items);
 }
 
+/** Where a super admin or reseller lands with no organisation open. */
+export const PLATFORM_HOME = "/platform";
+
+/**
+ * The navigation in platform mode (store/platform-scope-store.ts): running the
+ * platform, not a front desk. It is the same for every industry, so adding an
+ * industry never adds to it. Opening an organisation switches to that
+ * organisation's own navigation.
+ */
+function getPlatformNavSections(): NavSection[] {
+  return [
+    {
+      label: "Overview",
+      menuLabel: "Dashboard",
+      items: [
+        { label: "Platform overview", href: PLATFORM_HOME, icon: Globe2, description: "Every organisation, by industry — open one to work in it" },
+      ],
+    },
+    {
+      label: "Organisations",
+      menuLabel: "Admin",
+      items: [
+        { label: "Resellers", href: "/resellers", icon: Building2, description: "Partner organisations", roles: ADMIN_ONLY },
+        { label: "Companies", href: "/companies", icon: Briefcase, description: "Client companies, their industry and admins" },
+        { label: "Staff & admins", href: "/staff", icon: UserCog, description: "Logins across your organisations" },
+      ],
+    },
+    {
+      label: "Insights",
+      menuLabel: "Insights",
+      items: [
+        { label: "Analytics", href: "/analytics", icon: TrendingUp, description: "Trends across your organisations" },
+      ],
+    },
+    {
+      label: "Account",
+      menuLabel: "Account",
+      items: [
+        { label: "Notifications", href: "/notifications", icon: Bell, description: "Alerts and activity inbox" },
+        { label: "Settings", href: "/settings", icon: Settings, description: "Profile and security" },
+      ],
+    },
+  ];
+}
+
+/**
+ * Pages that work in platform mode. Every other page belongs to one
+ * organisation and asks for one to be opened (components/layout/ModuleGate.tsx).
+ */
+const PLATFORM_MODE_PATHS = [
+  PLATFORM_HOME, "/resellers", "/companies", "/staff", "/analytics", "/notifications", "/settings", "/apiresponse",
+];
+
+export function isPlatformModePath(pathname: string): boolean {
+  return PLATFORM_MODE_PATHS.some((href) => isNavItemActive(pathname, href));
+}
+
 /**
  * Sections filtered to what this role and industry may see. Sections left
- * empty are dropped.
+ * empty are dropped. In platform mode the platform's own navigation is shown
+ * instead, whatever the industry.
  */
-export function getVisibleNavSections(role: string | undefined, industry?: unknown): NavSection[] {
+export function getVisibleNavSections(
+  role: string | undefined,
+  industry?: unknown,
+  { platformMode = false }: { platformMode?: boolean } = {},
+): NavSection[] {
+  if (platformMode) {
+    return getPlatformNavSections()
+      .map((section) => ({ ...section, items: section.items.filter((item) => !item.roles || item.roles.includes(role ?? '')) }))
+      .filter((section) => section.items.length > 0);
+  }
   const modules = industryPack(industry ?? DEFAULT_INDUSTRY).modules as readonly IndustryModule[];
   return getNavSections(industry)
     .map((section) => ({

@@ -12,6 +12,7 @@ import {
   CommandSeparator,
 } from '@/components/ui/command';
 import { useAuthStore, useUIStore } from '@/store';
+import { usePlatformMode } from '@/store/platform-scope-store';
 import { getVisibleNavSections } from '@/constants/navigation';
 import type { IndustryModule } from '@/constants/industry';
 import { useTerminology, type Terminology } from '@/hooks';
@@ -41,7 +42,10 @@ export function CommandPalette() {
   const router = useRouter();
   // The same entries the header offers this role in this industry — never an
   // admin-only page to a receptionist, or a module the tenant does not have.
-  const navItems = getVisibleNavSections(role, t.slug).flatMap((section) => section.items);
+  // In platform mode there is no front desk to act at, so no quick actions either.
+  const platformMode = usePlatformMode();
+  const navItems = getVisibleNavSections(role, t.slug, { platformMode }).flatMap((section) => section.items);
+  const actions = platformMode ? [] : quickActions(t);
   const { commandPaletteOpen, closeCommandPalette } = useUIStore();
   const [search, setSearch] = useState('');
 
@@ -84,19 +88,22 @@ export function CommandPalette() {
           })}
         </CommandGroup>
 
-        <CommandSeparator />
-
-        <CommandGroup heading="Quick Actions">
-          {quickActions(t).map((action) => {
-            const Icon = action.icon;
-            return (
-              <CommandItem key={action.href} value={action.label} onSelect={() => handleSelect(action.href)}>
-                <Icon className="mr-2 h-4 w-4" />
-                <span>{action.label}</span>
-              </CommandItem>
-            );
-          })}
-        </CommandGroup>
+        {actions.length > 0 && (
+          <>
+            <CommandSeparator />
+            <CommandGroup heading="Quick Actions">
+              {actions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <CommandItem key={action.href} value={action.label} onSelect={() => handleSelect(action.href)}>
+                    <Icon className="mr-2 h-4 w-4" />
+                    <span>{action.label}</span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </>
+        )}
       </CommandList>
     </CommandDialog>
   );

@@ -5,6 +5,8 @@ import type { Staff, TableFilters } from '@/types';
 
 export interface StaffFilters extends Omit<TableFilters, 'status'> {
   status?: string;
+  /** Only this role — e.g. company_admin, for listing each organisation's admins. */
+  role?: string;
 }
 
 export interface CreateStaffPayload {
@@ -29,6 +31,7 @@ function buildParams(filters: StaffFilters): URLSearchParams {
   const p = new URLSearchParams();
   if (filters.search) p.set('search', filters.search);
   if (filters.status) p.set('status', filters.status);
+  if (filters.role) p.set('role', filters.role);
   p.set('limit', String(FULL_LIST_LIMIT));
   return p;
 }

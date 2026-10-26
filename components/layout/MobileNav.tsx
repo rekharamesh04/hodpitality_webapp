@@ -4,14 +4,15 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, LayoutDashboard, CheckCircle2, Users, ClipboardList, CreditCard, Menu } from 'lucide-react';
+import { X, LayoutDashboard, CheckCircle2, Users, ClipboardList, CreditCard, Menu, Globe2, Briefcase, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useUIStore } from '@/store';
-import { isNavItemActive } from '@/constants/navigation';
+import { PLATFORM_HOME, isNavItemActive } from '@/constants/navigation';
 import { getWorkflow } from '@/constants/workflow';
 import { industryPack, type IndustryModule } from '@/constants/industry';
 import { useIndustry } from '@/hooks';
+import { usePlatformMode } from '@/store/platform-scope-store';
 import { cn } from '@/lib/utils';
 import { BrandMark, SearchButton, SidebarNav } from '@/components/layout/AppSidebar';
 
@@ -51,6 +52,13 @@ function tabItemsFor(industry: unknown): TabItem[] {
     ...(payments ? [{ label: 'Payments', href: payments.href, icon: CreditCard }] : []),
   ];
 }
+
+/** Platform mode: the platform's own destinations, the same for every industry. */
+const PLATFORM_TABS: TabItem[] = [
+  { label: 'Overview', href: PLATFORM_HOME, icon: Globe2 },
+  { label: 'Companies', href: '/companies', icon: Briefcase },
+  { label: 'Analytics', href: '/analytics', icon: TrendingUp },
+];
 
 /** Slide-out drawer with the full navigation (below the `lg` breakpoint) — the sidebar's list. */
 export function MobileNavDrawer() {
@@ -118,7 +126,8 @@ export function MobileTabBar() {
   const pathname = usePathname();
   const industry = useIndustry();
   const { toggleMobileSidebar } = useUIStore();
-  const tabs = tabItemsFor(industry);
+  const platformMode = usePlatformMode();
+  const tabs = platformMode ? PLATFORM_TABS : tabItemsFor(industry);
 
   return (
     <nav

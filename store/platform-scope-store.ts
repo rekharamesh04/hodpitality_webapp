@@ -39,6 +39,20 @@ export function scopeIndustry(role: string | undefined, scope: PlatformScope): I
   return scope.industry;
 }
 
+/**
+ * A super admin or reseller with no single organisation open.
+ *
+ * Their work here is the platform: organisations, resellers, admins, numbers.
+ * The day-to-day screens (check-ins, prescriptions, bookings…) belong to one
+ * organisation and its industry, so they appear only once one is opened —
+ * listing every industry's screens at once, in no industry's words, read as a
+ * menu for a business that does not exist. Viewing a whole industry is still
+ * platform mode: it narrows the lists, it opens no front desk.
+ */
+export function isPlatformMode(role: string | undefined, scope: PlatformScope): boolean {
+  return isPlatformRole(role) && scope.kind !== 'company';
+}
+
 /** A stable string for "did the scope change" checks. */
 export function scopeKey(scope: PlatformScope): string {
   if (scope.kind === 'company') return `company:${scope.tenantId}`;
@@ -90,4 +104,11 @@ if (typeof window !== 'undefined') {
   useAuthStore.subscribe((state, prev) => {
     if (prev.user?.id && state.user?.id !== prev.user.id) usePlatformScopeStore.getState().clear();
   });
+}
+
+/** Whether the signed-in user is in platform mode (see isPlatformMode). */
+export function usePlatformMode(): boolean {
+  const role = useAuthStore((s) => s.user?.role);
+  const scope = usePlatformScopeStore((s) => s.scope);
+  return isPlatformMode(role, scope);
 }

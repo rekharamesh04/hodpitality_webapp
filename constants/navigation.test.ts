@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { moduleForPath } from './navigation';
+import { getVisibleNavSections, isPlatformModePath, moduleForPath } from './navigation';
+import { INDUSTRY_SLUGS } from './industry';
 
 describe('the module a page belongs to', () => {
   it('covers every module page and its detail pages', () => {
@@ -25,5 +26,40 @@ describe('the module a page belongs to', () => {
 
   it('does not match a route that merely shares a prefix', () => {
     expect(moduleForPath('/eventsfoo')).toBeUndefined();
+  });
+});
+
+describe('the platform navigation', () => {
+  const hrefs = (role: string, industry: string) =>
+    getVisibleNavSections(role, industry, { platformMode: true }).flatMap((s) => s.items.map((i) => i.href));
+
+  it('offers no daily-work screen, in any industry', () => {
+    for (const industry of INDUSTRY_SLUGS) {
+      for (const href of hrefs('super_admin', industry)) expect(isPlatformModePath(href)).toBe(true);
+      expect(hrefs('super_admin', industry)).not.toContain('/check-ins');
+    }
+  });
+
+  it('is the same for every industry, so adding one never changes it', () => {
+    const first = hrefs('super_admin', INDUSTRY_SLUGS[0]);
+    for (const industry of INDUSTRY_SLUGS) expect(hrefs('super_admin', industry)).toEqual(first);
+  });
+
+  it('keeps Resellers with the super admin', () => {
+    expect(hrefs('super_admin', 'healthcare')).toContain('/resellers');
+    expect(hrefs('reseller', 'healthcare')).not.toContain('/resellers');
+  });
+
+  it('gives an opened hospital its own screens', () => {
+    const opened = getVisibleNavSections('super_admin', 'healthcare').flatMap((s) => s.items.map((i) => i.href));
+    expect(opened).toContain('/opd');
+    expect(opened).not.toContain('/treatments');
+  });
+
+  it('tells platform pages from one organisation’s pages', () => {
+    expect(isPlatformModePath('/companies')).toBe(true);
+    expect(isPlatformModePath('/staff/abc')).toBe(true);
+    expect(isPlatformModePath('/guests')).toBe(false);
+    expect(isPlatformModePath('/dashboard')).toBe(false);
   });
 });

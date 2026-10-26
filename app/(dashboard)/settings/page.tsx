@@ -25,6 +25,7 @@ import {
   useMfaStatus,
 } from '@/hooks/useSettings';
 import { TwoFactorCard } from '@/components/settings/TwoFactorCard';
+import { usePlatformMode } from '@/store/platform-scope-store';
 
 export default function SettingsPage() {
   const t = useTerminology();
@@ -32,13 +33,19 @@ export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
   // Organisation settings belong to the whole hospital — admins only (the backend enforces this too).
-  const canEditOrg = canManageStaff(user?.role);
+  // Organisation settings belong to one organisation: a super admin or reseller opens it first.
+  const platformMode = usePlatformMode();
+  const canEditOrg = canManageStaff(user?.role) && !platformMode;
   // ?tab=organization opens a tab directly (the dashboard's timezone reminder links there).
   const [tab, setTab] = useState('general');
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get('tab');
     if (wanted && (wanted !== 'organization' || canEditOrg)) setTab(wanted);
   }, [canEditOrg]);
+  // Leaving an organisation while on its tab returns to General rather than an empty tab.
+  useEffect(() => {
+    if (!canEditOrg && tab === 'organization') setTab('general');
+  }, [canEditOrg, tab]);
 
   // ── Profile ──────────────────────────────────────────────────────────────
   const profileQuery = useSettingsProfile();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALL_ORGANISATIONS, sanitizeScope, scopeIndustry, scopeKey, scopeQueryParams, type PlatformScope } from './platform-scope-store';
+import { ALL_ORGANISATIONS, isPlatformMode, sanitizeScope, scopeIndustry, scopeKey, scopeQueryParams, type PlatformScope } from './platform-scope-store';
 
 const hospital: PlatformScope = { kind: 'company', tenantId: 'tenant-h1', name: 'City Hospital', industry: 'healthcare' };
 const spas: PlatformScope = { kind: 'industry', industry: 'wellness' };
@@ -31,5 +31,18 @@ describe('the platform scope', () => {
     }
     expect(sanitizeScope(hospital)).toEqual(hospital);
     expect(sanitizeScope({ ...hospital, name: 7 })).toEqual({ ...hospital, name: '' });
+  });
+});
+
+describe('platform mode', () => {
+  it('holds for a platform role until one organisation is opened', () => {
+    expect(isPlatformMode('super_admin', ALL_ORGANISATIONS)).toBe(true);
+    expect(isPlatformMode('reseller', spas)).toBe(true); // a whole industry still opens no front desk
+    expect(isPlatformMode('super_admin', hospital)).toBe(false);
+  });
+
+  it('never applies to an organisation’s own staff', () => {
+    expect(isPlatformMode('company_admin', ALL_ORGANISATIONS)).toBe(false);
+    expect(isPlatformMode('receptionist', ALL_ORGANISATIONS)).toBe(false);
   });
 });

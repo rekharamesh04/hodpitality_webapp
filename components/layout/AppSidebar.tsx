@@ -10,6 +10,12 @@ import { useAuthStore, useUIStore } from '@/store';
 import { useNotifications } from '@/hooks/use-notifications';
 import { getVisibleNavSections, isNavItemActive, type NavItem, type NavSection } from '@/constants/navigation';
 import { useIndustry } from '@/hooks';
+import { useCompanies } from '@/hooks/useCompanies';
+import { PLATFORM_HOME } from '@/constants/navigation';
+import { industryPack, normalizeIndustry } from '@/constants/industry';
+import { industryIcon } from '@/constants/industry-icons';
+import type { Company } from '@/types';
+import { usePlatformMode } from '@/store/platform-scope-store';
 import { cn } from '@/lib/utils';
 
 export function BrandMark({ className, alwaysShowName }: { className?: string; alwaysShowName?: boolean }) {
@@ -74,14 +80,44 @@ function toGroups(sections: NavSection[]): NavGroup[] {
   return [{ items: [inbox] }, ...groups];
 }
 
+/**
+ * Platform mode: one entry per industry that has organisations, most first, each opening that
+ * industry's workspace on the platform overview. Built from the organisations themselves, so a
+ * new industry appears here as soon as its first company exists — no menu change needed.
+ */
+function industryWorkspaces(companies: Company[] | undefined): NavGroup | null {
+  const counts = new Map<string, number>();
+  for (const c of companies ?? []) {
+    if (!c.tenant_id) continue;
+    const slug = normalizeIndustry(c.industry);
+    counts.set(slug, (counts.get(slug) ?? 0) + 1);
+  }
+  if (counts.size === 0) return null;
+  const items: NavItem[] = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || industryPack(a[0]).label.localeCompare(industryPack(b[0]).label))
+    .map(([slug, count]) => ({
+      label: industryPack(slug).label,
+      href: `${PLATFORM_HOME}?industry=${slug}`,
+      icon: industryIcon(slug),
+      badge: count,
+      description: `${industryPack(slug).label} organisations`,
+    }));
+  return { label: 'Industry workspaces', items };
+}
+
 /** The full navigation as a vertical list — the desktop sidebar and the phone drawer both use it. */
 export function SidebarNav() {
   const pathname = usePathname();
   const industry = useIndustry();
   const { user } = useAuthStore();
+  const platformMode = usePlatformMode();
   const { data: notifications } = useNotifications();
   const unreadCount = (notifications ?? []).filter((n) => !n.read).length;
-  const groups = toGroups(getVisibleNavSections(user?.role, industry));
+  const { data: companies } = useCompanies({ enabled: platformMode });
+  const navGroups = toGroups(getVisibleNavSections(user?.role, industry, { platformMode }));
+  const workspaces = platformMode ? industryWorkspaces(companies) : null;
+  // Right under the overview, so each industry is one click from anywhere on the platform.
+  const groups = workspaces ? [navGroups[0], workspaces, ...navGroups.slice(1)] : navGroups;
 
   return (
     <div className="space-y-5">
@@ -94,7 +130,7 @@ export function SidebarNav() {
             {group.items.map((item, i) => {
               const Icon = item.icon;
               const active = isNavItemActive(pathname, item.href);
-              const badge = item.href === '/notifications' ? unreadCount : 0;
+              const badge = item.href === '/notifications' ? unreadCount : item.badge ?? 0;
               return (
                 <li key={item.href} className="relative">
                   {/* The thread joining one step to the next. */}
@@ -127,7 +163,11 @@ export function SidebarNav() {
                     )}
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
                     {item.optional && <span className="text-[10px] text-sidebar-muted">Optional</span>}
-                    {badge > 0 && <Badge className="h-5 px-1.5 text-[10px]">{badge > 99 ? '99+' : badge}</Badge>}
+                    {badge > 0 && (
+                      <Badge variant={item.href === '/notifications' ? 'default' : 'secondary'} className="h-5 px-1.5 text-[10px]">
+                        {badge > 99 ? '99+' : badge}
+                      </Badge>
+                    )}
                   </Link>
                 </li>
               );

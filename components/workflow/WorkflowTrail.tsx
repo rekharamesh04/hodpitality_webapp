@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { getWorkflow, workflowStepIndex } from '@/constants/workflow';
 import { useIndustry } from '@/hooks';
+import { usePlatformMode } from '@/store/platform-scope-store';
 import { cn } from '@/lib/utils';
 
 /**
@@ -22,9 +23,11 @@ import { cn } from '@/lib/utils';
 export function WorkflowContext({ variant, className }: { variant: 'inline' | 'row'; className?: string }) {
   const pathname = usePathname();
   const industry = useIndustry();
+  const platformMode = usePlatformMode();
   const steps = getWorkflow(industry);
   const index = workflowStepIndex(steps, pathname);
-  if (index < 0) return null;
+  // No organisation open, so no day's workflow to be part of.
+  if (index < 0 || platformMode) return null;
 
   const current = steps[index];
   const prev = steps[index - 1];

@@ -13,7 +13,7 @@ import {
   ALL_ORGANISATIONS, scopeKey, usePlatformScopeStore, type PlatformScope,
 } from '@/store/platform-scope-store';
 import { industryHasModule, industryPack, normalizeIndustry, type IndustrySlug } from '@/constants/industry';
-import { moduleForPath } from '@/constants/navigation';
+import { PLATFORM_HOME, isPlatformModePath, moduleForPath } from '@/constants/navigation';
 import { isPlatformRole } from '@/constants/roles';
 import { cn } from '@/lib/utils';
 import type { Company } from '@/types';
@@ -24,8 +24,9 @@ const SEARCH_THRESHOLD = 8;
 /**
  * "Viewing: All organisations ▾" — the super admin's (and reseller's) lens on the platform.
  *
- * Pick an industry to see every company of that kind together, or one company to see the portal
- * exactly as it does, in its words and with its modules. Renders nothing for anyone else.
+ * All organisations, or one industry, is platform mode: the platform's own screens. Opening one
+ * company switches into it — its words, its modules, its daily work — until "Exit to platform".
+ * Renders nothing for anyone else.
  *
  * A strip under the header rather than a button in it: the header row is already full for these
  * roles, and a filtered view must be impossible to forget — every number on the page depends on it.
@@ -59,9 +60,15 @@ export function PlatformScopeSwitcher() {
     setScope(next);
     setOpen(false);
     setSearch('');
-    // A page the chosen industry does not offer would only show "not part of your account".
-    const pageModule = moduleForPath(pathname ?? '');
-    if (pageModule && next.kind !== 'all' && !industryHasModule(next.industry, pageModule)) router.push('/dashboard');
+    const path = pathname ?? '';
+    if (next.kind === 'company') {
+      // Opening an organisation starts at its dashboard, unless this page is one it also has.
+      const pageModule = moduleForPath(path);
+      if (isPlatformModePath(path) || (pageModule && !industryHasModule(next.industry, pageModule))) router.push('/dashboard');
+    } else if (!isPlatformModePath(path)) {
+      // Leaving an organisation: its daily-work screens have nothing to show in platform mode.
+      router.push(PLATFORM_HOME);
+    }
   }
 
   const label = scope.kind === 'company'
@@ -73,7 +80,7 @@ export function PlatformScopeSwitcher() {
   return (
     <div className={cn('border-t', scope.kind !== 'all' && 'bg-primary/5')}>
       <div className="flex h-10 w-full items-center gap-2 px-4 text-xs sm:px-6 lg:px-8">
-        <span className="shrink-0 text-muted-foreground">Viewing</span>
+        <span className="shrink-0 text-muted-foreground">{scope.kind === 'company' ? 'Working in' : 'Viewing'}</span>
         <Popover open={open} onOpenChange={setOpen}>
           <PopoverTrigger asChild>
             <Button
@@ -96,7 +103,8 @@ export function PlatformScopeSwitcher() {
         <div className="border-b p-3">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Viewing</p>
           <p className="text-xs text-muted-foreground">
-            Every page shows only what you pick. Viewing one company, what you add is added to it.
+            Open one company to work inside it, with its own screens. All organisations, or one industry,
+            shows the platform.
           </p>
           {(companies?.length ?? 0) > SEARCH_THRESHOLD && (
             <div className="relative mt-2">
@@ -153,7 +161,11 @@ export function PlatformScopeSwitcher() {
           </PopoverContent>
         </Popover>
         {scope.kind === 'company' && (
-          <span className="hidden truncate text-muted-foreground sm:inline">{industryPack(scope.industry).label}</span>
+          <span className="hidden min-w-0 truncate text-muted-foreground sm:inline">
+            {industryPack(scope.industry).label}
+            {/* Said where the work happens: it is that organisation's record, not a copy. */}
+            <span className="hidden lg:inline"> · what you do here is saved to {scope.name || 'this organisation'}, and its admins are notified</span>
+          </span>
         )}
         {scope.kind !== 'all' && (
           <button
@@ -161,7 +173,7 @@ export function PlatformScopeSwitcher() {
             onClick={() => choose(ALL_ORGANISATIONS)}
             className="ml-auto inline-flex shrink-0 items-center gap-1 rounded px-1.5 py-0.5 text-muted-foreground hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <X className="h-3 w-3" aria-hidden="true" /> Show all
+            <X className="h-3 w-3" aria-hidden="true" /> Exit to platform
           </button>
         )}
       </div>

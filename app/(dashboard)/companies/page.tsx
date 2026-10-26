@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Plus, MoreHorizontal, Eye, Pencil, Trash2, Briefcase, UserPlus, Mail, Building2, CalendarClock, Hash, Fingerprint,
 } from 'lucide-react';
@@ -161,12 +161,25 @@ function CompaniesPageInner({
 
   function handleSearch(value: string) { setSearch(value); setPage(1); }
 
-  function openCreate() {
+  function openCreate(industry?: IndustrySlug) {
     setEditing(null);
-    setForm(emptyForm());
+    setForm({ ...emptyForm(), ...(industry ? { industry } : {}) });
     setFieldErrors({});
     setFormOpen(true);
   }
+
+  // `?action=add` (optionally `&industry=…`) opens the form — the platform overview's
+  // "New organisation" buttons link here, from inside an industry's workspace.
+  useEffect(() => {
+    if (!canCreate) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('action') !== 'add') return;
+    const industry = params.get('industry');
+    openCreate(isIndustryAvailable(industry) ? (industry as IndustrySlug) : undefined);
+    window.history.replaceState(null, '', window.location.pathname);
+    // Read once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   function openEdit(c: Company) {
     setEditing(c);
     setForm(toFormState(c));
@@ -237,7 +250,7 @@ function CompaniesPageInner({
           <p className="text-muted-foreground">Manage organizations and tenant accounts.</p>
         </div>
         {canCreate && (
-          <Button size="sm" onClick={openCreate}>
+          <Button size="sm" onClick={() => openCreate()}>
             <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
             Add Company
           </Button>
@@ -284,7 +297,7 @@ function CompaniesPageInner({
                   icon={Briefcase}
                   title="No companies yet"
                   description="Create your first company to get started."
-                  action={canCreate ? { label: 'Add Company', onClick: openCreate } : undefined}
+                  action={canCreate ? { label: 'Add Company', onClick: () => openCreate() } : undefined}
                 />
               )}
             </div>
