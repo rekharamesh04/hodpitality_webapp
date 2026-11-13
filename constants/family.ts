@@ -134,6 +134,11 @@ export const EMPTY_FAMILY_FIELDS: FamilyFormFields = {
   dateOfBirth: '', guardianId: '', guardianRelationship: '', schoolName: '', schoolGrade: '', schoolEmail: '',
 };
 
+/** Whether a record already carries family or school details — the patient form opens them ticked. */
+export function hasFamilyDetails(guest?: Partial<Guest> | null): boolean {
+  return !!(guest?.guardianId || guest?.dateOfBirth || guest?.schoolName || guest?.schoolGrade || guest?.schoolEmail);
+}
+
 export function familyFieldsOf(guest?: Partial<Guest> | null): FamilyFormFields {
   return {
     dateOfBirth: guest?.dateOfBirth ?? '',

@@ -12,13 +12,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle, Users, X } from 'lucide-react';
+import Link from 'next/link';
+import { AlertCircle, Users } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { FacePhotoField } from '@/components/faces/FacePhotoField';
-import { GuestCombobox } from '@/components/common/GuestCombobox';
+import { FamilySection } from '@/components/people/FamilySection';
 import { isValidEmail, isValidPhone, toLocalDateInput } from '@/lib/utils';
 import { guestCategoryOptions } from '@/constants';
 import {
-  EMPTY_FAMILY_FIELDS, GUARDIAN_RELATIONSHIPS, ageLabel, familyFieldsOf, familyPayload,
+  EMPTY_FAMILY_FIELDS, familyFieldsOf, familyPayload, hasFamilyDetails,
   type FamilyFormFields,
 } from '@/constants/family';
 import { useTerminology } from '@/hooks';
@@ -86,6 +88,7 @@ function validate(form: FormState, family: FamilyFormFields | null, selfId?: str
   else if (!isValidPhone(form.phone.trim())) errors.phone = 'Enter a valid phone number';
   if (!form.address.trim()) errors.address = 'Address is required';
   if (family) {
+    if (!family.guardianId) errors.guardian = 'Link the parent or guardian — or untick "child or dependant"';
     if (family.dateOfBirth && family.dateOfBirth > toLocalDateInput()) errors.dateOfBirth = 'Date of birth cannot be in the future';
     if (selfId && family.guardianId === selfId) errors.guardian = 'A person cannot be their own parent or guardian';
     if (family.schoolEmail.trim() && !isValidEmail(family.schoolEmail.trim())) errors.schoolEmail = 'Enter a valid email address';
@@ -117,6 +120,9 @@ export function GuestFormDialog({
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [family, setFamily] = useState<FamilyFormFields>(EMPTY_FAMILY_FIELDS);
   const [guardian, setGuardian] = useState<Guest | null>(null);
+  // "This patient is a child or dependant": the family fields show only when it is ticked, so an
+  // ordinary adult's form stays short. Unticked, they are ignored (and cleared on an edit).
+  const [isChild, setIsChild] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [photo, setPhoto] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
@@ -127,8 +133,14 @@ export function GuestFormDialog({
     if (open) {
       setForm(guest ? toFormState(guest) : EMPTY_FORM);
       setFamily(familyFieldsOf(guest));
+      setIsChild(hasFamilyDetails(guest));
       setGuardian(guest?.guardianId
-        ? ({ id: guest.guardianId, name: guest.guardian?.name || 'Linked parent or guardian' } as Guest)
+        ? ({
+          id: guest.guardianId,
+          name: guest.guardian?.name || 'Linked parent or guardian',
+          email: guest.guardian?.email ?? '',
+          phone: guest.guardian?.phone ?? '',
+        } as Guest)
         : null);
       setFieldErrors({});
       setPhoto(null);
@@ -163,7 +175,7 @@ export function GuestFormDialog({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isSubmitting) return;
-    const errors = validate(form, showFamily ? family : null, guest?.id);
+    const errors = validate(form, showFamily && isChild ? family : null, guest?.id);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -174,14 +186,16 @@ export function GuestFormDialog({
     }
     const payload: CreateGuestPayload = {
       ...toPayload(form, isEditing),
-      ...(showFamily ? familyPayload(family, isEditing ? familyFieldsOf(guest) : null) : {}),
+      ...(showFamily
+        ? familyPayload(isChild ? family : EMPTY_FAMILY_FIELDS, isEditing ? familyFieldsOf(guest) : null)
+        : {}),
     };
     onSubmit(payload, isEditing ? null : photo);
   }
 
-  const hasGuardian = showFamily && !!family.guardianId;
+  const hasGuardian = showFamily && isChild && !!family.guardianId;
   const guardianFirstName = (guardian?.name ?? '').split(' ')[0] || 'the guardian';
-  const age = ageLabel(family.dateOfBirth, toLocalDateInput());
+  const dependants = isEditing ? guest?.dependants ?? [] : [];
 
   return (
     <Dialog open={open} onOpenChange={(v) => !isSubmitting && onOpenChange(v)}>
@@ -228,6 +242,56 @@ export function GuestFormDialog({
               />
               {fieldErrors.name && <p id="guest-name-error" className="text-xs text-destructive">{fieldErrors.name}</p>}
             </div>
+
+            {showFamily && dependants.length > 0 && (
+              <div className="flex items-start gap-2 rounded-md border bg-muted/30 p-3 text-sm sm:col-span-2">
+                <Users className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+                <p>
+                  Parent or guardian of{' '}
+                  {dependants.map((d, i) => (
+                    <span key={d.id}>
+                      {i > 0 && ', '}
+                      <Link href={`/guests/${d.id}`} className="font-medium text-primary hover:underline">{d.name || 'Unnamed'}</Link>
+                    </span>
+                  ))}
+                  . Their notes and emails come to this {t.person.one.toLowerCase()}.
+                </p>
+              </div>
+            )}
+
+            {showFamily && (
+              <div className="space-y-3 sm:col-span-2">
+                <label className="flex cursor-pointer items-start gap-2.5 rounded-md border p-3 text-sm">
+                  <Checkbox
+                    checked={isChild}
+                    onCheckedChange={(v) => {
+                      setIsChild(v === true);
+                      setFieldErrors((e) => ({ ...e, guardian: undefined, dateOfBirth: undefined, schoolEmail: undefined }));
+                    }}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    <span className="font-medium">This {t.person.one.toLowerCase()} is a child or dependant</span>
+                    <span className="block text-xs text-muted-foreground">
+                      Link their parent or guardian — school notes and emails go to them, so the child needs no email or phone.
+                    </span>
+                  </span>
+                </label>
+                {isChild && (
+                  <FamilySection
+                    family={family}
+                    onChange={updateFamily}
+                    guardian={guardian}
+                    onChooseGuardian={chooseGuardian}
+                    errors={{ guardian: fieldErrors.guardian, dateOfBirth: fieldErrors.dateOfBirth, schoolEmail: fieldErrors.schoolEmail }}
+                    childAddress={form.address}
+                    selfId={guest?.id}
+                    personNoun={t.person.one}
+                    personsNoun={t.person.many}
+                  />
+                )}
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label htmlFor="guest-email">{hasGuardian ? 'Email (optional)' : 'Email *'}</Label>
@@ -282,122 +346,6 @@ export function GuestFormDialog({
                 </SelectContent>
               </Select>
             </div>
-
-            {showFamily && (
-              <fieldset className="space-y-4 rounded-lg border p-3 sm:col-span-2">
-                <legend className="flex items-center gap-1.5 px-1 text-sm font-semibold">
-                  <Users className="h-4 w-4 text-primary" aria-hidden="true" /> Family &amp; school
-                </legend>
-                <p className="-mt-1 text-xs text-muted-foreground">
-                  For a child, link the parent or guardian: notes and emails go to them.
-                </p>
-
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="guest-dob">Date of birth</Label>
-                    <Input
-                      id="guest-dob"
-                      type="date"
-                      max={toLocalDateInput()}
-                      value={family.dateOfBirth}
-                      onChange={(e) => updateFamily('dateOfBirth', e.target.value)}
-                      aria-invalid={!!fieldErrors.dateOfBirth}
-                    />
-                    {fieldErrors.dateOfBirth
-                      ? <p className="text-xs text-destructive">{fieldErrors.dateOfBirth}</p>
-                      : age && <p className="text-xs text-muted-foreground">{age}</p>}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="guest-relationship">Relationship</Label>
-                    <Select
-                      value={family.guardianRelationship || undefined}
-                      onValueChange={(v) => updateFamily('guardianRelationship', v)}
-                      disabled={!family.guardianId}
-                    >
-                      <SelectTrigger id="guest-relationship">
-                        <SelectValue placeholder={family.guardianId ? 'Parent' : 'Choose a guardian first'} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {GUARDIAN_RELATIONSHIPS.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label>Parent or guardian</Label>
-                    <div className="flex items-center gap-2">
-                      <div className="min-w-0 flex-1">
-                        <GuestCombobox
-                          selected={guardian}
-                          onSelectGuest={(g) => chooseGuardian(g)}
-                          placeholder={`Search ${t.person.many.toLowerCase()} by name, email or phone…`}
-                        />
-                      </div>
-                      {guardian && (
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="outline"
-                          aria-label="Remove the parent or guardian"
-                          onClick={() => chooseGuardian(null)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                    {fieldErrors.guardian
-                      ? <p className="text-xs text-destructive">{fieldErrors.guardian}</p>
-                      : (
-                        <p className="text-xs text-muted-foreground">
-                          Not in the system yet? Register the parent first, then come back and link them.
-                        </p>
-                      )}
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="guest-school">School</Label>
-                    <Input
-                      id="guest-school"
-                      value={family.schoolName}
-                      onChange={(e) => updateFamily('schoolName', e.target.value)}
-                      placeholder="Lincoln Elementary"
-                      maxLength={120}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="guest-grade">Grade</Label>
-                    <Input
-                      id="guest-grade"
-                      value={family.schoolGrade}
-                      onChange={(e) => updateFamily('schoolGrade', e.target.value)}
-                      placeholder="4"
-                      maxLength={40}
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="guest-school-email">School attendance office email</Label>
-                    <Input
-                      id="guest-school-email"
-                      type="email"
-                      value={family.schoolEmail}
-                      onChange={(e) => updateFamily('schoolEmail', e.target.value)}
-                      placeholder="attendance@school.edu"
-                      aria-invalid={!!fieldErrors.schoolEmail}
-                    />
-                    {fieldErrors.schoolEmail
-                      ? <p className="text-xs text-destructive">{fieldErrors.schoolEmail}</p>
-                      : (
-                        <p className="text-xs text-muted-foreground">
-                          Notes go here only after the parent gives permission — record it on the {t.person.one.toLowerCase()}&apos;s page.
-                        </p>
-                      )}
-                  </div>
-                </div>
-              </fieldset>
-            )}
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="guest-notes">Notes</Label>

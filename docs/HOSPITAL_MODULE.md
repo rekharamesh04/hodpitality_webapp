@@ -304,8 +304,9 @@ Added November 2026. A US school marks an absence for a doctor's appointment as 
 family brings a note from the clinic.
 
 **Families.** A child is a patient record linked to a **parent or guardian**, who is also a patient
-record (*Edit* → *Family & school*: date of birth, parent or guardian, relationship, school, grade,
-school attendance email). With a guardian linked, **email and phone are optional**: a nine-year-old
+record. In *Add patient* / *Edit*, tick **This patient is a child or dependant**: link the parent
+(search, or **Register them here** without leaving the form), relationship, date of birth, school,
+grade, school attendance email. Unticked, the form is the plain adult one. With a guardian linked, **email and phone are optional**: a nine-year-old
 has neither, and two siblings can share one parent. The patient page shows a *Family & school* card
 with a *Minor* badge, the guardian and their contact details, and the children on the parent's page.
 A child given the parent's phone is never filed as the parent when a prescription goes to a pharmacy.

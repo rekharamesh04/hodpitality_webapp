@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   ageOn, isMinor, schoolConsentState, nextSchoolDay, addDays, time12h, familyPayload,
-  familyFieldsOf, EMPTY_FAMILY_FIELDS, relationshipLabel,
+  familyFieldsOf, EMPTY_FAMILY_FIELDS, relationshipLabel, hasFamilyDetails,
 } from './family';
 
 const TODAY = '2026-11-13';
@@ -61,6 +61,21 @@ describe('dates and times', () => {
   it('labels relationships', () => {
     expect(relationshipLabel('legal_guardian')).toBe('Legal guardian');
     expect(relationshipLabel(undefined)).toBe('Parent or guardian');
+  });
+});
+
+describe('whether the child section opens ticked', () => {
+  it('is ticked for a record with any family or school detail, not for a plain adult', () => {
+    expect(hasFamilyDetails({ guardianId: 'sarah' })).toBe(true);
+    expect(hasFamilyDetails({ schoolEmail: 'a@b.test' })).toBe(true);
+    expect(hasFamilyDetails({ name: 'Adult', email: 'a@b.test' })).toBe(false);
+    expect(hasFamilyDetails(null)).toBe(false);
+  });
+
+  it('unticking on an edit clears what was there', () => {
+    const original = familyFieldsOf({ guardianId: 'sarah', guardianRelationship: 'mother', schoolName: 'Lincoln' });
+    expect(familyPayload(EMPTY_FAMILY_FIELDS, original))
+      .toEqual({ guardianId: '', guardianRelationship: '', schoolName: '' });
   });
 });
 
