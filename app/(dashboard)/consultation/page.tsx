@@ -15,6 +15,7 @@ import { ErrorState } from '@/components/common/ErrorState';
 import { TableSkeleton } from '@/components/common/SkeletonLoader';
 import { PrescriptionFormDialog } from '@/components/dialogs/PrescriptionFormDialog';
 import { PriorityBadge } from '@/components/opd/PriorityPicker';
+import { SchoolNotesCard } from '@/components/school-notes/SchoolNotesCard';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useCallIn, useFinishConsultation, useSaveConsultNotes } from '@/hooks/useOpd';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
@@ -312,6 +313,11 @@ function CurrentPatient({
               </ul>
             )}
           </section>
+        )}
+
+        {/* School excuse note — for a student who missed school for this visit. */}
+        {(a.customerId || a.guestId) && (
+          <SchoolNotesCard personId={a.customerId || a.guestId || ''} appointment={a} compact />
         )}
 
         {/* 3. Finish */}

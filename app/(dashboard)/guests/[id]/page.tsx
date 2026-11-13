@@ -22,6 +22,8 @@ import { FaceCheckInCard } from '@/components/faces/FaceCheckInCard';
 import { CreateAppointmentDialog } from '@/components/dialogs/CreateAppointmentDialog';
 import { PatientPrescriptionsCard } from '@/components/prescriptions/PatientPrescriptionsCard';
 import { PreferredPharmacyCard } from '@/components/pharmacy/PreferredPharmacyCard';
+import { FamilyCard } from '@/components/people/FamilyCard';
+import { SchoolNotesCard } from '@/components/school-notes/SchoolNotesCard';
 
 import {
   useGuest, useUpdateGuest, useDeleteGuest, useUnenrollFace, useRecordFaceDeclined,
@@ -215,8 +217,14 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                 {!guest.email && !guest.phone && !guest.address && !guest.notes && (
                   <p className="text-sm text-muted-foreground">No contact details yet — add them with Edit.</p>
                 )}
+                {!guest.email && guest.guardian && (
+                  <p className="text-xs text-muted-foreground">Emails about this {t.person.one.toLowerCase()} go to {guest.guardian.name}.</p>
+                )}
               </CardContent>
             </Card>
+
+            {/* A hospital's patient: date of birth, parent or guardian, school — for school excuse notes. */}
+            {t.has('opd') && <FamilyCard guestId={resolvedId} guest={guest} />}
 
             <FaceCheckInCard
               enrolled={hasFacePhoto}
@@ -239,6 +247,9 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
 
             {/* Prescriptions */}
             {t.has('prescriptions') && <PatientPrescriptionsCard guest={guest} guestId={resolvedId} />}
+
+            {/* School excuse notes */}
+            {t.has('opd') && <SchoolNotesCard personId={resolvedId} guest={guest} />}
 
             {/* Hospitality */}
             {t.has('hospitality') && (

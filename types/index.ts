@@ -90,6 +90,45 @@ export interface Guest {
   qrCode?: string;
   notes?: string;
   tags?: string[];
+
+  // ── Family and school (see constants/family.ts) ──
+  /** YYYY-MM-DD. */
+  dateOfBirth?: string;
+  /** The parent or guardian — another patient record. With one, email and phone are optional. */
+  guardianId?: string;
+  guardianRelationship?: string;
+  schoolName?: string;
+  schoolGrade?: string;
+  /** The school's attendance office, where notes go with permission. */
+  schoolEmail?: string;
+  /** The parent's permission to send notes straight to the school. Stamped by the server. */
+  schoolShareConsent?: boolean;
+  schoolShareConsentAt?: string;
+  schoolShareConsentBy?: string;
+  schoolShareConsentGivenBy?: string;
+  /** YYYY-MM-DD; none means until withdrawn. */
+  schoolShareConsentExpires?: string;
+  /** The school email the permission covers. A different current email is not covered. */
+  schoolShareConsentEmail?: string;
+  /** Read-only, on GET /guests/{id}: who this person's guardian is… */
+  guardian?: GuardianSummary | null;
+  /** …and whose guardian they are. */
+  dependants?: DependantSummary[];
+}
+
+export interface GuardianSummary {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  relationship?: string;
+}
+
+export interface DependantSummary {
+  id: string;
+  name: string;
+  dateOfBirth?: string;
+  relationship?: string;
 }
 
 export interface CheckIn {

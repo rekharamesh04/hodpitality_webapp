@@ -130,6 +130,8 @@ export const API_ENDPOINTS = {
   PLATFORM_OVERVIEW: '/platform/overview',
   /** Pharmacies a prescription can be sent to. */
   PHARMACIES: '/pharmacies',
+  /** School excuse notes a doctor issues for a visit (see services/school-note.service.ts). */
+  SCHOOL_NOTES: '/school-notes',
 } as const;
 
 // Query Keys

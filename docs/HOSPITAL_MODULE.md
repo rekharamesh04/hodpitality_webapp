@@ -298,6 +298,55 @@ last signed, exactly once. So, once a prescription has been sent:
 the **standard visit fee** in the OPD queue (*Fee (standard)*), and *Record payment* is pre-filled
 with it.
 
+## 5b. Families and school excuse notes
+
+Added November 2026. A US school marks an absence for a doctor's appointment as *excused* when the
+family brings a note from the clinic.
+
+**Families.** A child is a patient record linked to a **parent or guardian**, who is also a patient
+record (*Edit* → *Family & school*: date of birth, parent or guardian, relationship, school, grade,
+school attendance email). With a guardian linked, **email and phone are optional**: a nine-year-old
+has neither, and two siblings can share one parent. The patient page shows a *Family & school* card
+with a *Minor* badge, the guardian and their contact details, and the children on the parent's page.
+A child given the parent's phone is never filed as the parent when a prescription goes to a pharmacy.
+
+**Permission for the school.** A school is not covered by HIPAA, so a note goes straight to it only
+with the parent's permission. Record it on the *Family & school* card: who agreed, and until when
+(e.g. end of the school year). It covers **one school email**; changing the address needs permission
+again. *Withdraw* stops it.
+
+**Issuing a note.** In the *Consultation room* the doctor presses **Write school note**. The patient
+page has **New school note** for a visit outside the OPD. The form is filled from the visit: date,
+time in (arrival), time out (now), and *may return* (the next weekday). The doctor adds any activity
+restrictions (*No PE until…*) and an optional note. Only doctors and administrators can issue one,
+always in a doctor's name.
+
+| Recipient | When it is offered |
+|---|---|
+| Parent or guardian | A guardian is linked and has an email. Ticked by default |
+| The patient | They have their own email (an adult student) |
+| The school | Permission is on file for the current school email and has not expired. Never ticked by default |
+
+The PDF is on the hospital's letterhead (name, plus address and phone from Settings → Organization).
+It carries **no diagnosis** and a **verification code** (`SN-7KQ4-2MXP`) that a school quotes when
+it phones to check. Staff look a code up with `GET /school-notes?code=`. The email names no
+diagnosis, and the guardian's subject line names no child.
+
+Anyone at the desk can download a note or email it again. An administrator can **void** a wrong note
+with a reason: it stays on record, cannot be sent, and its PDF prints VOID. Then write a new one.
+Notes are deleted with the patient.
+
+| Concern | File |
+|---|---|
+| Rules (age, consent, dates, form payload) | `constants/family.ts`, tested in `constants/family.test.ts` |
+| Patient form fields | `components/dialogs/GuestFormDialog.tsx` |
+| Family card and permission dialog | `components/people/FamilyCard.tsx` |
+| Note dialog and list | `components/school-notes/*`, `hooks/useSchoolNotes.ts`, `services/school-note.service.ts` |
+| Backend | `app/school_notes.py`, `app/pdf.py`, README §8.14, `tests/test_family_and_school_notes.py` |
+
+Not yet: emailing **bills and receipts** to the guardian (Phase 3). That needs a *confidential visit*
+switch first, for a teen who consents to their own care.
+
 ## 6. Not built yet, deliberately
 
 Each needs a decision or data the product does not have yet. The queue works without them.

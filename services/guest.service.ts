@@ -45,12 +45,27 @@ export interface CreateGuestPayload {
   checkedIn?: boolean;
   registrationDate?: string;
   tags?: string[];
+  /**
+   * Family and school (constants/family.ts). With a `guardianId`, `email` and `phone` may be
+   * empty: the hospital writes to the guardian. On update, an empty string clears the field.
+   */
+  dateOfBirth?: string;
+  guardianId?: string;
+  guardianRelationship?: string;
+  schoolName?: string;
+  schoolGrade?: string;
+  schoolEmail?: string;
 }
 
 export type UpdateGuestPayload = Partial<CreateGuestPayload> & {
   /** The pharmacy this patient's prescriptions are sent to by default. */
   preferredPharmacyTenantId?: string;
   preferredPharmacyName?: string;
+  /** Record (true, with who gave it) or withdraw (false) permission to send notes to the school. */
+  schoolShareConsent?: boolean;
+  schoolShareConsentGivenBy?: string;
+  /** YYYY-MM-DD; empty means until withdrawn. */
+  schoolShareConsentExpires?: string;
 };
 
 export interface GuestExportResult {
