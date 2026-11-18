@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { parseDayHours } from '@/lib/availability';
 import type { Staff } from '@/types';
 
 const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
@@ -38,7 +39,12 @@ export function StaffScheduleDialog({ open, onOpenChange, staff, isSubmitting, o
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, staff?.id]);
 
+  // Booking reads these hours to offer open times, so a value it cannot read is
+  // refused here rather than silently ignored there.
+  const invalid = new Set(DAYS.filter((day) => parseDayHours(schedule[day] ?? '') === null));
+
   function handleSubmit() {
+    if (invalid.size > 0) return;
     const cleaned = Object.fromEntries(Object.entries(schedule).filter(([, v]) => v.trim() !== ''));
     onSubmit(cleaned);
   }
@@ -51,22 +57,32 @@ export function StaffScheduleDialog({ open, onOpenChange, staff, isSubmitting, o
           <DialogDescription>{staff?.name}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2 py-2">
+          <p className="text-xs text-muted-foreground">
+            e.g. 09:00-17:00, or 09:00-13:00, 14:00-17:00 for a break. Leave blank for a day off.
+          </p>
           {DAYS.map((day) => (
-            <div key={day} className="flex items-center gap-3">
-              <Label htmlFor={`schedule-${day}`} className="w-10 shrink-0 capitalize">{day}</Label>
-              <Input
-                id={`schedule-${day}`}
-                placeholder="HH:MM-HH:MM (blank = off)"
-                value={schedule[day] ?? ''}
-                onChange={(e) => setSchedule((p) => ({ ...p, [day]: e.target.value }))}
-                disabled={isSubmitting}
-              />
+            <div key={day} className="space-y-1">
+              <div className="flex items-center gap-3">
+                <Label htmlFor={`schedule-${day}`} className="w-10 shrink-0 capitalize">{day}</Label>
+                <Input
+                  id={`schedule-${day}`}
+                  placeholder="HH:MM-HH:MM (blank = off)"
+                  value={schedule[day] ?? ''}
+                  onChange={(e) => setSchedule((p) => ({ ...p, [day]: e.target.value }))}
+                  disabled={isSubmitting}
+                  aria-invalid={invalid.has(day)}
+                  className={invalid.has(day) ? 'border-destructive' : undefined}
+                />
+              </div>
+              {invalid.has(day) && (
+                <p className="pl-[3.25rem] text-xs text-destructive">Use HH:MM-HH:MM, and the end must be after the start.</p>
+              )}
             </div>
           ))}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>Cancel</Button>
-          <Button onClick={handleSubmit} loading={isSubmitting}>
+          <Button onClick={handleSubmit} loading={isSubmitting} disabled={invalid.size > 0}>
             {isSubmitting ? 'Saving…' : 'Save Schedule'}
           </Button>
         </DialogFooter>

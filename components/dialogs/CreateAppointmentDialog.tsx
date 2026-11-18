@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -16,8 +16,10 @@ import { AlertCircle } from 'lucide-react';
 import { CustomerCombobox } from '@/components/appointments/CustomerCombobox';
 import { StaffSelect } from '@/components/common/StaffSelect';
 import { useServices } from '@/hooks/useCalendar';
-import { useCreateAppointment } from '@/hooks/useAppointments';
-import { getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
+import { useAppointments, useCreateAppointment } from '@/hooks/useAppointments';
+import { useStaffMember } from '@/hooks/useStaff';
+import { checkTime, openSlots, type Booking, type TimeCheck } from '@/lib/availability';
+import { cn, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { Customer } from '@/services/customer.service';
 
 interface CreateAppointmentDialogProps {
@@ -53,6 +55,16 @@ function conflictAwareMessage(err: unknown): string | null {
   return backendMsg ?? getFriendlyErrorMessage(err, 'Unable to create appointment.');
 }
 
+/** A gentle note under the time — never blocks the booking. */
+function timeWarning(check: TimeCheck): string | null {
+  switch (check.kind) {
+    case 'overlap': return `Overlaps a booking at ${check.with} for this staff member.`;
+    case 'day-off': return 'This staff member is not scheduled to work on this day.';
+    case 'outside-hours': return `Outside this staff member's hours (${check.hours}).`;
+    default: return null;
+  }
+}
+
 export function CreateAppointmentDialog({
   open, onOpenChange, defaultDate, defaultCustomer,
 }: CreateAppointmentDialogProps) {
@@ -72,6 +84,37 @@ export function CreateAppointmentDialog({
 
   const services = servicesData ?? [];
   const selectedService = services.find((s) => s.id === serviceId);
+
+  // Open times come from the staff member's weekly schedule minus what they
+  // already hold that day. Advice only: the time box still takes any time,
+  // and the backend still owns conflicts. No schedule → nothing extra shown.
+  const lookupReady = open && !!staffId && !!date;
+  const { data: staffMember } = useStaffMember(lookupReady ? staffId : '');
+  const { data: dayBookings, isFetching: bookingsLoading } = useAppointments(
+    { staffId, date },
+    { enabled: lookupReady },
+  );
+  const bookings = useMemo(() => (dayBookings ?? []) as Booking[], [dayBookings]);
+  const slots = useMemo(() => {
+    if (!lookupReady || bookingsLoading) return null;
+    const now = new Date();
+    return openSlots({
+      schedule: staffMember?.schedule,
+      date,
+      duration: duration || selectedService?.duration || 30,
+      bookings,
+      notBefore: date === todayIso() ? now.getHours() * 60 + now.getMinutes() : undefined,
+    });
+  }, [lookupReady, bookingsLoading, staffMember?.schedule, date, duration, selectedService?.duration, bookings]);
+  const warning = lookupReady && startTime && !bookingsLoading
+    ? timeWarning(checkTime({
+        schedule: staffMember?.schedule,
+        date,
+        startTime,
+        duration: duration || selectedService?.duration || 30,
+        bookings,
+      }))
+    : null;
 
   useEffect(() => {
     if (!open) return;
@@ -194,6 +237,42 @@ export function CreateAppointmentDialog({
               {touched && !startTime && <p className="text-xs text-destructive">Select a start time</p>}
             </div>
           </div>
+
+          {slots !== null && (
+            <div className="space-y-1.5">
+              <Label>Open times</Label>
+              {slots.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No open times for this staff member on this day. You can still type a time above.
+                </p>
+              ) : (
+                <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
+                  {slots.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      disabled={createAppointment.isPending}
+                      onClick={() => setStartTime(t)}
+                      className={cn(
+                        'rounded-md border px-2 py-1 text-xs tabular-nums transition-colors',
+                        startTime === t
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'hover:bg-muted',
+                      )}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {warning && (
+            <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+              <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
+              {warning}
+            </p>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
