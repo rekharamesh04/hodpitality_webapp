@@ -4,7 +4,7 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Pencil, Trash2, Camera, Mail, Phone, MapPin,
-  StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays, Hotel, CalendarPlus,
+  StickyNote, CalendarClock, UserRoundCheck, UserCheck, Clock, CalendarDays, Hotel, CalendarPlus, ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,7 @@ import { useGuestHospitality } from '@/hooks/useHospitality';
 import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
 import { guestCategoryBadgeClass } from '@/constants';
 import { usePermissions, useTerminology } from '@/hooks';
+import { hasInsurance, insuranceSummary, isClinicalIndustry } from '@/lib/clinical';
 import { personDeleteWarning } from '@/lib/person-delete';
 import type { UpdateGuestPayload } from '@/services/guest.service';
 
@@ -214,6 +215,9 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                 <InfoRow icon={Phone} label="Phone" value={guest.phone} />
                 <InfoRow icon={MapPin} label="Address" value={guest.address} />
                 {guest.notes && <InfoRow icon={StickyNote} label="Notes" value={guest.notes} />}
+                {isClinicalIndustry(industry) && hasInsurance(guest.insurance) && (
+                  <InfoRow icon={ShieldCheck} label="Insurance" value={insuranceSummary(guest.insurance)} />
+                )}
                 {!guest.email && !guest.phone && !guest.address && !guest.notes && (
                   <p className="text-sm text-muted-foreground">No contact details yet — add them with Edit.</p>
                 )}

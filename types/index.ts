@@ -47,6 +47,15 @@ export interface LoginCredentials {
 }
 
 
+/** A patient's insurance as the desk records it. Self-pay carries nothing else. */
+export interface PatientInsurance {
+  selfPay?: boolean;
+  carrier?: string;
+  plan?: string;
+  memberId?: string;
+  groupNumber?: string;
+}
+
 export interface Guest {
   id: string;
   PK?: string;
@@ -106,6 +115,8 @@ export interface Guest {
   schoolShareConsentAt?: string;
   schoolShareConsentBy?: string;
   schoolShareConsentGivenBy?: string;
+  /** Clinical industries only (lib/clinical.ts). `{}` or absent = nothing on file. */
+  insurance?: PatientInsurance;
   /** YYYY-MM-DD; none means until withdrawn. */
   schoolShareConsentExpires?: string;
   /** The school email the permission covers. A different current email is not covered. */
@@ -336,6 +347,8 @@ export interface Staff extends TenantTag {
   createdAt?: string;
   avatar?: string;
   schedule?: Record<string, unknown>;
+  /** US National Provider Identifier (10 digits). Optional; clinical industries only. */
+  npi?: string;
   /** Cognito tenant scope — required when a Reseller invites a company_admin */
   tenant_id?: string;
 }

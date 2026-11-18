@@ -23,6 +23,8 @@ export interface CreateStaffPayload {
   tenant_id?: string;
   /** Rarely set directly by the Add Staff form (the backend defaults this to now) — accepted here too since other call sites in this codebase seed it explicitly. */
   joinedDate?: string;
+  /** US NPI. On update, "" clears it; leaving it out leaves it alone. */
+  npi?: string;
 }
 
 export type UpdateStaffPayload = Partial<Omit<CreateStaffPayload, 'email'>>;

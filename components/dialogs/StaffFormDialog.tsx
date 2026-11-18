@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
 import { isValidEmail, isValidPhone } from '@/lib/utils';
+import { isClinicalIndustry, npiError } from '@/lib/clinical';
 import { roleLabel } from '@/constants/roles';
 import { useIndustry } from '@/hooks';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
@@ -26,10 +27,11 @@ interface FormState {
   role: string;
   status: string;
   tenantId: string;
+  npi: string;
 }
 
 function emptyForm(): FormState {
-  return { name: '', email: '', phone: '', department: '', role: '', status: '', tenantId: '' };
+  return { name: '', email: '', phone: '', department: '', role: '', status: '', tenantId: '', npi: '' };
 }
 
 function toFormState(staff: Staff): FormState {
@@ -41,6 +43,7 @@ function toFormState(staff: Staff): FormState {
     role: typeof staff.role === 'string' ? staff.role : '',
     status: staff.status ?? '',
     tenantId: '',
+    npi: staff.npi ?? '',
   };
 }
 
@@ -49,7 +52,8 @@ function toFormState(staff: Staff): FormState {
  * 500 on a missing DynamoDB expression attribute value. Create omits blank optional fields so
  * the backend can default a brand-new item. Email is deliberately excluded from the edit
  * payload — see the "Email" field note below. */
-function toCreatePayload(form: FormState): CreateStaffPayload {
+/** `clinical`: the NPI field is shown, so its value is sent. Other industries never send it. */
+function toCreatePayload(form: FormState, clinical: boolean): CreateStaffPayload {
   const payload: CreateStaffPayload = {
     name: form.name.trim(),
     email: form.email.trim(),
@@ -59,23 +63,31 @@ function toCreatePayload(form: FormState): CreateStaffPayload {
   if (form.role)               payload.role = form.role;
   if (form.status)             payload.status = form.status as Staff['status'];
   if (form.tenantId)           payload.tenant_id = form.tenantId;
+  if (clinical && form.npi.trim()) payload.npi = form.npi.trim();
   return payload;
 }
 
-function toUpdatePayload(form: FormState): UpdateStaffPayload {
-  return {
+/** NPI is sent only when it changed — "" then clears it on the server. */
+function toUpdatePayload(form: FormState, clinical: boolean, original: Staff | null | undefined): UpdateStaffPayload {
+  const payload: UpdateStaffPayload = {
     name: form.name.trim(),
     phone: form.phone.trim(),
     department: form.department.trim(),
     role: form.role || undefined,
     status: (form.status || undefined) as Staff['status'] | undefined,
   };
+  if (clinical && form.npi.trim() !== (original?.npi ?? '')) payload.npi = form.npi.trim();
+  return payload;
 }
 
-type FieldErrors = Partial<Record<'name' | 'email' | 'phone' | 'tenantId' | 'role', string>>;
+type FieldErrors = Partial<Record<'name' | 'email' | 'phone' | 'tenantId' | 'role' | 'npi', string>>;
 
-function validate(form: FormState, needsHospital: boolean, isEditing: boolean): FieldErrors {
+function validate(form: FormState, needsHospital: boolean, isEditing: boolean, clinical: boolean): FieldErrors {
   const errors: FieldErrors = {};
+  if (clinical && form.npi.trim()) {
+    const npiProblem = npiError(form.npi);
+    if (npiProblem) errors.npi = npiProblem;
+  }
   if (!isEditing && !form.role) errors.role = 'Choose a role';
   // A super admin needs no company; every other role belongs to one.
   if (needsHospital && form.role !== 'super_admin' && !form.tenantId) errors.tenantId = 'Choose a company';
@@ -136,6 +148,8 @@ export function StaffFormDialog({
   // Role names in the words of the company this person belongs to.
   const industry = (hospitalOptions.find((h) => h.value === form.tenantId)?.industry
     || staff?.tenantIndustry || ownIndustry) as Parameters<typeof roleLabel>[1];
+  // Hospitals and pharmacies record a US NPI; hotels and schools never see the field.
+  const clinical = isClinicalIndustry(industry);
 
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -147,12 +161,12 @@ export function StaffFormDialog({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (isSubmitting) return;
-    const errors = validate(form, needsHospital, isEditing);
+    const errors = validate(form, needsHospital, isEditing, clinical);
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
     }
-    onSubmit(isEditing ? toUpdatePayload(form) : toCreatePayload(form));
+    onSubmit(isEditing ? toUpdatePayload(form, clinical, staff) : toCreatePayload(form, clinical));
   }
 
   return (
@@ -247,6 +261,25 @@ export function StaffFormDialog({
                 <p className="text-xs text-muted-foreground">Changing the role signs them out so the new access applies at next login.</p>
               )}
             </div>
+
+            {clinical && (
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="staff-npi">NPI</Label>
+                <Input
+                  id="staff-npi"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={form.npi}
+                  onChange={(e) => update('npi', e.target.value.replace(/\D/g, ''))}
+                  placeholder="10-digit National Provider Identifier (optional)"
+                  aria-invalid={!!fieldErrors.npi}
+                  aria-describedby={fieldErrors.npi ? 'staff-npi-error' : 'staff-npi-hint'}
+                />
+                {fieldErrors.npi
+                  ? <p id="staff-npi-error" className="text-xs text-destructive">{fieldErrors.npi}</p>
+                  : <p id="staff-npi-hint" className="text-xs text-muted-foreground">US doctors and pharmacists only. Needed later to list them on booking sites such as Zocdoc.</p>}
+              </div>
+            )}
 
             {needsHospital && form.role !== 'super_admin' && (
               <div className="space-y-1.5 sm:col-span-2">

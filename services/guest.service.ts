@@ -2,7 +2,7 @@ import api from '@/lib/axios';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import { uploadService } from './upload.service';
-import type { Guest, PaginatedResponse, TableFilters } from '@/types';
+import type { Guest, PaginatedResponse, PatientInsurance, TableFilters } from '@/types';
 import type { PersonDeleteResult, RemovedCounts } from '@/lib/person-delete';
 
 export type GuestListResponse = PaginatedResponse<Guest>;
@@ -55,6 +55,8 @@ export interface CreateGuestPayload {
   schoolName?: string;
   schoolGrade?: string;
   schoolEmail?: string;
+  /** Clinical industries only. On update, `{}` clears it; leaving it out leaves it alone. */
+  insurance?: PatientInsurance;
 }
 
 export type UpdateGuestPayload = Partial<CreateGuestPayload> & {

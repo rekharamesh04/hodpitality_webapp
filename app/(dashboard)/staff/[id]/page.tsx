@@ -3,7 +3,7 @@
 import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowLeft, Pencil, Trash2, Mail, Phone, Building2, BadgeCheck, Clock, CalendarDays, CalendarClock,
+  ArrowLeft, Pencil, Trash2, Mail, Phone, Building2, BadgeCheck, Clock, CalendarDays, CalendarClock, Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -185,6 +185,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
             <InfoRow icon={Phone} label="Phone" value={staff.phone} />
             <InfoRow icon={Building2} label="Department" value={staff.department} />
             <InfoRow icon={BadgeCheck} label="Role" value={staff.role ? roleLabel(staff.role, industry) : undefined} />
+            {staff.npi && <InfoRow icon={Hash} label="NPI" value={staff.npi} />}
           </CardContent>
         </Card>
 

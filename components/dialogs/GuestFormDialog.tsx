@@ -24,6 +24,10 @@ import {
   type FamilyFormFields,
 } from '@/constants/family';
 import { useTerminology } from '@/hooks';
+import {
+  EMPTY_INSURANCE_FORM, INSURANCE_FIELD_MAX, hasInsurance, insuranceFormOf, insurancePayload,
+  insuranceTooLong, isClinicalIndustry, sameInsurance, type InsuranceForm,
+} from '@/lib/clinical';
 import type { CreateGuestPayload, UpdateGuestPayload } from '@/services/guest.service';
 import type { Guest } from '@/types';
 
@@ -72,7 +76,7 @@ function toPayload(form: FormState, isEditing: boolean): CreateGuestPayload {
   return payload;
 }
 
-type FieldErrors = Partial<Record<'name' | 'email' | 'phone' | 'address' | 'dateOfBirth' | 'guardian' | 'schoolEmail', string>>;
+type FieldErrors = Partial<Record<'name' | 'email' | 'phone' | 'address' | 'dateOfBirth' | 'guardian' | 'schoolEmail' | 'insurance', string>>;
 
 /**
  * With a parent or guardian chosen, email and phone are optional — the hospital writes to the
@@ -117,6 +121,9 @@ export function GuestFormDialog({
   // A hospital records a patient's family and school, for school excuse notes. Other industries
   // never see these fields, and their payloads are unchanged.
   const showFamily = t.has('opd');
+  // Hospitals and pharmacies record insurance; other industries never see it and send nothing.
+  const showInsurance = isClinicalIndustry(industry);
+  const [insurance, setInsurance] = useState<InsuranceForm>(EMPTY_INSURANCE_FORM);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [family, setFamily] = useState<FamilyFormFields>(EMPTY_FAMILY_FIELDS);
   const [guardian, setGuardian] = useState<Guest | null>(null);
@@ -132,6 +139,7 @@ export function GuestFormDialog({
   useEffect(() => {
     if (open) {
       setForm(guest ? toFormState(guest) : EMPTY_FORM);
+      setInsurance(insuranceFormOf(guest?.insurance));
       setFamily(familyFieldsOf(guest));
       setIsChild(hasFamilyDetails(guest));
       setGuardian(guest?.guardianId
@@ -176,6 +184,9 @@ export function GuestFormDialog({
     e.preventDefault();
     if (isSubmitting) return;
     const errors = validate(form, showFamily && isChild ? family : null, guest?.id);
+    if (showInsurance && insuranceTooLong(insurance)) {
+      errors.insurance = `Insurance details are limited to ${INSURANCE_FIELD_MAX} characters each.`;
+    }
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -190,6 +201,12 @@ export function GuestFormDialog({
         ? familyPayload(isChild ? family : EMPTY_FAMILY_FIELDS, isEditing ? familyFieldsOf(guest) : null)
         : {}),
     };
+    // Sent only when there is something new: a new patient with details, or an edit that changed
+    // them. An edit that empties every field sends {}, which clears it on the server.
+    if (showInsurance) {
+      const next = insurancePayload(insurance);
+      if (isEditing ? !sameInsurance(guest?.insurance, next) : hasInsurance(next)) payload.insurance = next;
+    }
     onSubmit(payload, isEditing ? null : photo);
   }
 
@@ -346,6 +363,48 @@ export function GuestFormDialog({
                 </SelectContent>
               </Select>
             </div>
+
+            {showInsurance && (
+              <fieldset className="space-y-3 rounded-md border p-3 sm:col-span-2">
+                <legend className="px-1 text-sm font-medium">Insurance <span className="font-normal text-muted-foreground">(optional)</span></legend>
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm">
+                  <Checkbox
+                    checked={insurance.selfPay}
+                    onCheckedChange={(v) => {
+                      setInsurance((i) => ({ ...i, selfPay: v === true }));
+                      setFieldErrors((e) => ({ ...e, insurance: undefined }));
+                    }}
+                  />
+                  Self-pay (no insurance)
+                </label>
+                {!insurance.selfPay && (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    {([
+                      ['carrier', 'Insurance company', 'e.g. Blue Cross Blue Shield'],
+                      ['plan', 'Plan', 'e.g. PPO Gold'],
+                      ['memberId', 'Member ID', 'From the insurance card'],
+                      ['groupNumber', 'Group number', 'From the insurance card'],
+                    ] as const).map(([key, label, placeholder]) => (
+                      <div key={key} className="space-y-1.5">
+                        <Label htmlFor={`guest-ins-${key}`}>{label}</Label>
+                        <Input
+                          id={`guest-ins-${key}`}
+                          value={insurance[key]}
+                          maxLength={INSURANCE_FIELD_MAX}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setInsurance((i) => ({ ...i, [key]: value }));
+                            setFieldErrors((er) => ({ ...er, insurance: undefined }));
+                          }}
+                          placeholder={placeholder}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {fieldErrors.insurance && <p className="text-xs text-destructive">{fieldErrors.insurance}</p>}
+              </fieldset>
+            )}
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="guest-notes">Notes</Label>
