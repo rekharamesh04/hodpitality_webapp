@@ -4,6 +4,7 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Pencil, Trash2, Mail, Phone, Building2, BadgeCheck, Clock, CalendarDays, CalendarClock, Hash,
+  CalendarCheck2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +19,9 @@ import {
   useStaffMember, useUpdateStaff, useDeleteStaff, useUpdateStaffSchedule, useStaff,
 } from '@/hooks/useStaff';
 import { getInitials, formatDate, getFriendlyErrorMessage } from '@/lib/utils';
-import { npiRegistrySummary } from '@/lib/clinical';
+import { isClinicalIndustry, npiRegistrySummary } from '@/lib/clinical';
+import { doctorReadiness, isDoctor } from '@/lib/zocdoc-readiness';
+import { ZocdocPendingDialog } from '@/components/integrations/ZocdocPendingDialog';
 import { useAuthStore } from '@/store';
 import { assignableRoles, canManageStaffMember, roleLabel } from '@/constants/roles';
 import { useIndustry } from '@/hooks';
@@ -48,6 +51,7 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [zocdocOpen, setZocdocOpen] = useState(false);
 
   // Same rule as the backend: only roles the logged-in user may hand out.
   const roleOptions = assignableRoles(user?.role);
@@ -153,6 +157,12 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
                 <CalendarDays className="mr-2 h-4 w-4" />
                 View Calendar
               </Button>
+              {isClinicalIndustry(industry) && isDoctor(staff) && (
+                <Button size="sm" variant="outline" onClick={() => setZocdocOpen(true)}>
+                  <CalendarCheck2 className="mr-2 h-4 w-4" />
+                  List on Zocdoc
+                </Button>
+              )}
               {canManage && (
                 <Button
                   size="icon" variant="outline"
@@ -250,6 +260,17 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
         isConfirming={deleteMutation.isPending}
         onConfirm={handleDelete}
       />
+
+      {/* Zocdoc: not connected yet — the popup says so and shows this doctor's readiness */}
+      {isClinicalIndustry(industry) && isDoctor(staff) && (
+        <ZocdocPendingDialog
+          open={zocdocOpen}
+          onOpenChange={setZocdocOpen}
+          title="List on Zocdoc"
+          description={`What ${staff.name} needs to be bookable on Zocdoc.`}
+          items={doctorReadiness(staff)}
+        />
+      )}
 
       {/* Schedule */}
       <StaffScheduleDialog

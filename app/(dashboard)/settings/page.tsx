@@ -16,6 +16,8 @@ import { canManageStaff, roleLabel } from '@/constants/roles';
 import { useTerminology } from '@/hooks';
 import { BillingSettingsCard } from '@/components/settings/BillingSettingsCard';
 import { TimezoneSettingsCard } from '@/components/settings/TimezoneSettingsCard';
+import { ZocdocSettingsCard } from '@/components/integrations/ZocdocSettingsCard';
+import { isClinicalIndustry } from '@/lib/clinical';
 import {
   useSettingsProfile,
   useUpdateProfile,
@@ -263,6 +265,7 @@ export default function SettingsPage() {
           </Card>
           <TimezoneSettingsCard />
           <BillingSettingsCard />
+          {isClinicalIndustry(t.slug) && <ZocdocSettingsCard />}
         </TabsContent>
 
         {/* ── Notification Preferences ── */}
