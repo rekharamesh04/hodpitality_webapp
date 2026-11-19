@@ -134,9 +134,20 @@ export const EMPTY_FAMILY_FIELDS: FamilyFormFields = {
   dateOfBirth: '', guardianId: '', guardianRelationship: '', schoolName: '', schoolGrade: '', schoolEmail: '',
 };
 
-/** Whether a record already carries family or school details — the patient form opens them ticked. */
-export function hasFamilyDetails(guest?: Partial<Guest> | null): boolean {
-  return !!(guest?.guardianId || guest?.dateOfBirth || guest?.schoolName || guest?.schoolGrade || guest?.schoolEmail);
+/**
+ * Whether a record already carries family or school details — the patient form opens them ticked.
+ *
+ * Every patient may now have a date of birth, so a date of birth alone only counts when it makes
+ * the person a minor. An adult with a birth date on file is not "a child or dependant".
+ */
+export function hasFamilyDetails(guest?: Partial<Guest> | null, today: string = localToday()): boolean {
+  return !!(guest?.guardianId || guest?.schoolName || guest?.schoolGrade || guest?.schoolEmail
+    || (guest?.dateOfBirth && isMinor(guest.dateOfBirth, today)));
+}
+
+function localToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function familyFieldsOf(guest?: Partial<Guest> | null): FamilyFormFields {

@@ -36,6 +36,11 @@ export interface CreateAppointmentPayload {
   notes?: string;
   /** Consultation fee — backend defaults paymentStatus to "pending" on create. */
   amount?: number;
+  /**
+   * An OPD walk-in, booked for "now" by the queue. Exempt from the server's overlap rule
+   * (walk-ins for a busy doctor overlap by nature); the exact-minute lock still applies.
+   */
+  walkIn?: boolean;
 }
 
 /**

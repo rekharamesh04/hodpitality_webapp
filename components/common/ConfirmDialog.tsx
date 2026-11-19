@@ -15,6 +15,8 @@ interface ConfirmDialogProps {
   cancelLabel?: string;
   destructive?: boolean;
   isConfirming?: boolean;
+  /** The action cannot go ahead yet; the description says why. */
+  confirmDisabled?: boolean;
   onConfirm: () => void;
 }
 
@@ -28,6 +30,7 @@ export function ConfirmDialog({
   cancelLabel = 'Cancel',
   destructive = false,
   isConfirming = false,
+  confirmDisabled = false,
   onConfirm,
 }: ConfirmDialogProps) {
   return (
@@ -41,7 +44,7 @@ export function ConfirmDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isConfirming}>
             {cancelLabel}
           </Button>
-          <Button variant={destructive ? 'destructive' : 'default'} onClick={onConfirm} loading={isConfirming}>
+          <Button variant={destructive ? 'destructive' : 'default'} onClick={onConfirm} loading={isConfirming} disabled={confirmDisabled}>
             {isConfirming ? confirmingLabel : confirmLabel}
           </Button>
         </DialogFooter>

@@ -18,7 +18,8 @@ import { StaffSelect } from '@/components/common/StaffSelect';
 import { useServices } from '@/hooks/useCalendar';
 import { useAppointments, useCreateAppointment } from '@/hooks/useAppointments';
 import { useStaffMember } from '@/hooks/useStaff';
-import { checkTime, openSlots, type Booking, type TimeCheck } from '@/lib/availability';
+import { useOrgTimezone } from '@/hooks/useSettings';
+import { checkTime, clockInZone, openSlots, type Booking, type TimeCheck } from '@/lib/availability';
 import { cn, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
 import type { Customer } from '@/services/customer.service';
 
@@ -56,12 +57,21 @@ function conflictAwareMessage(err: unknown): string | null {
 }
 
 /** A gentle note under the time — never blocks the booking. */
-function timeWarning(check: TimeCheck): string | null {
+/**
+ * A note under the time. An overlap blocks the booking — the server refuses it (409
+ * SLOT_OVERLAP) — so it is said up front. Outside hours or a day off is only a warning:
+ * the desk may still book it.
+ */
+function timeWarning(check: TimeCheck): { text: string; blocking: boolean } | null {
   switch (check.kind) {
-    case 'overlap': return `Overlaps a booking at ${check.with} for this staff member.`;
-    case 'day-off': return 'This staff member is not scheduled to work on this day.';
-    case 'outside-hours': return `Outside this staff member's hours (${check.hours}).`;
-    default: return null;
+    case 'overlap':
+      return { text: `Overlaps a booking at ${check.with} for this staff member. Choose another time.`, blocking: true };
+    case 'day-off':
+      return { text: 'This staff member is not scheduled to work on this day.', blocking: false };
+    case 'outside-hours':
+      return { text: `Outside this staff member's hours (${check.hours}).`, blocking: false };
+    default:
+      return null;
   }
 }
 
@@ -95,17 +105,21 @@ export function CreateAppointmentDialog({
     { enabled: lookupReady },
   );
   const bookings = useMemo(() => (dayBookings ?? []) as Booking[], [dayBookings]);
+  // "Already past today" is judged by the clinic's clock, not this computer's: someone booking
+  // for a clinic in another timezone would otherwise hide the wrong times. Until the clinic's
+  // timezone has loaded (or if it can't be read) the computer's clock is used, as before.
+  const { data: orgTimezone } = useOrgTimezone({ enabled: lookupReady });
   const slots = useMemo(() => {
     if (!lookupReady || bookingsLoading) return null;
-    const now = new Date();
+    const clinicNow = clockInZone(orgTimezone?.timezone);
     return openSlots({
       schedule: staffMember?.schedule,
       date,
       duration: duration || selectedService?.duration || 30,
       bookings,
-      notBefore: date === todayIso() ? now.getHours() * 60 + now.getMinutes() : undefined,
+      notBefore: date === clinicNow.date ? clinicNow.minutes : undefined,
     });
-  }, [lookupReady, bookingsLoading, staffMember?.schedule, date, duration, selectedService?.duration, bookings]);
+  }, [lookupReady, bookingsLoading, staffMember?.schedule, date, duration, selectedService?.duration, bookings, orgTimezone?.timezone]);
   const warning = lookupReady && startTime && !bookingsLoading
     ? timeWarning(checkTime({
         schedule: staffMember?.schedule,
@@ -148,7 +162,7 @@ export function CreateAppointmentDialog({
 
   function handleSubmit() {
     setTouched(true);
-    if (!isValid || createAppointment.isPending) return;
+    if (!isValid || createAppointment.isPending || warning?.blocking) return;
     createAppointment.mutate(
       {
         customerId: customer!.id,
@@ -268,9 +282,15 @@ export function CreateAppointmentDialog({
             </div>
           )}
           {warning && (
-            <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+            <p
+              role={warning.blocking ? 'alert' : undefined}
+              className={cn(
+                'flex items-start gap-1.5 text-xs',
+                warning.blocking ? 'text-destructive' : 'text-amber-700 dark:text-amber-400',
+              )}
+            >
               <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" />
-              {warning}
+              {warning.text}
             </p>
           )}
 
@@ -310,7 +330,7 @@ export function CreateAppointmentDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={createAppointment.isPending}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} loading={createAppointment.isPending}>
+          <Button onClick={handleSubmit} loading={createAppointment.isPending} disabled={!!warning?.blocking}>
             {createAppointment.isPending ? 'Creating…' : 'Create Appointment'}
           </Button>
         </DialogFooter>

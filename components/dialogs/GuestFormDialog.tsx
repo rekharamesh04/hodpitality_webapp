@@ -20,7 +20,7 @@ import { FamilySection } from '@/components/people/FamilySection';
 import { isValidEmail, isValidPhone, toLocalDateInput } from '@/lib/utils';
 import { guestCategoryOptions } from '@/constants';
 import {
-  EMPTY_FAMILY_FIELDS, familyFieldsOf, familyPayload, hasFamilyDetails,
+  EMPTY_FAMILY_FIELDS, ageLabel, familyFieldsOf, familyPayload, hasFamilyDetails,
   type FamilyFormFields,
 } from '@/constants/family';
 import { useTerminology } from '@/hooks';
@@ -123,6 +123,10 @@ export function GuestFormDialog({
   const showFamily = t.has('opd');
   // Hospitals and pharmacies record insurance; other industries never see it and send nothing.
   const showInsurance = isClinicalIndustry(industry);
+  // ...and a date of birth for every patient, not only children: an outside booking channel
+  // (Zocdoc) finds the right patient by name and date of birth. It lives in `family.dateOfBirth`,
+  // the one field the backend already validates, so the child section no longer asks for it.
+  const showDateOfBirth = isClinicalIndustry(industry);
   const [insurance, setInsurance] = useState<InsuranceForm>(EMPTY_INSURANCE_FORM);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [family, setFamily] = useState<FamilyFormFields>(EMPTY_FAMILY_FIELDS);
@@ -187,6 +191,10 @@ export function GuestFormDialog({
     if (showInsurance && insuranceTooLong(insurance)) {
       errors.insurance = `Insurance details are limited to ${INSURANCE_FIELD_MAX} characters each.`;
     }
+    // A child's date of birth is checked by validate(); an adult's is checked here.
+    if (showDateOfBirth && !errors.dateOfBirth && family.dateOfBirth && family.dateOfBirth > toLocalDateInput()) {
+      errors.dateOfBirth = 'Date of birth cannot be in the future';
+    }
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -195,11 +203,23 @@ export function GuestFormDialog({
       setConsentError('Tick the consent box, or remove the photo to save without one.');
       return;
     }
+    // Unticking "child or dependant" clears the guardian and school, but no longer the date of
+    // birth when every patient may have one. familyPayload sends only what changed, so an
+    // untouched date of birth is never rewritten.
+    const keptDateOfBirth = showDateOfBirth ? family.dateOfBirth : '';
     const payload: CreateGuestPayload = {
       ...toPayload(form, isEditing),
       ...(showFamily
-        ? familyPayload(isChild ? family : EMPTY_FAMILY_FIELDS, isEditing ? familyFieldsOf(guest) : null)
-        : {}),
+        ? familyPayload(
+          isChild ? family : { ...EMPTY_FAMILY_FIELDS, dateOfBirth: keptDateOfBirth },
+          isEditing ? familyFieldsOf(guest) : null,
+        )
+        : showDateOfBirth
+          ? familyPayload(
+            { ...EMPTY_FAMILY_FIELDS, dateOfBirth: family.dateOfBirth },
+            isEditing ? { ...EMPTY_FAMILY_FIELDS, dateOfBirth: guest?.dateOfBirth ?? '' } : null,
+          )
+          : {}),
     };
     // Sent only when there is something new: a new patient with details, or an edit that changed
     // them. An edit that empties every field sends {}, which clears it on the server.
@@ -305,6 +325,7 @@ export function GuestFormDialog({
                     selfId={guest?.id}
                     personNoun={t.person.one}
                     personsNoun={t.person.many}
+                    hideDateOfBirth={showDateOfBirth}
                   />
                 )}
               </div>
@@ -339,6 +360,26 @@ export function GuestFormDialog({
               />
               {fieldErrors.phone && <p id="guest-phone-error" className="text-xs text-destructive">{fieldErrors.phone}</p>}
             </div>
+
+            {showDateOfBirth && (
+              <div className="space-y-1.5">
+                <Label htmlFor="guest-dob">Date of birth{isChild ? '' : ' (optional)'}</Label>
+                <Input
+                  id="guest-dob"
+                  type="date"
+                  max={toLocalDateInput()}
+                  value={family.dateOfBirth}
+                  onChange={(e) => updateFamily('dateOfBirth', e.target.value)}
+                  aria-invalid={!!fieldErrors.dateOfBirth}
+                  aria-describedby="guest-dob-note"
+                />
+                <p id="guest-dob-note" className={fieldErrors.dateOfBirth ? 'text-xs text-destructive' : 'text-xs text-muted-foreground'}>
+                  {fieldErrors.dateOfBirth
+                    || ageLabel(family.dateOfBirth, toLocalDateInput())
+                    || 'Used to match the right patient, e.g. for online bookings.'}
+                </p>
+              </div>
+            )}
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="guest-address">Address *</Label>

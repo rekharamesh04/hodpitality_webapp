@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  checkTime, formatClock, hasSchedule, openSlots, parseClock, parseDayHours, weekDayOf,
+  checkTime, clockInZone, formatClock, hasSchedule, openSlots, parseClock, parseDayHours, weekDayOf,
 } from './availability';
 
 // 2026-11-18 is a Wednesday, 2026-11-22 a Sunday.
@@ -50,6 +50,27 @@ describe('weekDayOf', () => {
     expect(weekDayOf(WED)).toBe('wed');
     expect(weekDayOf(SUN)).toBe('sun');
     expect(weekDayOf('18/11/2026')).toBeNull();
+  });
+});
+
+describe('clockInZone', () => {
+  // 2026-11-19 19:45 UTC = 13:45 in Chicago (CST, UTC-6) and 01:15 next day in Kolkata (UTC+5:30).
+  const instant = new Date(Date.UTC(2026, 10, 19, 19, 45));
+
+  it('reads the clinic’s own date and time', () => {
+    expect(clockInZone('America/Chicago', instant)).toEqual({ date: '2026-11-19', minutes: 13 * 60 + 45 });
+    expect(clockInZone('Asia/Kolkata', instant)).toEqual({ date: '2026-11-20', minutes: 1 * 60 + 15 });
+  });
+
+  it('handles midnight as 00:xx, not 24:xx', () => {
+    const midnightChicago = new Date(Date.UTC(2026, 10, 20, 6, 5)); // 00:05 CST
+    expect(clockInZone('America/Chicago', midnightChicago)).toEqual({ date: '2026-11-20', minutes: 5 });
+  });
+
+  it('falls back to the browser clock for a missing or unknown zone', () => {
+    const local = clockInZone(undefined, instant);
+    expect(local.minutes).toBe(instant.getHours() * 60 + instant.getMinutes());
+    expect(clockInZone('Not/AZone', instant)).toEqual(local);
   });
 });
 

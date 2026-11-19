@@ -118,6 +118,8 @@ export function useWalkIn() {
             service: input.service || undefined,
             amount: input.amount,
             notes: ['Walk-in', input.complaint?.trim()].filter(Boolean).join(' — '),
+            // The queue, not a timed slot: the server's overlap rule does not apply.
+            walkIn: true,
           });
         } catch (err: any) {
           // 409: this doctor already has a visit in that exact minute. Try the next one.

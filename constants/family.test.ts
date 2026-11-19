@@ -72,6 +72,12 @@ describe('whether the child section opens ticked', () => {
     expect(hasFamilyDetails(null)).toBe(false);
   });
 
+  it('a date of birth alone counts only for a minor — every patient may have one now', () => {
+    expect(hasFamilyDetails({ dateOfBirth: '1980-05-02' }, TODAY)).toBe(false);
+    expect(hasFamilyDetails({ dateOfBirth: '2017-03-14' }, TODAY)).toBe(true);
+    expect(hasFamilyDetails({ dateOfBirth: '1980-05-02', guardianId: 'sarah' }, TODAY)).toBe(true);
+  });
+
   it('unticking on an edit clears what was there', () => {
     const original = familyFieldsOf({ guardianId: 'sarah', guardianRelationship: 'mother', schoolName: 'Lincoln' });
     expect(familyPayload(EMPTY_FAMILY_FIELDS, original))

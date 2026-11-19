@@ -98,6 +98,37 @@ export function weekDayOf(dateIso: string): WeekDay | null {
   return WEEK_DAYS[(d.getUTCDay() + 6) % 7];
 }
 
+/**
+ * Today's date and the minutes since midnight AT THE CLINIC, from its IANA timezone.
+ * The browser's clock is the wrong one when someone books for a clinic elsewhere — a
+ * platform admin in India working in an Austin clinic would otherwise hide the wrong slots.
+ * No or unknown timezone → the browser's own clock, as before.
+ */
+export function clockInZone(timezone: string | undefined | null, now: Date = new Date()): { date: string; minutes: number } {
+  if (timezone) {
+    try {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+      }).formatToParts(now);
+      const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+      const hour = Number(get('hour')) % 24;
+      const minute = Number(get('minute'));
+      const date = `${get('year')}-${get('month')}-${get('day')}`;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(date) && Number.isFinite(hour) && Number.isFinite(minute)) {
+        return { date, minutes: hour * 60 + minute };
+      }
+    } catch {
+      // Unknown zone: fall through to the browser clock.
+    }
+  }
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return {
+    date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+    minutes: now.getHours() * 60 + now.getMinutes(),
+  };
+}
+
 /** True when the schedule has at least one day with readable hours. No schedule = no opinion. */
 export function hasSchedule(schedule: unknown): schedule is Record<string, unknown> {
   if (!schedule || typeof schedule !== 'object') return false;

@@ -31,7 +31,8 @@ import {
 import { useCheckIn } from '@/hooks/useCheckins';
 import { useAppointments } from '@/hooks/useAppointments';
 import { useGuestHospitality } from '@/hooks/useHospitality';
-import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage } from '@/lib/utils';
+import { cn, formatDate, formatCheckInTimestamp, getInitials, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
+import { ageLabel } from '@/constants/family';
 import { guestCategoryBadgeClass } from '@/constants';
 import { usePermissions, useTerminology } from '@/hooks';
 import { hasInsurance, insuranceSummary, isClinicalIndustry } from '@/lib/clinical';
@@ -215,6 +216,14 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
                 <InfoRow icon={Phone} label="Phone" value={guest.phone} />
                 <InfoRow icon={MapPin} label="Address" value={guest.address} />
                 {guest.notes && <InfoRow icon={StickyNote} label="Notes" value={guest.notes} />}
+                {/* A hospital shows the date of birth in its Family card; other clinical industries show it here. */}
+                {isClinicalIndustry(industry) && !t.has('opd') && guest.dateOfBirth && (
+                  <InfoRow
+                    icon={CalendarDays}
+                    label="Date of birth"
+                    value={[formatDate(`${guest.dateOfBirth}T12:00:00`), ageLabel(guest.dateOfBirth, toLocalDateInput())].filter(Boolean).join(' · ')}
+                  />
+                )}
                 {isClinicalIndustry(industry) && hasInsurance(guest.insurance) && (
                   <InfoRow icon={ShieldCheck} label="Insurance" value={insuranceSummary(guest.insurance)} />
                 )}
@@ -318,11 +327,18 @@ export default function GuestDetailPage({ params }: { params: Promise<{ id: stri
           open={deleteOpen}
           onOpenChange={setDeleteOpen}
           title={`Delete ${t.person.one}?`}
-          description={`Delete ${guest.name || `this ${t.person.one.toLowerCase()}`}? ${personDeleteWarning(t.person.one)}`}
+          description={guest.dependants?.length
+            // The server refuses this (409 HAS_DEPENDANTS): the child would be left with nobody to contact.
+            ? `${guest.name || `This ${t.person.one.toLowerCase()}`} is the parent or guardian of `
+              + `${guest.dependants.map((d) => d.name).join(', ')}. Link `
+              + `${guest.dependants.length === 1 ? guest.dependants[0].name : 'them'} to another parent or guardian, `
+              + `or delete them first.`
+            : `Delete ${guest.name || `this ${t.person.one.toLowerCase()}`}? ${personDeleteWarning(t.person.one)}`}
           confirmLabel="Delete"
           confirmingLabel="Deleting…"
           destructive
           isConfirming={deleteMutation.isPending}
+          confirmDisabled={!!guest.dependants?.length}
           onConfirm={handleDelete}
         />
 

@@ -31,7 +31,10 @@ export type FamilyErrors = Partial<Record<'dateOfBirth' | 'guardian' | 'schoolEm
  */
 export function FamilySection({
   family, onChange, guardian, onChooseGuardian, errors, childAddress, selfId, personNoun, personsNoun,
+  hideDateOfBirth = false,
 }: {
+  /** The form already asks for the date of birth for everyone, so this section doesn't ask twice. */
+  hideDateOfBirth?: boolean;
   family: FamilyFormFields;
   onChange: <K extends keyof FamilyFormFields>(key: K, value: string) => void;
   guardian: Guest | null;
@@ -109,20 +112,22 @@ export function FamilySection({
           </Select>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="guest-dob">Date of birth</Label>
-          <Input
-            id="guest-dob"
-            type="date"
-            max={toLocalDateInput()}
-            value={family.dateOfBirth}
-            onChange={(e) => onChange('dateOfBirth', e.target.value)}
-            aria-invalid={!!errors.dateOfBirth}
-          />
-          {errors.dateOfBirth
-            ? <p className="text-xs text-destructive">{errors.dateOfBirth}</p>
-            : age && <p className="text-xs text-muted-foreground">{age}</p>}
-        </div>
+        {!hideDateOfBirth && (
+          <div className="space-y-1.5">
+            <Label htmlFor="guest-dob">Date of birth</Label>
+            <Input
+              id="guest-dob"
+              type="date"
+              max={toLocalDateInput()}
+              value={family.dateOfBirth}
+              onChange={(e) => onChange('dateOfBirth', e.target.value)}
+              aria-invalid={!!errors.dateOfBirth}
+            />
+            {errors.dateOfBirth
+              ? <p className="text-xs text-destructive">{errors.dateOfBirth}</p>
+              : age && <p className="text-xs text-muted-foreground">{age}</p>}
+          </div>
+        )}
       </div>
 
       {/* 2. Their school — only needed for school excuse notes */}
