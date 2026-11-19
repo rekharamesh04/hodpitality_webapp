@@ -41,7 +41,7 @@ export function npiError(raw: string): string | null {
 }
 
 /** "ARDALAN ENKESHAFI" → "Ardalan Enkeshafi". The registry stores names in capitals. */
-function titleCase(text: string): string {
+export function titleCase(text: string): string {
   return text.toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase());
 }
 
@@ -53,6 +53,20 @@ export function npiRegistrySummary(rec: NpiRegistryRecord | undefined | null): s
   if (!rec?.name) return '';
   const who = rec.credential ? `${titleCase(rec.name)}, ${rec.credential}` : titleCase(rec.name);
   return [who, rec.specialty].filter(Boolean).join(' · ');
+}
+
+/** The name to put in the staff form from a registry record: "Ann Abraham". */
+export function npiPersonName(rec: NpiRegistryRecord | undefined | null): string {
+  if (!rec) return '';
+  const parts = [rec.firstName, rec.lastName].filter(Boolean).join(' ');
+  return titleCase(parts || rec.name || '');
+}
+
+/** "AUSTIN, TX" → "Austin, TX". */
+export function npiLocation(rec: NpiRegistryRecord | undefined | null): string {
+  const loc = rec?.location ?? '';
+  const [city, state] = loc.split(',').map((s) => s.trim());
+  return [city ? titleCase(city) : '', state ?? ''].filter(Boolean).join(', ');
 }
 
 export const INSURANCE_FIELD_MAX = 100;

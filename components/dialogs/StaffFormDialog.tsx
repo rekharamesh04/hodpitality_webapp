@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -11,13 +11,68 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { AlertCircle } from 'lucide-react';
-import { isValidEmail, isValidPhone } from '@/lib/utils';
-import { isClinicalIndustry, npiError, npiRegistrySummary } from '@/lib/clinical';
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { cn, isValidEmail, isValidPhone } from '@/lib/utils';
+import {
+  isClinicalIndustry, npiError, npiLocation, npiPersonName, npiRegistrySummary,
+} from '@/lib/clinical';
 import { roleLabel } from '@/constants/roles';
 import { useIndustry } from '@/hooks';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useNpiLookup } from '@/hooks/useStaff';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
-import type { Staff } from '@/types';
+import type { NpiLookupResult, Staff } from '@/types';
+
+type NpiTone = 'hint' | 'loading' | 'good' | 'bad' | 'warn';
+
+interface NpiView {
+  tone: NpiTone;
+  title?: string;
+  text: string;
+  /** Offered when the registry name differs from what is typed in Name. */
+  useName?: string;
+}
+
+/** What to show under the NPI box, from what is typed and what the registry said. */
+function describeNpi(s: {
+  typed: string;
+  shapeOk: boolean;
+  onFile: boolean;
+  staff?: Staff | null;
+  waiting: boolean;
+  result?: NpiLookupResult;
+  notFound: boolean;
+  failure: string | null;
+  currentName: string;
+}): NpiView {
+  if (!s.typed) {
+    return { tone: 'hint', text: 'Doctors and pharmacists: type the NPI first, and the name and specialty are filled in from the official US NPI Registry. Optional for other staff.' };
+  }
+  if (s.typed.length < 10) return { tone: 'hint', text: `${10 - s.typed.length} more digit${s.typed.length === 9 ? '' : 's'}…` };
+  if (!s.shapeOk) return { tone: 'bad', text: npiError(s.typed) ?? 'That NPI is not valid.' };
+  if (s.onFile) {
+    return { tone: 'good', title: 'Verified with the US NPI Registry', text: npiRegistrySummary(s.staff?.npiRegistry) };
+  }
+  if (s.waiting) return { tone: 'loading', text: 'Looking up the US NPI Registry…' };
+  if (s.notFound) {
+    return { tone: 'bad', text: 'This NPI is not in the official US NPI Registry. Check the number with the doctor.' };
+  }
+  if (s.failure) return { tone: 'warn', text: s.failure };
+  if (!s.result) return { tone: 'hint', text: '' };
+
+  const r = s.result;
+  const where = npiLocation(r);
+  const who = [npiRegistrySummary(r), where].filter(Boolean).join(' · ');
+  if (r.problem) return { tone: 'bad', title: who, text: r.message ?? 'This NPI cannot be used.' };
+  const registered = npiPersonName(r);
+  const typedName = s.currentName.trim();
+  return {
+    tone: 'good',
+    title: 'Found in the US NPI Registry',
+    text: who,
+    useName: typedName && registered && typedName.toLowerCase() !== registered.toLowerCase() ? registered : undefined,
+  };
+}
 
 interface FormState {
   name: string;
@@ -151,6 +206,52 @@ export function StaffFormDialog({
   // Hospitals and pharmacies record a US NPI; hotels and schools never see the field.
   const clinical = isClinicalIndustry(industry);
 
+  // ── NPI lookup as it is typed ──
+  // Once the NPI is well-formed, ask the US NPI Registry (through our server) who it belongs
+  // to, fill in the name and department if they are empty, and warn before saving if the
+  // number cannot be used. The server checks everything again on save.
+  const typedNpi = form.npi.trim();
+  const npiShapeOk = clinical && typedNpi.length === 10 && !npiError(typedNpi);
+  const npiOnFile = isEditing && !!staff?.npi && typedNpi === staff.npi && !!staff.npiRegistry?.name;
+  const debouncedNpi = useDebounce(npiShapeOk && !npiOnFile ? typedNpi : '', 400);
+  const npiQuery = useNpiLookup(open ? debouncedNpi : '', {
+    tenantId: form.tenantId || undefined,
+    staffId: staff?.id,
+  });
+  const npiCurrent = !!debouncedNpi && debouncedNpi === typedNpi;
+  const npiResult = npiCurrent ? npiQuery.data : undefined;
+  const npiFailure = npiCurrent && npiQuery.error
+    ? npiQuery.error as { response?: { status?: number }; backendMessage?: string }
+    : null;
+  const npiNotFound = npiFailure?.response?.status === 404;
+
+  // What the registry last filled in. A field is only ever replaced if it is empty or still
+  // holds that auto-filled value — never something the person typed themselves.
+  const autoFilled = useRef({ npi: '', name: '', department: '' });
+  useEffect(() => {
+    if (open) autoFilled.current = { npi: '', name: '', department: '' };
+  }, [open]);
+  useEffect(() => {
+    if (!npiResult || npiResult.problem || autoFilled.current.npi === npiResult.npi) return;
+    const prev = autoFilled.current;
+    const name = npiPersonName(npiResult);
+    const department = npiResult.specialty ?? '';
+    setForm((f) => ({
+      ...f,
+      name: !f.name.trim() || (prev.name && f.name === prev.name) ? name : f.name,
+      department: !f.department.trim() || (prev.department && f.department === prev.department) ? department : f.department,
+    }));
+    autoFilled.current = { npi: npiResult.npi, name, department };
+  }, [npiResult]);
+
+  const npiView = describeNpi({
+    typed: typedNpi, shapeOk: npiShapeOk, onFile: npiOnFile, staff,
+    waiting: npiShapeOk && !npiOnFile && (!npiCurrent || npiQuery.isFetching),
+    result: npiResult, notFound: npiNotFound,
+    failure: npiFailure && !npiNotFound ? (npiFailure.backendMessage ?? "Couldn't reach the US NPI Registry right now. It will be checked again when you save.") : null,
+    currentName: form.name,
+  });
+
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
     if (fieldErrors[key as keyof FieldErrors]) {
@@ -162,6 +263,8 @@ export function StaffFormDialog({
     e.preventDefault();
     if (isSubmitting) return;
     const errors = validate(form, needsHospital, isEditing, clinical);
+    // The registry has already said no: don't send a save the server will refuse.
+    if (!errors.npi && npiView.tone === 'bad') errors.npi = npiView.text;
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -188,6 +291,59 @@ export function StaffFormDialog({
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>{submitError}</AlertDescription>
               </Alert>
+            )}
+
+            {clinical && (
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label htmlFor="staff-npi">NPI</Label>
+                <Input
+                  id="staff-npi"
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={form.npi}
+                  onChange={(e) => update('npi', e.target.value.replace(/\D/g, ''))}
+                  placeholder="10-digit National Provider Identifier (optional)"
+                  aria-invalid={!!fieldErrors.npi || npiView.tone === 'bad'}
+                  aria-describedby="staff-npi-status"
+                />
+                <div id="staff-npi-status" aria-live="polite">
+                  {fieldErrors.npi ? (
+                    <p className="text-xs text-destructive">{fieldErrors.npi}</p>
+                  ) : npiView.tone === 'hint' ? (
+                    <p className="text-xs text-muted-foreground">{npiView.text}</p>
+                  ) : npiView.tone === 'loading' ? (
+                    <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> {npiView.text}
+                    </p>
+                  ) : (
+                    <div
+                      className={cn(
+                        'flex items-start gap-2 rounded-md border p-2.5 text-xs',
+                        npiView.tone === 'good' && 'border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200',
+                        npiView.tone === 'bad' && 'border-destructive/40 bg-destructive/5 text-destructive',
+                        npiView.tone === 'warn' && 'border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200',
+                      )}
+                    >
+                      {npiView.tone === 'good'
+                        ? <CheckCircle2 className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+                        : <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />}
+                      <div className="min-w-0 flex-1 space-y-0.5">
+                        {npiView.title && <p className="font-medium">{npiView.title}</p>}
+                        <p>{npiView.text}</p>
+                        {npiView.useName && (
+                          <button
+                            type="button"
+                            className="font-medium underline underline-offset-2"
+                            onClick={() => update('name', npiView.useName!)}
+                          >
+                            Use the registered name “{npiView.useName}”
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             <div className="space-y-1.5 sm:col-span-2">
@@ -261,31 +417,6 @@ export function StaffFormDialog({
                 <p className="text-xs text-muted-foreground">Changing the role signs them out so the new access applies at next login.</p>
               )}
             </div>
-
-            {clinical && (
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label htmlFor="staff-npi">NPI</Label>
-                <Input
-                  id="staff-npi"
-                  inputMode="numeric"
-                  maxLength={10}
-                  value={form.npi}
-                  onChange={(e) => update('npi', e.target.value.replace(/\D/g, ''))}
-                  placeholder="10-digit National Provider Identifier (optional)"
-                  aria-invalid={!!fieldErrors.npi}
-                  aria-describedby={fieldErrors.npi ? 'staff-npi-error' : 'staff-npi-hint'}
-                />
-                {fieldErrors.npi
-                  ? <p id="staff-npi-error" className="text-xs text-destructive">{fieldErrors.npi}</p>
-                  : (
-                    <p id="staff-npi-hint" className="text-xs text-muted-foreground">
-                      {isEditing && staff?.npi && form.npi.trim() === staff.npi && npiRegistrySummary(staff.npiRegistry)
-                        ? `Registered to ${npiRegistrySummary(staff.npiRegistry)} (US NPI Registry).`
-                        : 'US doctors and pharmacists only. Checked against the official US NPI Registry when you save.'}
-                    </p>
-                  )}
-              </div>
-            )}
 
             {needsHospital && form.role !== 'super_admin' && (
               <div className="space-y-1.5 sm:col-span-2">

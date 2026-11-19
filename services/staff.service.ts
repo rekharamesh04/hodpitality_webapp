@@ -1,7 +1,7 @@
 import api from '@/lib/axios';
 import { unwrapList, FULL_LIST_LIMIT } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
-import type { Staff, TableFilters } from '@/types';
+import type { NpiLookupResult, Staff, TableFilters } from '@/types';
 
 export interface StaffFilters extends Omit<TableFilters, 'status'> {
   status?: string;
@@ -44,6 +44,19 @@ export const staffService = {
     const p = buildParams(filters);
     const { data } = await api.get(`${API_ENDPOINTS.STAFF}?${p}`);
     return unwrapList<Staff>(data);
+  },
+
+  /**
+   * What the US NPI Registry says about `npi` (read-only; the server calls the registry).
+   * `tenantId`: the organisation being saved to, for the duplicate check. `staffId`: the person being edited.
+   */
+  async lookupNpi(npi: string, opts: { tenantId?: string; staffId?: string } = {}): Promise<NpiLookupResult> {
+    const p = new URLSearchParams();
+    if (opts.tenantId) p.set('tenant_id', opts.tenantId);
+    if (opts.staffId) p.set('staffId', opts.staffId);
+    const qs = p.toString();
+    const { data } = await api.get<NpiLookupResult>(`/npi/${encodeURIComponent(npi)}${qs ? `?${qs}` : ''}`);
+    return data;
   },
 
   async getStaffMember(id: string): Promise<Staff> {

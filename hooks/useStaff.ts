@@ -20,6 +20,20 @@ export function useStaff(filters: StaffFilters = {}) {
   });
 }
 
+/**
+ * Looks an NPI up in the US NPI Registry as it is typed. Pass `npi` only once it is
+ * well-formed (10 digits, check digit). No retries: a 404 is an answer, not a failure.
+ */
+export function useNpiLookup(npi: string, opts: { tenantId?: string; staffId?: string } = {}) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.STAFF, 'npi-lookup', npi, opts.tenantId ?? '', opts.staffId ?? ''],
+    queryFn: () => staffService.lookupNpi(npi, opts),
+    enabled: !!npi,
+    retry: false,
+    staleTime: 10 * 60_000,
+  });
+}
+
 export function useStaffMember(id: string) {
   return useQuery({
     queryKey: staffKeys.detail(id),

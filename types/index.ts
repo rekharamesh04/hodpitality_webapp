@@ -50,11 +50,25 @@ export interface LoginCredentials {
 /** The NPI Registry's answer for a staff member's NPI, stored by the server. */
 export interface NpiRegistryRecord {
   name?: string;
+  firstName?: string;
+  lastName?: string;
   credential?: string;
   specialty?: string;
+  /** Practice city and state, e.g. "AUSTIN, TX". */
+  location?: string;
   type?: 'individual' | 'organization';
   status?: string;
   verifiedAt?: string;
+}
+
+/**
+ * GET /npi/{npi}: the registry's answer while the staff form is being filled in.
+ * `problem` is the code a save would be refused with, if any.
+ */
+export interface NpiLookupResult extends NpiRegistryRecord {
+  npi: string;
+  problem: 'NPI_ORGANIZATION' | 'NPI_INACTIVE' | 'NPI_IN_USE' | null;
+  message: string | null;
 }
 
 /** A patient's insurance as the desk records it. Self-pay carries nothing else. */

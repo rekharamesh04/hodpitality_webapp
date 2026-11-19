@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_INSURANCE_FORM, hasInsurance, insuranceFormOf, insurancePayload, insuranceSummary,
-  insuranceTooLong, isClinicalIndustry, npiError, npiRegistrySummary, sameInsurance,
+  insuranceTooLong, isClinicalIndustry, npiError, npiLocation, npiPersonName, npiRegistrySummary, sameInsurance,
 } from './clinical';
 
 describe('isClinicalIndustry', () => {
@@ -36,6 +36,19 @@ describe('npiRegistrySummary', () => {
   it('is empty when the NPI was never verified', () => {
     expect(npiRegistrySummary(undefined)).toBe('');
     expect(npiRegistrySummary({})).toBe('');
+  });
+});
+
+describe('npiPersonName / npiLocation', () => {
+  it('builds the form name from first and last name', () => {
+    expect(npiPersonName({ firstName: 'ANN', lastName: 'ABRAHAM', name: 'ANN ABRAHAM' })).toBe('Ann Abraham');
+    expect(npiPersonName({ name: 'MEGAN ANGEL' })).toBe('Megan Angel');
+    expect(npiPersonName(undefined)).toBe('');
+  });
+  it('formats the practice location', () => {
+    expect(npiLocation({ location: 'AUSTIN, TX' })).toBe('Austin, TX');
+    expect(npiLocation({ location: 'SAN ANTONIO, TX' })).toBe('San Antonio, TX');
+    expect(npiLocation({})).toBe('');
   });
 });
 
