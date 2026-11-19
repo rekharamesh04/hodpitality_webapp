@@ -47,6 +47,16 @@ export interface LoginCredentials {
 }
 
 
+/** The NPI Registry's answer for a staff member's NPI, stored by the server. */
+export interface NpiRegistryRecord {
+  name?: string;
+  credential?: string;
+  specialty?: string;
+  type?: 'individual' | 'organization';
+  status?: string;
+  verifiedAt?: string;
+}
+
 /** A patient's insurance as the desk records it. Self-pay carries nothing else. */
 export interface PatientInsurance {
   selfPay?: boolean;
@@ -349,6 +359,8 @@ export interface Staff extends TenantTag {
   schedule?: Record<string, unknown>;
   /** US National Provider Identifier (10 digits). Optional; clinical industries only. */
   npi?: string;
+  /** What the official US NPI Registry said when the NPI was saved. Absent = never verified. */
+  npiRegistry?: NpiRegistryRecord;
   /** Cognito tenant scope — required when a Reseller invites a company_admin */
   tenant_id?: string;
 }

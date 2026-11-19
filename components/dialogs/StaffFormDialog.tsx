@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
 import { isValidEmail, isValidPhone } from '@/lib/utils';
-import { isClinicalIndustry, npiError } from '@/lib/clinical';
+import { isClinicalIndustry, npiError, npiRegistrySummary } from '@/lib/clinical';
 import { roleLabel } from '@/constants/roles';
 import { useIndustry } from '@/hooks';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
@@ -277,7 +277,13 @@ export function StaffFormDialog({
                 />
                 {fieldErrors.npi
                   ? <p id="staff-npi-error" className="text-xs text-destructive">{fieldErrors.npi}</p>
-                  : <p id="staff-npi-hint" className="text-xs text-muted-foreground">US doctors and pharmacists only. Needed later to list them on booking sites such as Zocdoc.</p>}
+                  : (
+                    <p id="staff-npi-hint" className="text-xs text-muted-foreground">
+                      {isEditing && staff?.npi && form.npi.trim() === staff.npi && npiRegistrySummary(staff.npiRegistry)
+                        ? `Registered to ${npiRegistrySummary(staff.npiRegistry)} (US NPI Registry).`
+                        : 'US doctors and pharmacists only. Checked against the official US NPI Registry when you save.'}
+                    </p>
+                  )}
               </div>
             )}
 

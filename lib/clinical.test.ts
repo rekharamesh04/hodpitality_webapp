@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   EMPTY_INSURANCE_FORM, hasInsurance, insuranceFormOf, insurancePayload, insuranceSummary,
-  insuranceTooLong, isClinicalIndustry, npiError, sameInsurance,
+  insuranceTooLong, isClinicalIndustry, npiError, npiRegistrySummary, sameInsurance,
 } from './clinical';
 
 describe('isClinicalIndustry', () => {
@@ -24,6 +24,18 @@ describe('npiError — same cases as the backend tests', () => {
     for (const bad of ['1234567890', '123456789', '12345678901', '12345abcde', '']) {
       expect(npiError(bad)).not.toBeNull();
     }
+  });
+});
+
+describe('npiRegistrySummary', () => {
+  it('reads the registry record as one line', () => {
+    expect(npiRegistrySummary({ name: 'ARDALAN ENKESHAFI', credential: 'M.D.', specialty: 'Hospitalist' }))
+      .toBe('Ardalan Enkeshafi, M.D. · Hospitalist');
+    expect(npiRegistrySummary({ name: "MARY O'NEIL-SMITH" })).toBe("Mary O'Neil-Smith");
+  });
+  it('is empty when the NPI was never verified', () => {
+    expect(npiRegistrySummary(undefined)).toBe('');
+    expect(npiRegistrySummary({})).toBe('');
   });
 });
 

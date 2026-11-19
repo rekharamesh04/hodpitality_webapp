@@ -18,6 +18,7 @@ import {
   useStaffMember, useUpdateStaff, useDeleteStaff, useUpdateStaffSchedule, useStaff,
 } from '@/hooks/useStaff';
 import { getInitials, formatDate, getFriendlyErrorMessage } from '@/lib/utils';
+import { npiRegistrySummary } from '@/lib/clinical';
 import { useAuthStore } from '@/store';
 import { assignableRoles, canManageStaffMember, roleLabel } from '@/constants/roles';
 import { useIndustry } from '@/hooks';
@@ -185,7 +186,15 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
             <InfoRow icon={Phone} label="Phone" value={staff.phone} />
             <InfoRow icon={Building2} label="Department" value={staff.department} />
             <InfoRow icon={BadgeCheck} label="Role" value={staff.role ? roleLabel(staff.role, industry) : undefined} />
-            {staff.npi && <InfoRow icon={Hash} label="NPI" value={staff.npi} />}
+            {staff.npi && (
+              <InfoRow
+                icon={Hash}
+                label="NPI"
+                value={npiRegistrySummary(staff.npiRegistry)
+                  ? `${staff.npi} — ${npiRegistrySummary(staff.npiRegistry)}${staff.npiRegistry?.verifiedAt ? ` (verified ${formatDate(staff.npiRegistry.verifiedAt)})` : ''}`
+                  : `${staff.npi} — not verified with the US NPI Registry`}
+              />
+            )}
           </CardContent>
         </Card>
 

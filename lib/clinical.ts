@@ -7,7 +7,7 @@
  * so the form catches a mistake before the server has to.
  */
 import { normalizeIndustry } from '@/constants/industry';
-import type { PatientInsurance } from '@/types';
+import type { NpiRegistryRecord, PatientInsurance } from '@/types';
 
 /**
  * Hospitals and pharmacies only. Named outright rather than "has the prescriptions
@@ -38,6 +38,21 @@ export function npiError(raw: string): string | null {
     total += d;
   });
   return total % 10 === 0 ? null : 'That NPI is not valid. Check the number and try again.';
+}
+
+/** "ARDALAN ENKESHAFI" → "Ardalan Enkeshafi". The registry stores names in capitals. */
+function titleCase(text: string): string {
+  return text.toLowerCase().replace(/(^|[\s'-])(\p{L})/gu, (_, sep: string, ch: string) => sep + ch.toUpperCase());
+}
+
+/**
+ * One line for a staff profile, from what the US NPI Registry said:
+ * "Ardalan Enkeshafi, M.D. · Hospitalist". Empty when the NPI was never verified.
+ */
+export function npiRegistrySummary(rec: NpiRegistryRecord | undefined | null): string {
+  if (!rec?.name) return '';
+  const who = rec.credential ? `${titleCase(rec.name)}, ${rec.credential}` : titleCase(rec.name);
+  return [who, rec.specialty].filter(Boolean).join(' · ');
 }
 
 export const INSURANCE_FIELD_MAX = 100;
