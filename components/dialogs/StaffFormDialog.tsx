@@ -19,11 +19,68 @@ import {
 import { roleLabel } from '@/constants/roles';
 import { useIndustry } from '@/hooks';
 import { useDebounce } from '@/hooks/useDebounce';
-import { useNpiLookup } from '@/hooks/useStaff';
+import { useNpiLookup, useNpiSearch } from '@/hooks/useStaff';
 import type { CreateStaffPayload, UpdateStaffPayload } from '@/services/staff.service';
 import type { NpiLookupResult, Staff } from '@/types';
 
-type NpiTone = 'hint' | 'loading' | 'good' | 'bad' | 'warn';
+type NpiTone = 'hint' | 'loading' | 'good' | 'bad' | 'warn' | 'search';
+
+/** The doctors a name search found. Picking one puts their NPI in the box. */
+function NpiSearchResults({ longEnough, waiting, failure, results, onPick }: {
+  longEnough: boolean;
+  waiting: boolean;
+  failure: string | null;
+  results?: NpiLookupResult[];
+  onPick: (r: NpiLookupResult) => void;
+}) {
+  if (!longEnough) {
+    return <p className="text-xs text-muted-foreground">Type at least two letters of the doctor’s name.</p>;
+  }
+  if (waiting) {
+    return (
+      <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Searching the US NPI Registry…
+      </p>
+    );
+  }
+  if (failure) return <p className="text-xs text-amber-700 dark:text-amber-400">{failure}</p>;
+  if (!results) return null;
+  if (results.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        No active providers found. Try the full name, or add a state, e.g. “Allen, TX”.
+      </p>
+    );
+  }
+  return (
+    <div className="space-y-1.5">
+      <ul className="max-h-60 divide-y overflow-y-auto rounded-md border" aria-label="Matching providers">
+        {results.map((r) => {
+          const who = [npiPersonName(r), r.credential].filter(Boolean).join(', ');
+          return (
+            <li key={r.npi}>
+              <button
+                type="button"
+                disabled={!!r.problem}
+                onClick={() => onPick(r)}
+                className="w-full px-3 py-2 text-left text-xs transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-transparent"
+              >
+                <span className="block text-sm font-medium">{who}</span>
+                <span className="block text-muted-foreground">
+                  {[r.specialty, npiLocation(r), `NPI ${r.npi}`].filter(Boolean).join(' · ')}
+                </span>
+                {r.problem && <span className="block text-destructive">{r.message}</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="text-xs text-muted-foreground">
+        Pick the right person — check the specialty and city. Up to 10 shown; add “, TX” to narrow by state.
+      </p>
+    </div>
+  );
+}
 
 interface NpiView {
   tone: NpiTone;
@@ -46,7 +103,7 @@ function describeNpi(s: {
   currentName: string;
 }): NpiView {
   if (!s.typed) {
-    return { tone: 'hint', text: 'Doctors and pharmacists: type the NPI first, and the name and specialty are filled in from the official US NPI Registry. Optional for other staff.' };
+    return { tone: 'hint', text: 'Doctors and pharmacists: type the NPI, or the doctor’s name to search for it. The name and specialty are filled in from the official US NPI Registry. Optional for other staff.' };
   }
   if (s.typed.length < 10) return { tone: 'hint', text: `${10 - s.typed.length} more digit${s.typed.length === 9 ? '' : 's'}…` };
   if (!s.shapeOk) return { tone: 'bad', text: npiError(s.typed) ?? 'That NPI is not valid.' };
@@ -244,13 +301,31 @@ export function StaffFormDialog({
     autoFilled.current = { npi: npiResult.npi, name, department };
   }, [npiResult]);
 
-  const npiView = describeNpi({
-    typed: typedNpi, shapeOk: npiShapeOk, onFile: npiOnFile, staff,
-    waiting: npiShapeOk && !npiOnFile && (!npiCurrent || npiQuery.isFetching),
-    result: npiResult, notFound: npiNotFound,
-    failure: npiFailure && !npiNotFound ? (npiFailure.backendMessage ?? "Couldn't reach the US NPI Registry right now. It will be checked again when you save.") : null,
-    currentName: form.name,
+  // ── Search by name ──
+  // Letters in the NPI box search the registry by name instead ("Coburn Allen", "Allen, TX").
+  // Picking a result puts its NPI in the box, and the lookup above takes over from there.
+  const npiSearching = clinical && /[a-z]/i.test(form.npi);
+  const searchText = form.npi.trim();
+  const debouncedSearch = useDebounce(npiSearching ? searchText : '', 400);
+  const searchLongEnough = debouncedSearch.replace(/[^a-z]/gi, '').length >= 2;
+  const npiSearch = useNpiSearch(open && npiSearching && searchLongEnough ? debouncedSearch : '', {
+    tenantId: form.tenantId || undefined,
+    staffId: staff?.id,
   });
+  const searchCurrent = !!debouncedSearch && debouncedSearch === searchText;
+  const searchFailure = searchCurrent && npiSearch.error
+    ? npiSearch.error as { response?: { status?: number }; backendMessage?: string }
+    : null;
+
+  const npiView: NpiView = npiSearching
+    ? { tone: 'search', text: '' }
+    : describeNpi({
+      typed: typedNpi, shapeOk: npiShapeOk, onFile: npiOnFile, staff,
+      waiting: npiShapeOk && !npiOnFile && (!npiCurrent || npiQuery.isFetching),
+      result: npiResult, notFound: npiNotFound,
+      failure: npiFailure && !npiNotFound ? (npiFailure.backendMessage ?? "Couldn't reach the US NPI Registry right now. It will be checked again when you save.") : null,
+      currentName: form.name,
+    });
 
   function update<K extends keyof FormState>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -265,6 +340,8 @@ export function StaffFormDialog({
     const errors = validate(form, needsHospital, isEditing, clinical);
     // The registry has already said no: don't send a save the server will refuse.
     if (!errors.npi && npiView.tone === 'bad') errors.npi = npiView.text;
+    // A name still in the box is a search, not an NPI.
+    if (npiSearching) errors.npi = 'Pick the doctor from the list, or type the 10-digit NPI.';
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       return;
@@ -298,17 +375,30 @@ export function StaffFormDialog({
                 <Label htmlFor="staff-npi">NPI</Label>
                 <Input
                   id="staff-npi"
-                  inputMode="numeric"
-                  maxLength={10}
+                  autoComplete="off"
                   value={form.npi}
-                  onChange={(e) => update('npi', e.target.value.replace(/\D/g, ''))}
-                  placeholder="10-digit National Provider Identifier (optional)"
+                  onChange={(e) => {
+                    // Digits are an NPI (spaces and dashes dropped, 10 at most); letters are a name search.
+                    const v = e.target.value;
+                    update('npi', /[a-z]/i.test(v) ? v.slice(0, 60) : v.replace(/\D/g, '').slice(0, 10));
+                  }}
+                  placeholder="10-digit NPI, or search by name (e.g. Coburn Allen, TX)"
                   aria-invalid={!!fieldErrors.npi || npiView.tone === 'bad'}
                   aria-describedby="staff-npi-status"
                 />
                 <div id="staff-npi-status" aria-live="polite">
                   {fieldErrors.npi ? (
                     <p className="text-xs text-destructive">{fieldErrors.npi}</p>
+                  ) : npiView.tone === 'search' ? (
+                    <NpiSearchResults
+                      longEnough={searchLongEnough}
+                      waiting={searchLongEnough && (!searchCurrent || npiSearch.isFetching)}
+                      failure={searchFailure
+                        ? (searchFailure.backendMessage ?? "Couldn't reach the US NPI Registry right now. Try again, or type the 10-digit NPI.")
+                        : null}
+                      results={searchCurrent ? npiSearch.data : undefined}
+                      onPick={(r) => update('npi', r.npi)}
+                    />
                   ) : npiView.tone === 'hint' ? (
                     <p className="text-xs text-muted-foreground">{npiView.text}</p>
                   ) : npiView.tone === 'loading' ? (

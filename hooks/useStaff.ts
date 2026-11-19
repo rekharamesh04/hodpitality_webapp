@@ -34,6 +34,17 @@ export function useNpiLookup(npi: string, opts: { tenantId?: string; staffId?: s
   });
 }
 
+/** Searches the US NPI Registry by name. Pass `query` only once it has two letters. */
+export function useNpiSearch(query: string, opts: { tenantId?: string; staffId?: string } = {}) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.STAFF, 'npi-search', query, opts.tenantId ?? '', opts.staffId ?? ''],
+    queryFn: () => staffService.searchNpi(query, opts),
+    enabled: !!query,
+    retry: false,
+    staleTime: 10 * 60_000,
+  });
+}
+
 export function useStaffMember(id: string) {
   return useQuery({
     queryKey: staffKeys.detail(id),

@@ -59,6 +59,18 @@ export const staffService = {
     return data;
   },
 
+  /**
+   * Doctors in the US NPI Registry by name ("Coburn Allen", "Allen, TX"). At most 10, active
+   * individual providers only; each says whether this organisation already has that NPI.
+   */
+  async searchNpi(query: string, opts: { tenantId?: string; staffId?: string } = {}): Promise<NpiLookupResult[]> {
+    const p = new URLSearchParams({ q: query });
+    if (opts.tenantId) p.set('tenant_id', opts.tenantId);
+    if (opts.staffId) p.set('staffId', opts.staffId);
+    const { data } = await api.get<{ data: NpiLookupResult[] }>(`/npi/search?${p}`);
+    return Array.isArray(data?.data) ? data.data : [];
+  },
+
   async getStaffMember(id: string): Promise<Staff> {
     const { data } = await api.get<Staff>(`${API_ENDPOINTS.STAFF}/${id}`);
     return data;
