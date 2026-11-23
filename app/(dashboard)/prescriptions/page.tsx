@@ -2,7 +2,7 @@
 
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { Pill, Plus, RefreshCw, MoreHorizontal, Eye, Stethoscope, Trash2, Camera } from 'lucide-react';
+import { Pill, Plus, RefreshCw, MoreHorizontal, Eye, Stethoscope, Trash2, Camera, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -136,6 +136,11 @@ function PrescriptionsPageInner() {
           <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching} aria-label="Refresh">
             <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
           </Button>
+          {isAdmin && (
+            <Button size="sm" variant="outline" onClick={() => router.push('/prescriptions/controlled')}>
+              <ShieldCheck className="mr-2 h-4 w-4" /> Controlled register
+            </Button>
+          )}
           <Button size="sm" onClick={() => setCreateOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> New Prescription
           </Button>

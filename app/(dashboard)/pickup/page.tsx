@@ -24,6 +24,7 @@ import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
 import { PrescriptionPhotos } from '@/components/prescriptions/PrescriptionPhotos';
 import { RecordPatientPaymentDialog, type PaymentPerson } from '@/components/dialogs/RecordPatientPaymentDialog';
+import { ControlledDispenseDialog } from '@/components/prescriptions/ControlledDispenseDialog';
 import { useGuest, useGuests } from '@/hooks/use-guests';
 import { useCustomer } from '@/hooks/useCustomers';
 import { usePickupHandoffStore } from '@/store/pickup-handoff-store';
@@ -33,7 +34,7 @@ import { checkInService } from '@/services/checkin.service';
 import { popup } from '@/lib/popup';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
 import {
-  attachmentsOf, awaitingTyping, isReadyForPickup, medicineLabel, medicinesOf, prescriptionsFor,
+  attachmentsOf, awaitingTyping, controlledMedicinesOf, isReadyForPickup, medicineLabel, medicinesOf, prescriptionsFor,
 } from '@/types/prescription';
 import type { Guest } from '@/types';
 
@@ -104,6 +105,8 @@ function PickupPageInner() {
   const [attestation, setAttestation] = useState('');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [counselled, setCounselled] = useState(false);
+  // Open while the counter signs off a controlled medicine (password + authenticator code + ID).
+  const [dispenseOpen, setDispenseOpen] = useState(false);
   // Opened right after a collection so the desk takes the money for what was just handed over.
   const [payFor, setPayFor] = useState<{ person: PaymentPerson; prescriptionIds: string[] } | null>(null);
   const [completed, setCompleted] = useState<{
@@ -246,9 +249,17 @@ function PickupPageInner() {
     popup.success('Attestation recorded');
   }
 
-  /** Release: mark each chosen prescription completed, with how identity was proven. */
-  function release() {
+  /**
+   * Release: mark each chosen prescription completed, with how identity was proven. A controlled
+   * medicine among them first needs the two-factor sign-off; its id then goes with each
+   * controlled prescription.
+   */
+  function release(signoffId?: string) {
     if (!chosen.length || !activeGuest) return;
+    if (!signoffId && chosen.some((p) => controlledMedicinesOf(p).length > 0)) {
+      setDispenseOpen(true);
+      return;
+    }
     const proof = attempts.filter((a) => a.ok).map((a) => `${a.method}: ${a.detail ?? 'confirmed'}`).join('; ');
     const stamp = `Collected ${formatDate(new Date(), 'MMM dd, yyyy HH:mm')} — identity verified (${proof})${counselled ? '; counselling offered' : ''}`;
 
@@ -257,7 +268,14 @@ function PickupPageInner() {
     const released = chosen.map((p) => p.id);
     chosen.forEach((p) => {
       updateRx.mutate(
-        { id: p.id, data: { status: 'completed', notes: [p.notes, stamp].filter(Boolean).join('\n') } },
+        {
+          id: p.id,
+          data: {
+            status: 'completed',
+            notes: [p.notes, stamp].filter(Boolean).join('\n'),
+            ...(signoffId && controlledMedicinesOf(p).length > 0 ? { dispenseCheck: { signoffId } } : {}),
+          },
+        },
         {
           onSuccess: () => {
             done += 1;
@@ -636,7 +654,7 @@ function PickupPageInner() {
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                   </Button>
                   <Button
-                    onClick={release}
+                    onClick={() => release()}
                     disabled={chosen.length === 0 || updateRx.isPending}
                     loading={updateRx.isPending}
                   >
@@ -756,6 +774,14 @@ function PickupPageInner() {
         isSubmitting={matching}
         onSubmit={handleFaceSubmit}
         glasses={{ purpose: 'identify' }}
+      />
+
+      <ControlledDispenseDialog
+        open={dispenseOpen}
+        onOpenChange={setDispenseOpen}
+        lines={chosen.flatMap(controlledMedicinesOf)}
+        defaultCollector={activeGuest?.name}
+        onSigned={(signoffId) => release(signoffId)}
       />
 
       <RecordPatientPaymentDialog

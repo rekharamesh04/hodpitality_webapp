@@ -249,6 +249,18 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
+    // The organisation only allows desk logins from its approved clinic networks, and this
+    // device is somewhere else. Every request will be refused, so sign out and say why — with
+    // the address the server saw, which is what an administrator would need to add.
+    const refusal = error.response?.data as { code?: string; yourAddress?: string } | undefined;
+    if (status === 403 && refusal?.code === 'NETWORK_NOT_ALLOWED') {
+      const where = refusal.yourAddress ? ` (this device is connecting from ${refusal.yourAddress})` : '';
+      const reason = (backendMsg || 'Sign-in is only allowed from your organisation’s approved networks.') + where;
+      try { sessionStorage.setItem(SIGN_OUT_REASON_KEY, reason); } catch { /* storage unavailable */ }
+      performLogout();
+      return Promise.reject(error);
+    }
+
     // The organisation a super admin was looking at is gone (deleted, or no longer theirs).
     // Drop the scope and repeat the request across everything they may see, once.
     if ((error.response?.data as { scopeInvalid?: boolean } | undefined)?.scopeInvalid && originalConfig && !originalConfig._scopeRetry) {

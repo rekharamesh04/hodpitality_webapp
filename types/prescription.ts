@@ -28,6 +28,15 @@ export interface Medicine {
   frequency?: string;
   duration?: string;
   instructions?: string;
+  /**
+   * A controlled substance (US DEA schedules II–V). Marked by the prescriber, or by the backend
+   * when the name matches a known controlled medicine (then `controlledDetected` is true and the
+   * mark cannot be taken off). Handing it over needs the two-factor sign-off.
+   */
+  controlled?: boolean;
+  /** "II", "III", "IV" or "V". */
+  schedule?: string;
+  controlledDetected?: boolean;
   [key: string]: unknown;
 }
 
@@ -150,9 +159,41 @@ export interface Prescription {
   readyAt?: string;
   fillStatus?: 'ready' | string;
 
+  // ── Controlled-substance hand-over (two-factor sign-off) ──
+  /** The CONTROLLED_DISPENSE register row written when it was handed over. */
+  controlledDispenseId?: string;
+  dispensedBy?: string;
+  dispensedAt?: string;
+
   created_at?: string;
   createdAt?: string;
   updatedAt?: string;
+}
+
+/** What the counter records about the person collecting a controlled medicine. */
+export interface ControlledIdCheck {
+  idType: 'drivers_license' | 'state_id' | 'passport' | 'military_id' | 'known_patient' | 'other';
+  /** Only the last 4 characters of the ID number are ever sent or kept. */
+  idLast4: string;
+  collectorName: string;
+  collectorRelationship: string;
+  notes?: string;
+}
+
+/** One row of the controlled-substance register (GET /prescriptions/controlled-log). */
+export interface ControlledDispense {
+  id: string;
+  prescriptionId: string;
+  patientId?: string;
+  patientName?: string;
+  prescriberName?: string;
+  medicines: { name: string; schedule: string }[];
+  idCheck: ControlledIdCheck;
+  dispensedBy: string;
+  dispensedByRole?: string;
+  twoFactorVerified: boolean;
+  sourceIp?: string;
+  dispensed_at: string;
 }
 
 export interface PrescriptionFilters {
@@ -195,6 +236,15 @@ export function medicineLabel(entry: MedicineEntry): string {
 
 export function medicinesOf(p: Prescription): MedicineEntry[] {
   return Array.isArray(p.medicines) ? p.medicines : [];
+}
+
+export const CONTROLLED_SCHEDULES = ['II', 'III', 'IV', 'V'] as const;
+
+/** The controlled lines: what the hand-over sign-off is for. Same rule as the backend's marks. */
+export function controlledMedicinesOf(p: Prescription): { name: string; schedule: string }[] {
+  return medicinesOf(p)
+    .filter((m): m is Medicine => typeof m !== 'string' && m.controlled === true && !!(m.name ?? '').trim())
+    .map((m) => ({ name: String(m.name).trim(), schedule: m.schedule ?? '' }));
 }
 
 /** Lines that actually name a medicine — the same test the backend applies before completing. */

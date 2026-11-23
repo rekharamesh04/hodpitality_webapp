@@ -91,6 +91,8 @@ export const API_ENDPOINTS = {
     BILLING: '/settings/billing',
     /** The organisation's timezone — what "today" means for its appointments and reports. */
     TIMEZONE: '/settings/timezone',
+    /** Approved networks: desk logins only from the clinic's own internet connections. */
+    NETWORK: '/settings/network',
   },
   INDUSTRIES: '/industries',
   RESELLERS: '/resellers',

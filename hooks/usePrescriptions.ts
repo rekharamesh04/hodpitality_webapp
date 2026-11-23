@@ -47,7 +47,7 @@ export function useCreatePrescription() {
 export function useUpdatePrescription() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreatePrescriptionPayload> & { status?: string } }) =>
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreatePrescriptionPayload> & { status?: string; dispenseCheck?: { signoffId: string } } }) =>
       prescriptionService.updatePrescription(id, data),
     onSuccess: (_res, vars) => {
       qc.invalidateQueries({ queryKey: prescriptionKeys.all });
@@ -115,5 +115,14 @@ export function useDeletePrescription() {
     },
     onError: (err: any) =>
       popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, 'Could not delete the prescription')),
+  });
+}
+
+/** The controlled-substance register: one row per two-factor hand-over. Administrators only. */
+export function useControlledLog(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: [...QUERY_KEYS.PRESCRIPTIONS, 'controlled-log'],
+    queryFn: () => prescriptionService.getControlledLog(),
+    enabled: options.enabled ?? true,
   });
 }

@@ -120,7 +120,8 @@ export function TwoFactorCard() {
           )}
         </div>
         <CardDescription>
-          Ask for a code from an authenticator app on your phone each time you sign in.
+          Ask for a code from an authenticator app on your phone each time you sign in. Required to hand
+          over controlled medicines.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

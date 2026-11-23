@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -24,7 +26,7 @@ import { cn } from '@/lib/utils';
 import { DOCUMENT_ACCEPT } from '@/services/document.service';
 import type { Guest } from '@/types';
 import type { Medicine, Prescription } from '@/types/prescription';
-import { attachmentsOf, medicinesOf } from '@/types/prescription';
+import { CONTROLLED_SCHEDULES, attachmentsOf, medicinesOf } from '@/types/prescription';
 
 /** The backend's upload limit and per-prescription cap. */
 const MAX_BYTES = 8 * 1024 * 1024;
@@ -427,6 +429,34 @@ export function PrescriptionFormDialog({
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
+                {/* Controlled substances need a two-factor sign-off when handed over. A name the
+                    backend recognises (oxycodone, alprazolam…) is marked for you and stays marked. */}
+                <div className="flex flex-wrap items-center gap-3 text-xs sm:col-span-5">
+                  <label className="flex items-center gap-2">
+                    <Checkbox
+                      checked={m.controlled === true}
+                      disabled={locked || m.controlledDetected === true}
+                      onCheckedChange={(v) => setMedicine(i, v === true
+                        ? { controlled: true, schedule: m.schedule || 'II' }
+                        : { controlled: false, schedule: '' })}
+                      aria-label={`Medicine ${i + 1} is a controlled substance`}
+                    />
+                    Controlled substance
+                  </label>
+                  {m.controlled === true && (
+                    <Select value={m.schedule || ''} onValueChange={(v) => setMedicine(i, { schedule: v })} disabled={locked}>
+                      <SelectTrigger className="h-7 w-36 text-xs" aria-label={`Medicine ${i + 1} DEA schedule`}>
+                        <SelectValue placeholder="Schedule" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONTROLLED_SCHEDULES.map((c) => <SelectItem key={c} value={c}>Schedule {c}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {m.controlledDetected === true && (
+                    <span className="text-muted-foreground">Recognised as a controlled medicine by name.</span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

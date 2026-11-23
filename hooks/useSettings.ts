@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { popup } from '@/lib/popup';
 import { settingsService } from "@/services/settings.service";
+import type { ApprovedNetwork } from "@/services/settings.service";
 import { authService } from "@/services/auth.service";
 import { QUERY_KEYS } from "@/constants";
 import { getFriendlyErrorMessage } from "@/lib/utils";
@@ -115,5 +116,29 @@ export function useUpdateOrgTimezone() {
       popup.success("Timezone saved");
     },
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Could not save the timezone")),
+  });
+}
+
+const NETWORK_KEY = [...QUERY_KEYS.SETTINGS, "network"];
+
+/** Approved networks (administrators only). */
+export function useNetworkSettings(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: NETWORK_KEY,
+    queryFn: settingsService.getNetworkSettings,
+    enabled: options.enabled ?? true,
+    staleTime: 30_000,
+  });
+}
+
+export function useUpdateNetworkSettings() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { mode: "on" | "off"; networks: ApprovedNetwork[] }) => settingsService.updateNetworkSettings(input),
+    onSuccess: (data) => {
+      qc.setQueryData(NETWORK_KEY, data);
+      popup.success(data.mode === "on" ? "Approved networks saved and switched on" : "Approved networks saved");
+    },
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Could not save approved networks")),
   });
 }

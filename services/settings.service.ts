@@ -8,6 +8,23 @@ export interface OrgTimezone {
   isDefault: boolean;
 }
 
+/** One approved network: a public IP address or range in CIDR form ("203.0.113.7/32"). */
+export interface ApprovedNetwork {
+  cidr: string;
+  label: string;
+}
+
+/** Approved networks for the organisation. `yourAddress` is the address the server sees now. */
+export interface NetworkSettings {
+  mode: 'on' | 'off';
+  networks: ApprovedNetwork[];
+  yourAddress: string;
+  yourAddressAllowed: boolean;
+  appliesTo: string[];
+  updated_at?: string;
+  updated_by?: string;
+}
+
 export const settingsService = {
   async getProfile(): Promise<User> {
     const { data } = await api.get<User>(API_ENDPOINTS.SETTINGS.PROFILE);
@@ -36,6 +53,16 @@ export const settingsService = {
 
   async updateTimezone(timezone: string): Promise<OrgTimezone> {
     const { data } = await api.put<OrgTimezone>(API_ENDPOINTS.SETTINGS.TIMEZONE, { timezone });
+    return data;
+  },
+
+  async getNetworkSettings(): Promise<NetworkSettings> {
+    const { data } = await api.get<NetworkSettings>(API_ENDPOINTS.SETTINGS.NETWORK);
+    return data;
+  },
+
+  async updateNetworkSettings(input: { mode: 'on' | 'off'; networks: ApprovedNetwork[] }): Promise<NetworkSettings> {
+    const { data } = await api.put<NetworkSettings>(API_ENDPOINTS.SETTINGS.NETWORK, input);
     return data;
   },
 

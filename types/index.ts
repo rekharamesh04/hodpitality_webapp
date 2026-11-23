@@ -112,7 +112,7 @@ export interface Guest {
    */
   face_consent?: boolean;
   face_consent_at?: string;
-  /** "explicit", "staff_attested", "refused" or "withdrawn". */
+  /** "explicit", "staff_attested", "refused", "withdrawn" or "expired" (unused for a year, deleted automatically). */
   face_consent_source?: string;
   /** The pharmacy this patient's prescriptions are sent to by default (a hospital's patients). */
   preferredPharmacyTenantId?: string;

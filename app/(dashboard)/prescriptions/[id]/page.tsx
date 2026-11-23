@@ -4,6 +4,7 @@ import { use, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft, Pill, Pencil, Trash2, Stethoscope, User, CalendarClock, CheckCircle2, XCircle, Camera, Keyboard, PackageCheck,
+  ShieldCheck,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +16,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { PrescriptionStatusBadge } from '@/components/prescriptions/PrescriptionStatusBadge';
 import { PrescriptionFormDialog } from '@/components/dialogs/PrescriptionFormDialog';
 import { PrescriptionPhotos } from '@/components/prescriptions/PrescriptionPhotos';
+import { ControlledDispenseDialog } from '@/components/prescriptions/ControlledDispenseDialog';
 import {
   usePrescription, useUpdatePrescription, useDeletePrescription,
 } from '@/hooks/usePrescriptions';
@@ -23,8 +25,8 @@ import { PrescriptionRoutingCard } from '@/components/pharmacy/PrescriptionRouti
 import { useMarkPrescriptionReady } from '@/hooks/usePharmacies';
 import { cn, formatDate, getFriendlyErrorMessage, getInitials } from '@/lib/utils';
 import {
-  attachmentsOf, awaitingTyping, isWithPharmacy, medicineLabel, medicinesOf, patientNameOf, prescriberNameOf,
-  writtenHere,
+  attachmentsOf, awaitingTyping, controlledMedicinesOf, isWithPharmacy, medicineLabel, medicinesOf, patientNameOf,
+  prescriberNameOf, writtenHere,
 } from '@/types/prescription';
 
 /**
@@ -53,6 +55,7 @@ export default function PrescriptionDetailPage({
 
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [dispenseOpen, setDispenseOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -91,7 +94,14 @@ export default function PrescriptionDetailPage({
   // A prescription in one of our own prescriber's names is theirs (or an admin's) to amend or cancel.
   const mayRewrite = canPrescribe || !writtenHere(rx);
 
+  const controlled = controlledMedicinesOf(rx);
+
   function setStatus(status: 'completed' | 'cancelled') {
+    // A controlled medicine is only handed over with the two-factor sign-off.
+    if (status === 'completed' && controlled.length) {
+      setDispenseOpen(true);
+      return;
+    }
     updateMutation.mutate({ id, data: { status } });
   }
 
@@ -169,6 +179,23 @@ export default function PrescriptionDetailPage({
         </CardContent>
       </Card>
 
+      <ControlledDispenseDialog
+        open={dispenseOpen}
+        onOpenChange={setDispenseOpen}
+        lines={controlled}
+        defaultCollector={patientNameOf(rx)}
+        onSigned={(signoffId) => updateMutation.mutateAsync({ id, data: { status: 'completed', dispenseCheck: { signoffId } } }).then(() => undefined)}
+      />
+
+      {rx.controlledDispenseId && (
+        <p className="flex items-center gap-2 rounded-lg border bg-muted/40 px-4 py-3 text-sm">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          Controlled medicine handed over with two-factor sign-off
+          {rx.dispensedBy ? ` by ${rx.dispensedBy}` : ''}
+          {rx.dispensedAt ? `, ${formatDate(rx.dispensedAt, 'MMM dd, yyyy HH:mm')}` : ''}.
+        </p>
+      )}
+
       {isActive && rx.readyAt && !sentElsewhere && (
         <p className="rounded-lg border border-green-300 bg-green-50 px-4 py-3 text-sm text-green-900 dark:border-green-900 dark:bg-green-950/20 dark:text-green-300">
           Ready for pickup since {formatDate(rx.readyAt, 'MMM dd, HH:mm')}. Hand it over at the collection counter.
@@ -242,8 +269,13 @@ export default function PrescriptionDetailPage({
                           {i + 1}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold">
+                          <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                             {detail?.name || medicineLabel(m)}
+                            {detail?.controlled && (
+                              <span className="rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300">
+                                Controlled{detail.schedule ? ` · Schedule ${detail.schedule}` : ''}
+                              </span>
+                            )}
                           </p>
                           {detail && (
                             <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 sm:grid-cols-3">

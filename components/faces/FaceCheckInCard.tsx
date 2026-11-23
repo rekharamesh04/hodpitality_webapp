@@ -35,7 +35,9 @@ export function FaceCheckInCard({
     ? {
         icon: UserRoundX,
         tone: 'bg-warning/10 text-warning',
-        title: consentSource === 'withdrawn' ? 'Face removed' : 'Declined face check-in',
+        title: consentSource === 'withdrawn' ? 'Face removed'
+          : consentSource === 'expired' ? 'Face removed after a year unused'
+          : 'Declined face check-in',
         detail: `${when ? `${when} · ` : ''}Checks in by phone number at the kiosk, or at the desk`,
       }
     : { icon: ScanFace, tone: 'bg-muted text-muted-foreground', title: 'Not set up', detail: 'Ask whether they would like face check-in' };

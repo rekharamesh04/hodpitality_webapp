@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Delete, KeyRound, Landmark, Loader2, LogIn, LogOut, ScanFace, ShieldCheck, ShieldOff, Smartphone, UserX } from 'lucide-react';
+import { CheckCircle2, Delete, KeyRound, Landmark, Loader2, LogIn, LogOut, ScanFace, ShieldCheck, ShieldOff, Smartphone, Trash2, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { KioskCamera } from '@/components/kiosk/KioskCamera';
@@ -38,8 +38,10 @@ import type { Appointment } from '@/types';
  *
  * Face check-in is optional. Biometric laws (Texas CUBI, Illinois BIPA, India's DPDP) need consent
  * before a face is captured, and some people say no — so the welcome screen offers a phone number
- * as an equal way in, and the camera screen says what scanning means before anything is taken.
- * Both ways lead to the same decision and the same visit.
+ * as an equal way in. Choosing face opens a consent screen first (what is compared, that the
+ * picture is deleted, that it is optional, how to withdraw); the camera only starts after
+ * "I agree", and "No thanks" goes straight to phone-number check-in. Both ways lead to the same
+ * decision and the same visit.
  *
  * Leaving kiosk mode needs the exit PIN staff set on this device the first time (lib/kiosk-lock.ts):
  * the session behind this screen is a staff member's, and the portal holds every patient's record.
@@ -58,6 +60,7 @@ type Screen =
   | { name: 'setup'; digits: string; first?: string; error?: string }
   | { name: 'exit'; digits: string; error?: string }
   | { name: 'idle' }
+  | { name: 'consent' }
   | { name: 'camera' }
   | { name: 'phone'; digits: string }
   | { name: 'working'; message: string }
@@ -101,7 +104,7 @@ export default function KioskPage() {
   // Results clear themselves; an abandoned camera closes.
   useEffect(() => {
     const terminal = ['checked_in', 'done', 'not_recognised', 'phone_not_found', 'error'].includes(screen.name);
-    const ms = terminal ? RESULT_MS : ['camera', 'phone', 'checkout', 'exit'].includes(screen.name) ? CAMERA_IDLE_MS : 0;
+    const ms = terminal ? RESULT_MS : ['consent', 'camera', 'phone', 'checkout', 'exit'].includes(screen.name) ? CAMERA_IDLE_MS : 0;
     if (!ms) return;
     const timer = setTimeout(reset, ms);
     return () => clearTimeout(timer);
@@ -338,7 +341,7 @@ export default function KioskPage() {
               title="Scan my face"
               detail="If you set up face check-in at the desk"
               primary
-              onClick={() => setScreen({ name: 'camera' })}
+              onClick={() => setScreen({ name: 'consent' })}
             />
             <ChoiceCard
               icon={Smartphone}
@@ -355,9 +358,46 @@ export default function KioskPage() {
         </div>
       )}
 
+      {screen.name === 'consent' && (
+        // Notice and consent BEFORE the camera starts. The camera is only mounted on the
+        // 'camera' screen, and the only way there is "I agree" below. "No thanks" goes straight
+        // to phone-number check-in, which works exactly the same.
+        <div className="flex w-full max-w-2xl flex-col items-center gap-6 text-left">
+          <ShieldCheck className="h-14 w-14 text-primary" aria-hidden="true" />
+          <h1 className="text-center text-4xl font-bold tracking-tight">Before we scan your face</h1>
+          <ul className="w-full space-y-3 rounded-3xl border bg-card p-6 text-lg leading-snug">
+            <li className="flex gap-3">
+              <ScanFace className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <span>We compare your face with the photo you agreed to at registration, only to check you in.</span>
+            </li>
+            <li className="flex gap-3">
+              <Trash2 className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <span>The picture taken now is deleted as soon as you are matched. Face data not used for a year is deleted automatically.</span>
+            </li>
+            <li className="flex gap-3">
+              <Smartphone className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <span>Face check-in is optional. Your phone number works just the same, every time.</span>
+            </li>
+            <li className="flex gap-3">
+              <ShieldOff className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+              <span>To stop using face check-in and have your face data deleted, ask at the reception desk.</span>
+            </li>
+          </ul>
+          <div className="grid w-full gap-3 sm:grid-cols-2">
+            <Button size="lg" className="h-16 text-xl" onClick={() => setScreen({ name: 'camera' })}>
+              <ScanFace className="mr-3 h-6 w-6" /> I agree, start the camera
+            </Button>
+            <Button size="lg" variant="secondary" className="h-16 text-xl" onClick={() => setScreen({ name: 'phone', digits: '' })}>
+              <Smartphone className="mr-3 h-6 w-6" /> No thanks, use my phone
+            </Button>
+          </div>
+          <Button variant="link" className="text-lg" onClick={reset}>Back</Button>
+        </div>
+      )}
+
       {screen.name === 'camera' && (
         <div className="flex w-full max-w-xl flex-col items-center gap-4">
-          {/* Notice before capture: nothing is taken until they press the button. */}
+          {/* Reached only through the consent screen. Nothing is taken until they press the button. */}
           <p className="rounded-2xl bg-primary/5 px-5 py-3 text-base text-foreground">
             Pressing <span className="font-semibold">Scan my face</span> compares your face with the photo you agreed to
             at registration.
