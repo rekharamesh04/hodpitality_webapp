@@ -48,7 +48,9 @@ interface AuthState {
 function persistTokens({ token, refreshToken, accessToken }: TokenSet) {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-  document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  // Secure: the cookie is only ever sent over HTTPS (localhost development stays on http).
+  const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `auth_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax${secure}`;
   if (refreshToken) localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken);
   if (accessToken) localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken);
 }

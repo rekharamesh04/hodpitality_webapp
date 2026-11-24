@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { initSessionRefresh } from '@/lib/axios';
 import { installDevSession } from '@/lib/dev-session';
+import { IdleSignOut } from '@/components/auth/IdleSignOut';
 
 /**
  * Keeps the real (useAuthStore) Cognito session alive: validates / silently refreshes it on
@@ -35,5 +36,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return initSessionRefresh();
   }, []);
 
-  return <>{children}</>;
+  return (
+    <>
+      <IdleSignOut />
+      {children}
+    </>
+  );
 }
