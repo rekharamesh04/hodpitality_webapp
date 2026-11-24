@@ -27,8 +27,9 @@ declare module 'axios' {
   }
 }
 
-// Configure per environment via .env.local; the fallbacks keep the current dev backend working.
-export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://x8nrv9hcrf.execute-api.ap-south-1.amazonaws.com/dev';
+// Configure per environment via .env.local. The fallback is the production API, which has run in
+// AWS US East (Ohio) since 2026-11-24. The old Mumbai (ap-south-1) copy only answers "moved".
+export const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://9zid3fs6h0.execute-api.us-east-2.amazonaws.com/dev';
 // No hard-coded fallback: anything NEXT_PUBLIC_* ships inside the browser bundle, so it is not a
 // secret. Users are identified by their Cognito token. The header is only sent when this env var
 // is set (e.g. if API Gateway is configured to require an API key).
