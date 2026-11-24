@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordProblem } from './password-rules';
 
 export const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -19,11 +20,10 @@ export type OtpInput = z.infer<typeof otpSchema>;
 
 export const resetPasswordSchema = z
   .object({
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Must contain at least one uppercase letter")
-      .regex(/[0-9]/, "Must contain at least one number"),
+    password: z.string().superRefine((value, ctx) => {
+      const problem = passwordProblem(value);
+      if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+    }),
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, {

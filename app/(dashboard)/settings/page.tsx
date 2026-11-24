@@ -29,6 +29,7 @@ import {
 } from '@/hooks/useSettings';
 import { TwoFactorCard } from '@/components/settings/TwoFactorCard';
 import { usePlatformMode } from '@/store/platform-scope-store';
+import { passwordProblem, PASSWORD_HINT } from '@/lib/password-rules';
 
 export default function SettingsPage() {
   const t = useTerminology();
@@ -117,8 +118,9 @@ export default function SettingsPage() {
     if (!pwForm.currentPassword || !pwForm.newPassword) {
       return setPwError('All password fields are required.');
     }
-    if (pwForm.newPassword.length < 8) {
-      return setPwError('New password must be at least 8 characters.');
+    const problem = passwordProblem(pwForm.newPassword);
+    if (problem) {
+      return setPwError(`New password: ${problem}`);
     }
     if (pwForm.newPassword === pwForm.currentPassword) {
       return setPwError('New password must be different from your current password.');
@@ -356,7 +358,7 @@ export default function SettingsPage() {
                   />
                 </div>
               )}
-              <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>
+              <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
               {pwError && <p role="alert" className="text-sm text-destructive">{pwError}</p>}
               <Button onClick={handlePasswordSave} loading={changePassword.isPending}>
                 {changePassword.isPending ? 'Updating…' : 'Update Password'}

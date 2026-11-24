@@ -22,6 +22,7 @@ import { SIGN_OUT_REASON_KEY } from '@/lib/axios';
 import { isKnownRole } from '@/constants/roles';
 import { popup } from '@/lib/popup';
 import type { AuthResponse } from '@/types';
+import { passwordProblem } from '@/lib/password-rules';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -29,7 +30,10 @@ const loginSchema = z.object({
 });
 
 const newPasswordSchema = z.object({
-  newPassword: z.string().min(8, 'Must be at least 8 characters'),
+  newPassword: z.string().superRefine((value, ctx) => {
+    const problem = passwordProblem(value);
+    if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+  }),
   confirm: z.string(),
 }).refine((d) => d.newPassword === d.confirm, {
   message: 'Passwords do not match',
@@ -353,7 +357,7 @@ export default function LoginPage() {
                     <PasswordInput
                       showLeftIcon
                       id="newPassword"
-                      placeholder="Min. 8 characters"
+                      placeholder="Min. 12 characters, with a symbol"
                       {...newPwForm.register('newPassword')}
                       disabled={isLoading}
                     />
