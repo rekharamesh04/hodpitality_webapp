@@ -254,6 +254,15 @@ api.interceptors.response.use(
     // device is somewhere else. Every request will be refused, so sign out and say why — with
     // the address the server saw, which is what an administrator would need to add.
     const refusal = error.response?.data as { code?: string; yourAddress?: string } | undefined;
+
+    // An administrator without two-factor, while it is required: take them to where they turn
+    // it on (Settings → Security stays reachable), once, instead of a page full of errors.
+    if (status === 403 && refusal?.code === 'MFA_SETUP_REQUIRED' && typeof window !== 'undefined') {
+      if (!window.location.pathname.startsWith('/settings')) {
+        window.location.href = '/settings?tab=security&mfa=required';
+      }
+      return Promise.reject(error);
+    }
     if (status === 403 && refusal?.code === 'NETWORK_NOT_ALLOWED') {
       const where = refusal.yourAddress ? ` (this device is connecting from ${refusal.yourAddress})` : '';
       const reason = (backendMsg || 'Sign-in is only allowed from your organisation’s approved networks.') + where;

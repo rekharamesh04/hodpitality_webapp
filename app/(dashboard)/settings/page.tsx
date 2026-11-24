@@ -42,6 +42,11 @@ export default function SettingsPage() {
   const canEditOrg = canManageStaff(user?.role) && !platformMode;
   // ?tab=organization opens a tab directly (the dashboard's timezone reminder links there).
   const [tab, setTab] = useState('general');
+  // ?mfa=required: sent here because administrators must turn on two-factor first.
+  const [mfaRequired, setMfaRequired] = useState(false);
+  useEffect(() => {
+    setMfaRequired(new URLSearchParams(window.location.search).get('mfa') === 'required');
+  }, []);
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get('tab');
     if (wanted && (wanted !== 'organization' || canEditOrg)) setTab(wanted);
@@ -365,6 +370,15 @@ export default function SettingsPage() {
               </Button>
             </CardContent>
           </Card>
+          {mfaRequired && (
+            <div role="alert" className="rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm">
+              <p className="font-semibold">Two-factor authentication is required for administrator accounts.</p>
+              <p className="mt-1 text-muted-foreground">
+                Turn it on below to continue using EntryFlow. You will need an authenticator app such as Microsoft
+                Authenticator or Google Authenticator.
+              </p>
+            </div>
+          )}
           <TwoFactorCard />
         </TabsContent>
       </Tabs>
