@@ -22,7 +22,7 @@ export const resetPasswordSchema = z
   .object({
     password: z.string().superRefine((value, ctx) => {
       const problem = passwordProblem(value);
-      if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+      if (problem) ctx.addIssue({ code: "custom", message: problem });
     }),
     confirmPassword: z.string(),
   })

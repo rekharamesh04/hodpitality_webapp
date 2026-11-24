@@ -32,7 +32,7 @@ const loginSchema = z.object({
 const newPasswordSchema = z.object({
   newPassword: z.string().superRefine((value, ctx) => {
     const problem = passwordProblem(value);
-    if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+    if (problem) ctx.addIssue({ code: 'custom', message: problem });
   }),
   confirm: z.string(),
 }).refine((d) => d.newPassword === d.confirm, {
