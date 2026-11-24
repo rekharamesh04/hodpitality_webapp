@@ -3,6 +3,7 @@ import { popup } from '@/lib/popup';
 import { settingsService } from "@/services/settings.service";
 import type { ApprovedNetwork } from "@/services/settings.service";
 import { authService } from "@/services/auth.service";
+import type { Reauth } from "@/services/auth.service";
 import { QUERY_KEYS } from "@/constants";
 import { getFriendlyErrorMessage } from "@/lib/utils";
 import type { User, Settings } from "@/types";
@@ -70,15 +71,15 @@ export function useMfaStatus() {
 
 /** Step one of enrolling: the setup key for the authenticator app. Errors are shown by the card. */
 export function useSetupMfa() {
-  return useMutation({ mutationFn: (currentPassword: string) => authService.setupMfa(currentPassword) });
+  return useMutation({ mutationFn: (proof: Reauth) => authService.setupMfa(proof) });
 }
 
 /** Step two: the first code from the app switches two-factor on. */
 export function useVerifyMfa() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ currentPassword, code }: { currentPassword: string; code: string }) =>
-      authService.verifyMfa(currentPassword, code),
+    mutationFn: ({ proof, code }: { proof: Reauth; code: string }) =>
+      authService.verifyMfa(proof, code),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: MFA_KEY });
       popup.success("Two-factor authentication is on");
@@ -89,8 +90,8 @@ export function useVerifyMfa() {
 export function useDisableMfa() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ currentPassword, code }: { currentPassword: string; code: string }) =>
-      authService.disableMfa(currentPassword, code),
+    mutationFn: ({ proof, code }: { proof: Reauth; code: string }) =>
+      authService.disableMfa(proof, code),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: MFA_KEY });
       popup.success("Two-factor authentication is off");

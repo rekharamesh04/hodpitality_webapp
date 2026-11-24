@@ -9,7 +9,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PasswordInput } from '@/components/ui/password-input';
+import { ConfirmIdentity, hasProof } from '@/components/auth/ConfirmIdentity';
+import type { Reauth } from '@/services/auth.service';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { prescriptionService } from '@/services/prescription.service';
 import { getFriendlyErrorMessage } from '@/lib/utils';
@@ -50,7 +51,7 @@ export function ControlledDispenseDialog({
   /** Called with the sign-off id; the dialog closes once it resolves. */
   onSigned: (signoffId: string) => void | Promise<void>;
 }) {
-  const [password, setPassword] = useState('');
+  const [proof, setProof] = useState<Reauth | null>(null);
   const [code, setCode] = useState('');
   const [idType, setIdType] = useState<ControlledIdCheck['idType'] | ''>('');
   const [idLast4, setIdLast4] = useState('');
@@ -61,21 +62,24 @@ export function ControlledDispenseDialog({
 
   useEffect(() => {
     if (!open) return;
-    setPassword(''); setCode(''); setIdType(''); setIdLast4('');
+    setProof(null); setCode(''); setIdType(''); setIdLast4('');
     setCollector(defaultCollector ?? ''); setRelationship('self'); setError(null);
   }, [open, defaultCollector]);
 
   const needsNumber = idType !== '' && idType !== 'known_patient';
-  const ready = !!password && /^\d{6}$/.test(code) && !!idType && !!collector.trim()
+  const ready = hasProof(proof) && /^\d{6}$/.test(code) && !!idType && !!collector.trim()
     && (!needsNumber || idLast4.replace(/[^A-Za-z0-9]/g, '').length >= 2);
 
   async function submit() {
-    if (!ready || !idType) return;
+    if (!ready || !idType || !hasProof(proof)) return;
     setBusy(true);
     setError(null);
     try {
+      const who = 'currentPassword' in proof
+        ? { password: proof.currentPassword }
+        : { ssoProvider: proof.ssoProvider, ssoToken: proof.ssoToken };
       const { signoffId } = await prescriptionService.createControlledSignoff({
-        password, mfaCode: code, idType, idLast4: idLast4.trim(), collectorName: collector.trim(),
+        ...who, mfaCode: code, idType, idLast4: idLast4.trim(), collectorName: collector.trim(),
         collectorRelationship: relationship,
       });
       await onSigned(signoffId);
@@ -88,7 +92,8 @@ export function ControlledDispenseDialog({
       });
       if (apiCode === 'MFA_CODE_INVALID') setCode('');
     } finally {
-      setPassword('');
+      // Never keep a password or a sign-in token around after an attempt.
+      setProof(null);
       setBusy(false);
     }
   }
@@ -101,7 +106,8 @@ export function ControlledDispenseDialog({
             <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" /> Controlled medicine hand-over
           </DialogTitle>
           <DialogDescription>
-            Confirm it is you with your password and authenticator code, and record the ID of the person collecting.
+            Confirm it is you (your password, or Google if that is how you sign in) and your authenticator code, and
+            record the ID of the person collecting.
           </DialogDescription>
         </DialogHeader>
 
@@ -146,9 +152,8 @@ export function ControlledDispenseDialog({
           </div>
 
           <div className="grid gap-3 border-t pt-4 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="cd-password">Your password</Label>
-              <PasswordInput id="cd-password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+            <div className="space-y-1.5 sm:col-span-2">
+              <ConfirmIdentity id="cd-password" value={proof} onChange={setProof} disabled={busy} />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cd-code">Authenticator code</Label>

@@ -55,7 +55,10 @@ export const prescriptionService = {
    * prescription in this collection is completed with; it lapses after five minutes.
    */
   async createControlledSignoff(
-    check: ControlledIdCheck & { password: string; mfaCode: string },
+    check: ControlledIdCheck & { mfaCode: string } & (
+      | { password: string }
+      | { ssoProvider: 'google' | 'microsoft'; ssoToken: string }
+    ),
   ): Promise<{ signoffId: string; expiresAt: string }> {
     const { data } = await api.post<{ signoffId: string; expiresAt: string }>(
       `${API_ENDPOINTS.PRESCRIPTIONS}/controlled-signoff`, check,

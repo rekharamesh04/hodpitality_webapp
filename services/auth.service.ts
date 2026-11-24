@@ -2,6 +2,15 @@ import api from '@/lib/axios';
 import { API_ENDPOINTS, STORAGE_KEYS } from '@/constants';
 import type { LoginCredentials, AuthResponse as LoginResponse, User } from '@/types';
 
+/**
+ * How someone proves it is them again for a sensitive step: their password, or a
+ * fresh Google / Microsoft sign-in (for people who sign in that way and have no
+ * password of their own).
+ */
+export type Reauth =
+  | { currentPassword: string }
+  | { ssoProvider: 'google' | 'microsoft'; ssoToken: string };
+
 // NOTE: token persistence (localStorage + the `auth_token` cookie the Next.js middleware
 // reads) lives entirely in store/auth-store.ts now — these methods only talk to the API and
 // hand back the raw response. Callers persist a session via useAuthStore().login()/setTokens().
@@ -53,21 +62,21 @@ export const authService = {
     return data;
   },
 
-  /** Start enrolling an authenticator app. The password is checked again server-side. */
-  async setupMfa(currentPassword: string): Promise<{ secretCode: string; otpauthUrl: string }> {
-    const { data } = await api.post<{ secretCode: string; otpauthUrl: string }>(API_ENDPOINTS.MFA.SETUP, { currentPassword });
+  /** Start enrolling an authenticator app. Who you are is checked again server-side. */
+  async setupMfa(proof: Reauth): Promise<{ secretCode: string; otpauthUrl: string }> {
+    const { data } = await api.post<{ secretCode: string; otpauthUrl: string }>(API_ENDPOINTS.MFA.SETUP, { ...proof });
     return data;
   },
 
   /** Confirm the first code from the app, which switches two-factor on. */
-  async verifyMfa(currentPassword: string, code: string): Promise<{ mfaEnabled: boolean }> {
-    const { data } = await api.post<{ mfaEnabled: boolean }>(API_ENDPOINTS.MFA.VERIFY, { currentPassword, code });
+  async verifyMfa(proof: Reauth, code: string): Promise<{ mfaEnabled: boolean }> {
+    const { data } = await api.post<{ mfaEnabled: boolean }>(API_ENDPOINTS.MFA.VERIFY, { ...proof, code });
     return data;
   },
 
-  /** Turn two-factor off. Needs both the password and a current code. */
-  async disableMfa(currentPassword: string, code: string): Promise<{ mfaEnabled: boolean }> {
-    const { data } = await api.delete<{ mfaEnabled: boolean }>(API_ENDPOINTS.MFA.STATUS, { data: { currentPassword, code } });
+  /** Turn two-factor off. Needs proof of who you are and a current code. */
+  async disableMfa(proof: Reauth, code: string): Promise<{ mfaEnabled: boolean }> {
+    const { data } = await api.delete<{ mfaEnabled: boolean }>(API_ENDPOINTS.MFA.STATUS, { data: { ...proof, code } });
     return data;
   },
 

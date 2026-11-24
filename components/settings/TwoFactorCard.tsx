@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PasswordInput } from '@/components/ui/password-input';
+import { ConfirmIdentity, hasProof } from '@/components/auth/ConfirmIdentity';
+import type { Reauth } from '@/services/auth.service';
 import { useDisableMfa, useMfaStatus, useSetupMfa, useVerifyMfa } from '@/hooks/useSettings';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { popup } from '@/lib/popup';
@@ -31,7 +32,8 @@ export function TwoFactorCard() {
   const disable = useDisableMfa();
 
   const [step, setStep] = useState<Step>('idle');
-  const [password, setPassword] = useState('');
+  // The password, or a fresh Google sign-in for people who sign in with Google.
+  const [proof, setProof] = useState<Reauth | null>(null);
   const [code, setCode] = useState('');
   const [secret, setSecret] = useState<{ secretCode: string; otpauthUrl: string } | null>(null);
   const [qr, setQr] = useState('');
@@ -52,7 +54,7 @@ export function TwoFactorCard() {
 
   function reset() {
     setStep('idle');
-    setPassword('');
+    setProof(null);
     setCode('');
     setSecret(null);
     setError('');
@@ -60,7 +62,8 @@ export function TwoFactorCard() {
 
   function start() {
     setError('');
-    setup.mutate(password, {
+    if (!hasProof(proof)) return setError('Enter your password, or confirm with Google.');
+    setup.mutate(proof, {
       onSuccess: (res) => { setSecret(res); setStep('scan'); },
       onError: (err) => setError(errorText(err, 'Could not start two-factor setup.')),
     });
@@ -69,7 +72,8 @@ export function TwoFactorCard() {
   function confirm() {
     setError('');
     if (!/^\d{6}$/.test(code)) return setError('Enter the 6-digit code from the app.');
-    verify.mutate({ currentPassword: password, code }, {
+    if (!hasProof(proof)) return setError('Enter your password, or confirm with Google.');
+    verify.mutate({ proof, code }, {
       onSuccess: reset,
       onError: (err) => setError(errorText(err, 'That code was not accepted.')),
     });
@@ -77,9 +81,9 @@ export function TwoFactorCard() {
 
   function turnOff() {
     setError('');
-    if (!password) return setError('Enter your password.');
+    if (!hasProof(proof)) return setError('Enter your password, or confirm with Google.');
     if (!/^\d{6}$/.test(code)) return setError('Enter the 6-digit code from the app.');
-    disable.mutate({ currentPassword: password, code }, {
+    disable.mutate({ proof, code }, {
       onSuccess: reset,
       onError: (err) => setError(errorText(err, 'Could not turn off two-factor authentication.')),
     });
@@ -112,15 +116,8 @@ export function TwoFactorCard() {
   );
 
   const passwordInput = (
-    <div className="space-y-2">
-      <Label htmlFor="mfa-password">Current password</Label>
-      <PasswordInput
-        id="mfa-password"
-        autoComplete="current-password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
-    </div>
+    <ConfirmIdentity id="mfa-password" value={proof} onChange={setProof}
+      disabled={setup.isPending || verify.isPending || disable.isPending} />
   );
 
   return (
@@ -158,7 +155,7 @@ export function TwoFactorCard() {
           <>
             {passwordInput}
             <div className="flex gap-2">
-              <Button onClick={start} loading={setup.isPending} disabled={!password}>Continue</Button>
+              <Button onClick={start} loading={setup.isPending} disabled={!hasProof(proof)}>Continue</Button>
               <Button variant="ghost" onClick={reset} disabled={setup.isPending}>Cancel</Button>
             </div>
           </>
