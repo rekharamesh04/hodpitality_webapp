@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import QRCode from 'qrcode';
 import { Copy, ShieldCheck, ShieldOff } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -33,9 +34,21 @@ export function TwoFactorCard() {
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   const [secret, setSecret] = useState<{ secretCode: string; otpauthUrl: string } | null>(null);
+  const [qr, setQr] = useState('');
   const [error, setError] = useState('');
 
   const enabled = !!status.data?.mfaEnabled;
+
+  // The QR code is drawn here in the browser. The setup key must never be sent to an outside
+  // QR service: anyone holding it can generate this person's sign-in codes.
+  useEffect(() => {
+    if (!secret?.otpauthUrl) { setQr(''); return; }
+    let live = true;
+    QRCode.toDataURL(secret.otpauthUrl, { errorCorrectionLevel: 'M', margin: 2, width: 220 })
+      .then((url) => { if (live) setQr(url); })
+      .catch(() => { if (live) setQr(''); });
+    return () => { live = false; };
+  }, [secret]);
 
   function reset() {
     setStep('idle');
@@ -155,18 +168,40 @@ export function TwoFactorCard() {
           <>
             <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
               <li>
-                In your authenticator app, add an account and choose <span className="font-medium text-foreground">Enter a setup key</span>
-                {' '}— or, on this phone, <a href={secret.otpauthUrl} className="text-primary underline">open it in the app</a>.
+                Open <span className="font-medium text-foreground">Microsoft Authenticator</span> or{' '}
+                <span className="font-medium text-foreground">Google Authenticator</span> on your phone and tap{' '}
+                <span className="font-medium text-foreground">+</span>. In Microsoft Authenticator choose{' '}
+                <span className="font-medium text-foreground">Other account (Google, Facebook, etc.)</span>.
               </li>
-              <li>Enter the key below, set as time-based.</li>
-              <li>Type the 6-digit code the app shows.</li>
+              <li>Scan this QR code with the phone.</li>
+              <li>Type the 6-digit code the app shows for EntryFlow.</li>
             </ol>
-            <div className="flex flex-wrap items-center gap-2">
-              <code className="break-all rounded-md border bg-muted px-3 py-2 font-mono text-sm">{secret.secretCode}</code>
-              <Button size="sm" variant="outline" onClick={copySecret} aria-label="Copy setup key">
-                <Copy className="h-4 w-4" />
-              </Button>
+            <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+              {qr ? (
+                // A data URL drawn locally; next/image adds nothing for it.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={qr} width={220} height={220} alt="QR code to add EntryFlow to your authenticator app"
+                  className="rounded-lg border bg-white p-1" />
+              ) : (
+                <div className="flex h-[220px] w-[220px] items-center justify-center rounded-lg border text-xs text-muted-foreground">
+                  Preparing QR code…
+                </div>
+              )}
+              <p className="max-w-xs text-xs text-muted-foreground">
+                Keep this private: anyone who scans it can make your sign-in codes. Setting up on this phone?{' '}
+                <a href={secret.otpauthUrl} className="text-primary underline">Open it in the app</a> instead.
+              </p>
             </div>
+            <details className="text-sm">
+              <summary className="cursor-pointer text-muted-foreground">Can&rsquo;t scan? Enter a setup key instead</summary>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <code className="break-all rounded-md border bg-muted px-3 py-2 font-mono text-sm">{secret.secretCode}</code>
+                <Button size="sm" variant="outline" onClick={copySecret} aria-label="Copy setup key">
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="mt-1 text-xs text-muted-foreground">Choose &ldquo;Enter code manually&rdquo; in the app, paste the key, and set it as time-based.</p>
+            </details>
             {codeInput}
             <div className="flex gap-2">
               <Button onClick={confirm} loading={verify.isPending}>Turn on</Button>
