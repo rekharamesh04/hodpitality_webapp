@@ -127,11 +127,6 @@ export function getStatusColor(status: string): string {
   return STATUS_TONES[STATUS_TONE_MAP[key] ?? 'neutral'];
 }
 
-export function generateQRCode(data: string): string {
-  // In production, use a proper QR code library
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(data)}`;
-}
-
 function csvCell(value: unknown): string {
   if (value == null) return '';
   const str = typeof value === 'object' ? JSON.stringify(value) : String(value);
@@ -321,10 +316,3 @@ export function formatCheckInTimestamp(date: string | Date | undefined | null): 
   return isToday ? `Today, ${time}` : `${formatDate(d)}, ${time}`;
 }
 
-export function getAvatarUrl(name: string, email?: string): string {
-  if (email) {
-    // Gravatar fallback
-    return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563EB&color=fff&size=200`;
-  }
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563EB&color=fff&size=200`;
-}

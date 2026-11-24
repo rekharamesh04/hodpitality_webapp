@@ -1,5 +1,6 @@
-/* ─── Google Fonts ──────────────────────────────────────── */
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
+/* ─── Fonts ─────────────────────────────────────────────── */
+/* Inter is self-hosted by next/font (app/layout.tsx, --font-inter): no request to Google, and the
+   Content-Security-Policy allows no outside stylesheets. */
 
 @import "tailwindcss";
 @custom-variant dark (&:is(.dark *));
@@ -93,7 +94,7 @@
 
 /* ─── Tailwind Theme ────────────────────────────────────── */
 @theme inline {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-inter), "Inter", system-ui, -apple-system, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
