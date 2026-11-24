@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,12 +27,14 @@ const ID_LABELS: Record<string, string> = {
  */
 export default function ControlledRegisterPage() {
   const { isAdmin } = usePermissions();
+  const router = useRouter();
   const { data, isLoading, isError, error, refetch } = useControlledLog({ enabled: isAdmin });
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
-      <Button variant="ghost" size="sm" asChild className="-ml-2">
-        <Link href="/prescriptions"><ArrowLeft className="mr-2 h-4 w-4" /> Prescriptions</Link>
+      {/* Not asChild: this Button renders its own spinner beside the children, so it cannot slot onto a Link. */}
+      <Button variant="ghost" size="sm" className="-ml-2" onClick={() => router.push('/prescriptions')}>
+        <ArrowLeft className="mr-2 h-4 w-4" /> Prescriptions
       </Button>
       <div>
         <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight sm:text-3xl">
