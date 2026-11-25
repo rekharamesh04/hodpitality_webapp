@@ -5,6 +5,10 @@ import { useAuthStore } from '@/store/auth-store';
 import { SCOPE_PARAM_NAMES, scopeQueryParams, usePlatformScopeStore } from '@/store/platform-scope-store';
 import { debugLog } from '@/utils/debugLog';
 import { DEV_BYPASS_ENABLED } from '@/lib/dev-session';
+import {
+  LOCATION_CHECK_PATH, LOCATION_PASS_HEADER, clearLocationPass, isDefiniteRefusal, msUntilRenewal,
+  readLocationPass, readPosition, saveLocationPass, type LocationCheckResult,
+} from '@/lib/location-pass';
 
 // Endpoints that run without a session — a 401 here means "request rejected",
 // not "your session expired", so it must not trigger the global logout redirect
@@ -24,6 +28,8 @@ declare module 'axios' {
     _isAuthRefreshCall?: boolean;
     /** Set once a request has been retried after its stale platform scope was dropped. */
     _scopeRetry?: boolean;
+    /** Set once a request has been retried after a location check, so it's never retried twice. */
+    _locationRetry?: boolean;
   }
 }
 
@@ -113,6 +119,8 @@ function performLogout() {
   // exactly what the bypass exists to avoid.
   if (DEV_BYPASS_ENABLED) return;
   cancelScheduledRefresh();
+  cancelLocationRenewal();
+  clearLocationPass();
   useAuthStore.getState().logout();
   if (window.location.pathname !== '/login') {
     window.location.href = '/login';
@@ -172,6 +180,66 @@ async function performTokenRefresh(): Promise<string> {
   }
 }
 
+// ─── Location passes (organisations that limit desk staff to their clinics) ──────────────
+// See lib/location-pass.ts. One check at a time: every request refused at once waits for it.
+
+let locationCheck: Promise<LocationCheckResult> | null = null;
+let locationTimer: ReturnType<typeof setTimeout> | null = null;
+
+function cancelLocationRenewal() {
+  if (locationTimer) {
+    clearTimeout(locationTimer);
+    locationTimer = null;
+  }
+}
+
+/** Reads the device's position and asks the server whether it is at one of the person's clinics. */
+function runLocationCheck(): Promise<LocationCheckResult> {
+  if (!locationCheck) {
+    locationCheck = (async (): Promise<LocationCheckResult> => {
+      const reading = await readPosition();
+      const { data } = await api.post<LocationCheckResult>(LOCATION_CHECK_PATH, reading);
+      if (data?.allowed && data.pass) {
+        saveLocationPass(data.pass, data.expiresIn ?? 20 * 60, data.site?.name);
+        scheduleLocationRenewal();
+      } else if (data && isDefiniteRefusal(data)) {
+        // Found outside: the server has already ended the pass.
+        clearLocationPass();
+      }
+      return data ?? { allowed: false };
+    })()
+      .catch((err: AxiosError<{ error?: string }>) => ({
+        allowed: false,
+        error: err?.response?.data?.error || 'Could not check your location. Try again, or connect to the clinic\u2019s Wi-Fi.',
+      }))
+      .finally(() => {
+        locationCheck = null;
+      });
+  }
+  return locationCheck;
+}
+
+/** Renews the pass while it is in use, a while before it runs out. */
+function scheduleLocationRenewal() {
+  if (typeof window === 'undefined') return;
+  cancelLocationRenewal();
+  const wait = msUntilRenewal();
+  if (wait == null) return;
+  locationTimer = setTimeout(async () => {
+    locationTimer = null;
+    if (!readLocationPass() || !localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)) return;
+    const result = await runLocationCheck();
+    if (isDefiniteRefusal(result)) {
+      // They have left the clinic. Say so now rather than leave a page where nothing loads.
+      try { sessionStorage.setItem(SIGN_OUT_REASON_KEY, result.error || 'You are no longer at one of your clinics.'); } catch { /* storage unavailable */ }
+      performLogout();
+    } else if (!result.allowed) {
+      // The device could not say this time; the pass lasts a while longer. Try again shortly.
+      locationTimer = setTimeout(() => scheduleLocationRenewal(), 60_000);
+    }
+  }, wait);
+}
+
 /**
  * Called once on app bootstrap (see components/auth/AuthProvider.tsx) so a page reload
  * silently refreshes an already-expired-but-refreshable session instead of leaving the user
@@ -187,6 +255,8 @@ export function initSessionRefresh(): () => void {
   // Read from localStorage rather than the (possibly not-yet-rehydrated) store — same reasoning
   // as performTokenRefresh() above.
   apply(localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN));
+  // A page reload (or a new tab) keeps renewing a location pass that is still in use.
+  if (localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)) scheduleLocationRenewal();
   return useAuthStore.subscribe((state, prevState) => {
     if (state.token !== prevState.token) apply(state.token);
   });
@@ -202,6 +272,12 @@ api.interceptors.request.use(
       const token = localStorage.getItem(key);
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
+      }
+      // Proof that this device was found at one of its clinics (only ever set when the
+      // organisation limits desk staff to its clinics and this device is off their networks).
+      const locationPass = token ? readLocationPass() : null;
+      if (locationPass && config.headers) {
+        config.headers[LOCATION_PASS_HEADER] = locationPass;
       }
       // A super admin or reseller looking at one organisation or industry. The API honours
       // these for platform roles only; /auth never takes them, so a stale scope cannot sign
@@ -253,7 +329,7 @@ api.interceptors.response.use(
     // The organisation only allows desk logins from its approved clinic networks, and this
     // device is somewhere else. Every request will be refused, so sign out and say why — with
     // the address the server saw, which is what an administrator would need to add.
-    const refusal = error.response?.data as { code?: string; yourAddress?: string } | undefined;
+    const refusal = error.response?.data as { code?: string; yourAddress?: string; location?: boolean } | undefined;
 
     // An administrator without two-factor, while it is required: take them to where they turn
     // it on (Settings → Security stays reachable), once, instead of a page full of errors.
@@ -264,7 +340,26 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
     if (status === 403 && refusal?.code === 'NETWORK_NOT_ALLOWED') {
-      const where = refusal.yourAddress ? ` (this device is connecting from ${refusal.yourAddress})` : '';
+      // Not on a clinic network, but a clinic this person works at has a place on the map: ask
+      // the device where it is, once, and repeat the request with the pass that comes back.
+      if (refusal.location && originalConfig && !originalConfig._locationRetry && !isLogoutCall && !DEV_BYPASS_ENABLED) {
+        // Sent before a check that has since finished: repeat it with the new pass, no second check.
+        const sentPass = originalConfig.headers?.[LOCATION_PASS_HEADER];
+        const currentPass = readLocationPass();
+        if (currentPass && currentPass !== sentPass) {
+          originalConfig._locationRetry = true;
+          return api(originalConfig);
+        }
+        const result = await runLocationCheck();
+        if (result.allowed) {
+          originalConfig._locationRetry = true;
+          return api(originalConfig);
+        }
+        try { sessionStorage.setItem(SIGN_OUT_REASON_KEY, result.error || backendMsg || 'Sign-in is only allowed at your organisation’s clinics.'); } catch { /* storage unavailable */ }
+        performLogout();
+        return Promise.reject(error);
+      }
+      const where = refusal.yourAddress && !refusal.location ? ` (this device is connecting from ${refusal.yourAddress})` : '';
       const reason = (backendMsg || 'Sign-in is only allowed from your organisation’s approved networks.') + where;
       try { sessionStorage.setItem(SIGN_OUT_REASON_KEY, reason); } catch { /* storage unavailable */ }
       performLogout();

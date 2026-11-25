@@ -153,3 +153,13 @@ export function useDismissNetworkRefusals() {
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Could not dismiss")),
   });
 }
+
+/** Forget a new address seen at a clinic (or all of them, with nothing given) without adding it. */
+export function useDismissNetworkSuggestions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (target?: { ip: string; site: string }) => settingsService.dismissNetworkSuggestions(target?.ip, target?.site),
+    onSuccess: (data) => qc.setQueryData(NETWORK_KEY, data),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Could not dismiss")),
+  });
+}

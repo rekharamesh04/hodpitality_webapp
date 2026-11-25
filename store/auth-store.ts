@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { User } from '@/types';
 import { STORAGE_KEYS } from '@/constants';
+import { clearLocationPass } from '@/lib/location-pass';
 
 /** Tokens minted client-side before real auth existed. None of them is a Cognito session, so any request made with one would be answered by fake data rather than the API. */
 function isLocalBypassToken(token: string | null | undefined): boolean {
@@ -60,6 +61,8 @@ function clearPersistedTokens() {
   localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
   localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN);
   localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
+  // A location pass belongs to the person who earned it; the next person signs in from scratch.
+  clearLocationPass();
   document.cookie = 'auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
 }
 

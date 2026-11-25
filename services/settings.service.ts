@@ -26,6 +26,41 @@ export interface NetworkRefusal {
   count: number;
   firstAt: string;
   lastAt: string;
+  /** "network", or why the location check refused ("location_far", "location_denied", …). */
+  reason?: string;
+  /** For a location refusal: the nearest clinic, and how far away (metres). */
+  site?: string;
+  distance?: number | null;
+}
+
+/**
+ * One clinic. Staff get in on its own networks, or — when it has a pin — on a device whose
+ * location is within `radius` metres of it (a phone on mobile data, whose address changes).
+ */
+export interface ClinicSite {
+  id: string;
+  name: string;
+  lat?: number;
+  lng?: number;
+  radius?: number;
+  networks: ApprovedNetwork[];
+}
+
+/** Someone who may sign in only at some clinics. Everyone else may use every clinic. */
+export interface SiteAssignment {
+  email: string;
+  sites: string[];
+}
+
+/** An address staff used while their location placed them at a clinic. Never added by itself. */
+export interface NetworkSuggestion {
+  ip: string;
+  siteId: string;
+  siteName: string;
+  people: string[];
+  count: number;
+  firstAt: string;
+  lastAt: string;
 }
 
 /** Approved networks for the organisation. `yourAddress` is the address the server sees now. */
@@ -37,8 +72,16 @@ export interface NetworkSettings {
   /** People (emails) who may sign in from anywhere. */
   exempt?: string[];
   refusals?: NetworkRefusal[];
+  sites?: ClinicSite[];
+  assignments?: SiteAssignment[];
+  suggestions?: NetworkSuggestion[];
   yourAddress: string;
   yourAddressAllowed: boolean;
+  /** Your address is on the every-clinic list. */
+  yourAddressEverywhere?: boolean;
+  /** The clinics whose own lists include your address. */
+  yourAddressSites?: string[];
+  limits?: { minRadius: number; maxRadius: number; defaultRadius: number; maxSites: number };
   appliesTo: string[];
   updated_at?: string;
   updated_by?: string;
@@ -48,6 +91,8 @@ export interface NetworkSettingsInput {
   mode: 'on' | 'off';
   networks: ApprovedNetwork[];
   exempt?: string[];
+  sites?: ClinicSite[];
+  assignments?: SiteAssignment[];
 }
 
 export const settingsService = {
@@ -95,6 +140,14 @@ export const settingsService = {
   async dismissNetworkRefusals(ip?: string): Promise<NetworkSettings> {
     const { data } = await api.delete<NetworkSettings>(`${API_ENDPOINTS.SETTINGS.NETWORK}/refusals`, {
       params: ip ? { ip } : undefined,
+    });
+    return data;
+  },
+
+  /** Forget a new address seen at a clinic (`ip` + `site`), or all of them. */
+  async dismissNetworkSuggestions(ip?: string, site?: string): Promise<NetworkSettings> {
+    const { data } = await api.delete<NetworkSettings>(`${API_ENDPOINTS.SETTINGS.NETWORK}/suggestions`, {
+      params: ip ? { ip, ...(site ? { site } : {}) } : undefined,
     });
     return data;
   },

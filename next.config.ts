@@ -59,10 +59,12 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  // The camera is used by the kiosk and face enrolment, on this site only. Nothing else.
+  // The camera is used by the kiosk and face enrolment, on this site only. Location, on this site
+  // only, for organisations that limit desk staff to their clinics (a phone off the clinic's Wi-Fi
+  // proves it is at the clinic; the position is compared once and never stored). Nothing else.
   {
     key: "Permissions-Policy",
-    value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), serial=(), bluetooth=(), interest-cohort=()",
+    value: "camera=(self), microphone=(), geolocation=(self), payment=(), usb=(), serial=(), bluetooth=(), interest-cohort=()",
   },
   // Google and Microsoft sign-in open pop-ups that report back to this window.
   { key: "Cross-Origin-Opener-Policy", value: "same-origin-allow-popups" },
