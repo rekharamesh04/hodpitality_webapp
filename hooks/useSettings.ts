@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { popup } from '@/lib/popup';
 import { settingsService } from "@/services/settings.service";
-import type { ApprovedNetwork } from "@/services/settings.service";
+import type { NetworkSettingsInput } from "@/services/settings.service";
 import { authService } from "@/services/auth.service";
 import type { Reauth } from "@/services/auth.service";
 import { QUERY_KEYS } from "@/constants";
@@ -135,11 +135,21 @@ export function useNetworkSettings(options: { enabled?: boolean } = {}) {
 export function useUpdateNetworkSettings() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { mode: "on" | "off"; networks: ApprovedNetwork[] }) => settingsService.updateNetworkSettings(input),
+    mutationFn: (input: NetworkSettingsInput) => settingsService.updateNetworkSettings(input),
     onSuccess: (data) => {
       qc.setQueryData(NETWORK_KEY, data);
       popup.success(data.mode === "on" ? "Approved networks saved and switched on" : "Approved networks saved");
     },
     onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Could not save approved networks")),
+  });
+}
+
+/** Forget a refused address (or all of them, with no `ip`). */
+export function useDismissNetworkRefusals() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ip?: string) => settingsService.dismissNetworkRefusals(ip),
+    onSuccess: (data) => qc.setQueryData(NETWORK_KEY, data),
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Could not dismiss")),
   });
 }

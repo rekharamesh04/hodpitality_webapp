@@ -8,21 +8,46 @@ export interface OrgTimezone {
   isDefault: boolean;
 }
 
-/** One approved network: a public IP address or range in CIDR form ("203.0.113.7/32"). */
+/**
+ * One approved network: a public IP address or range in CIDR form (`cidr`, "203.0.113.7/32"), or a
+ * dynamic-DNS hostname (`host`, "clinic.ddns.net") for a clinic whose address changes. Exactly one is set.
+ */
 export interface ApprovedNetwork {
-  cidr: string;
+  cidr?: string;
+  host?: string;
   label: string;
+}
+
+/** A desk sign-in the server refused, kept two weeks so an administrator can approve the address. */
+export interface NetworkRefusal {
+  ip: string;
+  email: string;
+  role: string;
+  count: number;
+  firstAt: string;
+  lastAt: string;
 }
 
 /** Approved networks for the organisation. `yourAddress` is the address the server sees now. */
 export interface NetworkSettings {
   mode: 'on' | 'off';
   networks: ApprovedNetwork[];
+  /** What each listed hostname points at right now. */
+  hostAddresses?: Record<string, string[]>;
+  /** People (emails) who may sign in from anywhere. */
+  exempt?: string[];
+  refusals?: NetworkRefusal[];
   yourAddress: string;
   yourAddressAllowed: boolean;
   appliesTo: string[];
   updated_at?: string;
   updated_by?: string;
+}
+
+export interface NetworkSettingsInput {
+  mode: 'on' | 'off';
+  networks: ApprovedNetwork[];
+  exempt?: string[];
 }
 
 export const settingsService = {
@@ -61,8 +86,16 @@ export const settingsService = {
     return data;
   },
 
-  async updateNetworkSettings(input: { mode: 'on' | 'off'; networks: ApprovedNetwork[] }): Promise<NetworkSettings> {
+  async updateNetworkSettings(input: NetworkSettingsInput): Promise<NetworkSettings> {
     const { data } = await api.put<NetworkSettings>(API_ENDPOINTS.SETTINGS.NETWORK, input);
+    return data;
+  },
+
+  /** Forget one refused address (`ip`), or all of them. */
+  async dismissNetworkRefusals(ip?: string): Promise<NetworkSettings> {
+    const { data } = await api.delete<NetworkSettings>(`${API_ENDPOINTS.SETTINGS.NETWORK}/refusals`, {
+      params: ip ? { ip } : undefined,
+    });
     return data;
   },
 
