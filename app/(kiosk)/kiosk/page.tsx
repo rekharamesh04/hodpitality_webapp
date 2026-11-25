@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Delete, KeyRound, Landmark, Loader2, LogIn, LogOut, ScanFace, ShieldCheck, ShieldOff, Smartphone, Trash2, UserX } from 'lucide-react';
+import { CalendarClock, CheckCircle2, Delete, KeyRound, Landmark, Loader2, Lock, LogIn, LogOut, ScanFace, ShieldCheck, ShieldOff, Smartphone, Trash2, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/common/EmptyState';
 import { KioskCamera } from '@/components/kiosk/KioskCamera';
@@ -20,6 +20,7 @@ import { appointmentService } from '@/services/appointment.service';
 import { checkInService } from '@/services/checkin.service';
 import { guestService } from '@/services/guest.service';
 import { customerService } from '@/services/customer.service';
+import { BIOMETRIC_POLICY_PATH, faceNoticePoints, type FaceNoticeTopic } from '@/constants/face-notice';
 import { KIOSK_PHONE_MIN_DIGITS, kioskDecision, kioskGreetingName, kioskPhoneMatch, phoneDigits, type KioskCharge } from '@/constants/kiosk';
 import { assignTokens, opdStageOf } from '@/constants/opd';
 import { cn, formatCurrency, getFriendlyErrorMessage, toLocalDateInput } from '@/lib/utils';
@@ -75,6 +76,21 @@ type Screen =
 const RESULT_MS = 12_000;
 /** A camera left open with nobody using it goes back to the welcome screen. */
 const CAMERA_IDLE_MS = 60_000;
+
+const NOTICE_ICONS: Record<FaceNoticeTopic, typeof ScanFace> = {
+  compare: ScanFace,
+  delete: Trash2,
+  retention: CalendarClock,
+  processor: Lock,
+  optional: Smartphone,
+  withdraw: ShieldOff,
+};
+
+/** Where the public biometric policy lives, as a patient would type it ("example.com/biometric-policy"). */
+function policyAddress(): string {
+  const host = typeof window === 'undefined' ? '' : window.location.host;
+  return `${host}${BIOMETRIC_POLICY_PATH}`;
+}
 
 export default function KioskPage() {
   const t = useTerminology();
@@ -364,25 +380,24 @@ export default function KioskPage() {
         // to phone-number check-in, which works exactly the same.
         <div className="flex w-full max-w-2xl flex-col items-center gap-6 text-left">
           <ShieldCheck className="h-14 w-14 text-primary" aria-hidden="true" />
-          <h1 className="text-center text-4xl font-bold tracking-tight">Before we scan your face</h1>
+          <div className="text-center">
+            <h1 className="text-4xl font-bold tracking-tight">Facial Check-In Consent</h1>
+            <p className="mt-2 text-xl text-muted-foreground">Please review the following before your image is captured.</p>
+          </div>
           <ul className="w-full space-y-3 rounded-3xl border bg-card p-6 text-lg leading-snug">
-            <li className="flex gap-3">
-              <ScanFace className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-              <span>We compare your face with the photo you agreed to at registration, only to check you in.</span>
-            </li>
-            <li className="flex gap-3">
-              <Trash2 className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-              <span>The picture taken now is deleted as soon as you are matched. Face data not used for a year is deleted automatically.</span>
-            </li>
-            <li className="flex gap-3">
-              <Smartphone className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-              <span>Face check-in is optional. Your phone number works just the same, every time.</span>
-            </li>
-            <li className="flex gap-3">
-              <ShieldOff className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
-              <span>To stop using face check-in and have your face data deleted, ask at the reception desk.</span>
-            </li>
+            {faceNoticePoints(t.org.toLowerCase(), 'kiosk').map((point) => {
+              const Icon = NOTICE_ICONS[point.topic];
+              return (
+                <li key={point.topic} className="flex gap-3">
+                  <Icon className="mt-1 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                  <span>{point.text}</span>
+                </li>
+              );
+            })}
           </ul>
+          <p className="w-full text-center text-sm text-muted-foreground">
+            Full policy: <span className="font-medium text-foreground">{policyAddress()}</span>, or ask at the reception desk for a copy.
+          </p>
           <div className="grid w-full gap-3 sm:grid-cols-2">
             <Button size="lg" className="h-16 text-xl" onClick={() => setScreen({ name: 'camera' })}>
               <ScanFace className="mr-3 h-6 w-6" /> I agree, start the camera
@@ -399,8 +414,8 @@ export default function KioskPage() {
         <div className="flex w-full max-w-xl flex-col items-center gap-4">
           {/* Reached only through the consent screen. Nothing is taken until they press the button. */}
           <p className="rounded-2xl bg-primary/5 px-5 py-3 text-base text-foreground">
-            Pressing <span className="font-semibold">Scan my face</span> compares your face with the photo you agreed to
-            at registration.
+            Pressing <span className="font-semibold">Scan my face</span> compares your face with the registration photos
+            of people signed up for face check-in here. The picture is deleted right after.
           </p>
           <KioskCamera onCapture={handleCapture} onCancel={reset} />
           <Button variant="link" className="text-lg" onClick={() => setScreen({ name: 'phone', digits: '' })}>

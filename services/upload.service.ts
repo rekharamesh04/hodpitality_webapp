@@ -55,7 +55,12 @@ async function putToS3(uploadUrl: string, body: Blob | File, contentType: string
 
 export const uploadService = {
   /** Request a pre-signed S3 upload URL. Use the returned `uploadUrl` to PUT the file directly to S3. */
-  async getPresignedUrl(fileName: string, contentType: string, purpose?: 'document'): Promise<PresignedUrlResponse> {
+  /**
+   * `purpose`: "document" for a PDF or report; "face_scan" for a kiosk or desk face scan, which the
+   * backend files under scans/ so a stray one (its match request never arrived) is deleted within a
+   * day. Never use "face_scan" for an enrolment photo: that one is kept.
+   */
+  async getPresignedUrl(fileName: string, contentType: string, purpose?: 'document' | 'face_scan'): Promise<PresignedUrlResponse> {
     const { data } = await api.post<PresignedUrlResponse>(
       API_ENDPOINTS.UPLOADS.PRESIGNED_URL,
       purpose ? { fileName, contentType, purpose } : { fileName, contentType }
@@ -94,12 +99,12 @@ export const uploadService = {
    * photo never travels through API Gateway as a base64 body. This is the same two-step flow
    * the EntryFlow mobile app uses against this backend.
    */
-  async uploadImageDataUrl(dataUrl: string, namePrefix: string): Promise<string> {
+  async uploadImageDataUrl(dataUrl: string, namePrefix: string, purpose?: 'face_scan'): Promise<string> {
     const { blob, contentType } = dataUrlToBlob(dataUrl);
     const extension = contentType === 'image/png' ? 'png' : 'jpg';
     const fileName = `${namePrefix}_${Date.now()}.${extension}`;
 
-    const presigned = await uploadService.getPresignedUrl(fileName, contentType);
+    const presigned = await uploadService.getPresignedUrl(fileName, contentType, purpose);
     if (isRealUploadUrl(presigned.uploadUrl)) {
       await putToS3(presigned.uploadUrl, blob, contentType, presigned.maxBytes);
     }

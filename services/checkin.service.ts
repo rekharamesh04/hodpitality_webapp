@@ -99,7 +99,7 @@ export const checkInService = {
    * 404 no matching enrolment, 409 this guest already checked in for the event today.
    */
   async checkInByFacial(payload: { image: string; venue?: string; eventId?: string }): Promise<FacialCheckInResult> {
-    const s3Key = await uploadService.uploadImageDataUrl(payload.image, 'face_checkin');
+    const s3Key = await uploadService.uploadImageDataUrl(payload.image, 'face_checkin', 'face_scan');
     const { data } = await api.post(`${API_ENDPOINTS.CHECK_INS}/facial-recognition`, {
       s3_key: s3Key,
       venue: payload.venue,
@@ -113,7 +113,7 @@ export const checkInService = {
    * nothing is written — no visit is logged. 404 means nobody here has this face enrolled.
    */
   async findByFace(image: string): Promise<FaceLookupResult> {
-    const s3Key = await uploadService.uploadImageDataUrl(image, 'face_lookup');
+    const s3Key = await uploadService.uploadImageDataUrl(image, 'face_lookup', 'face_scan');
     const { data } = await api.post(`${API_ENDPOINTS.CHECK_INS}/facial-recognition`, {
       s3_key: s3Key,
       lookupOnly: true,

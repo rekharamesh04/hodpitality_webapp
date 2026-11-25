@@ -26,6 +26,7 @@ import { CustomerFormDialog } from '@/components/dialogs/CustomerFormDialog';
 import { FindByFaceDialog } from '@/components/faces/FindByFaceDialog';
 import { DuplicateFaceDialog } from '@/components/faces/DuplicateFaceDialog';
 import { usePhotoFirstCreate } from '@/hooks/usePhotoFirstCreate';
+import type { ConsentGivenBy } from '@/components/faces/FaceConsentNotice';
 import { useActionParam } from '@/hooks/useActionParam';
 import { personDeleteWarning } from '@/lib/person-delete';
 import { useCustomers, useCreateCustomer, useUpdateCustomer, useDeleteCustomer } from '@/hooks/useCustomers';
@@ -158,7 +159,7 @@ function CustomersPageInner() {
     setFormOpen(true);
   }
 
-  function handleFormSubmit(payload: CreateCustomerPayload | UpdateCustomerPayload, photo?: string | null) {
+  function handleFormSubmit(payload: CreateCustomerPayload | UpdateCustomerPayload, photo?: string | null, consentGivenBy?: ConsentGivenBy) {
     if (editingCustomer) {
       updateMutation.mutate(
         { id: getCustomerId(editingCustomer), data: payload },
@@ -166,7 +167,7 @@ function CustomersPageInner() {
       );
     } else {
       // With a photo, the face is looked up first so a returning person is not registered twice.
-      void photoCreate.submit(payload as CreateCustomerPayload, photo ?? null);
+      void photoCreate.submit(payload as CreateCustomerPayload, photo ?? null, consentGivenBy);
     }
   }
 

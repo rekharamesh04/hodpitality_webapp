@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { AlertCircle, Users } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { FacePhotoField } from '@/components/faces/FacePhotoField';
+import type { ConsentGivenBy } from '@/components/faces/FaceConsentNotice';
 import { FamilySection } from '@/components/people/FamilySection';
 import { isValidEmail, isValidPhone, toLocalDateInput } from '@/lib/utils';
 import { guestCategoryOptions } from '@/constants';
@@ -107,7 +108,7 @@ interface GuestFormDialogProps {
   isSubmitting?: boolean;
   submitError?: string | null;
   /** `photo` is only ever set when creating — an optional face photo to enrol once saved. */
-  onSubmit: (payload: CreateGuestPayload | UpdateGuestPayload, photo?: string | null) => void;
+  onSubmit: (payload: CreateGuestPayload | UpdateGuestPayload, photo?: string | null, consentGivenBy?: ConsentGivenBy) => void;
   /** A problem with the photo reported by the caller (e.g. no face found in it). */
   photoError?: string | null;
 }
@@ -137,6 +138,7 @@ export function GuestFormDialog({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [photo, setPhoto] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
+  const [givenBy, setGivenBy] = useState<ConsentGivenBy>('self');
   const [consentError, setConsentError] = useState<string | null>(null);
 
   // Reset the form only when the dialog transitions to open, so a failed submit doesn't wipe what the user typed.
@@ -157,6 +159,7 @@ export function GuestFormDialog({
       setFieldErrors({});
       setPhoto(null);
       setConsent(false);
+      setGivenBy('self');
       setConsentError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -227,7 +230,7 @@ export function GuestFormDialog({
       const next = insurancePayload(insurance);
       if (isEditing ? !sameInsurance(guest?.insurance, next) : hasInsurance(next)) payload.insurance = next;
     }
-    onSubmit(payload, isEditing ? null : photo);
+    onSubmit(payload, isEditing ? null : photo, givenBy);
   }
 
   const hasGuardian = showFamily && isChild && !!family.guardianId;
@@ -260,6 +263,8 @@ export function GuestFormDialog({
                   onPhotoChange={(p) => { setPhoto(p); setConsentError(null); }}
                   consent={consent}
                   onConsentChange={(c) => { setConsent(c); setConsentError(null); }}
+                  givenBy={givenBy}
+                  onGivenByChange={setGivenBy}
                   personLabel={t.person.one.toLowerCase()}
                   error={consentError ?? (photo ? photoError : null)}
                   disabled={isSubmitting}

@@ -3,15 +3,17 @@
 import { useState } from 'react';
 import { Camera, RotateCcw, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
+import { FaceConsentNotice, type ConsentGivenBy } from '@/components/faces/FaceConsentNotice';
 
 interface FacePhotoFieldProps {
   photo: string | null;
   onPhotoChange: (photo: string | null) => void;
   consent: boolean;
   onConsentChange: (consent: boolean) => void;
+  /** Who agreed: the person, or a parent/guardian for them. */
+  givenBy: ConsentGivenBy;
+  onGivenByChange: (value: ConsentGivenBy) => void;
   /** e.g. "patient" — used in the consent sentence. */
   personLabel: string;
   error?: string | null;
@@ -24,7 +26,7 @@ interface FacePhotoFieldProps {
  * photo cannot be kept without the consent box ticked.
  */
 export function FacePhotoField({
-  photo, onPhotoChange, consent, onConsentChange, personLabel, error, disabled,
+  photo, onPhotoChange, consent, onConsentChange, givenBy, onGivenByChange, personLabel, error, disabled,
 }: FacePhotoFieldProps) {
   const [cameraOpen, setCameraOpen] = useState(false);
 
@@ -66,18 +68,15 @@ export function FacePhotoField({
       </div>
 
       {photo && (
-        <div className="flex items-start gap-2">
-          <Checkbox
-            id="face-consent"
-            checked={consent}
-            onCheckedChange={(v) => onConsentChange(v === true)}
-            disabled={disabled}
-            className="mt-0.5"
-          />
-          <Label htmlFor="face-consent" className="text-xs font-normal leading-snug">
-            The {personLabel} agreed to their face being used for check-in.
-          </Label>
-        </div>
+        <FaceConsentNotice
+          idPrefix="face-photo"
+          personName={`The ${personLabel}`}
+          givenBy={givenBy}
+          onGivenByChange={onGivenByChange}
+          consent={consent}
+          onConsentChange={onConsentChange}
+          disabled={disabled}
+        />
       )}
       {error && <p className="text-xs text-destructive">{error}</p>}
 

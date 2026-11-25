@@ -1,4 +1,5 @@
 import api from '@/lib/axios';
+import { FACE_NOTICE_VERSION } from '@/constants/face-notice';
 import { unwrapList } from '@/lib/axios';
 import { API_ENDPOINTS } from '@/constants';
 import { uploadService } from './upload.service';
@@ -19,12 +20,19 @@ export interface FaceEnrollOptions {
   allowDuplicate?: boolean;
   /** The person agreed to face recognition just now (otherwise recorded as staff-attested). */
   consent?: boolean;
+  /** Who agreed: the person, or a parent/guardian for them. Stored on the consent record. */
+  consentGivenBy?: 'self' | 'guardian';
 }
 
-export function faceEnrollFlags(options: FaceEnrollOptions): Record<string, boolean> {
-  const flags: Record<string, boolean> = {};
+export function faceEnrollFlags(options: FaceEnrollOptions): Record<string, boolean | string> {
+  const flags: Record<string, boolean | string> = {};
   if (options.allowDuplicate) flags.allowDuplicate = true;
-  if (options.consent) flags.consent = true;
+  if (options.consent) {
+    flags.consent = true;
+    // Which notice they were shown, so the consent record says what they agreed to.
+    flags.consentNoticeVersion = FACE_NOTICE_VERSION;
+    if (options.consentGivenBy) flags.consentGivenBy = options.consentGivenBy;
+  }
   return flags;
 }
 

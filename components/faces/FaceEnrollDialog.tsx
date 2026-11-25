@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { CameraCaptureDialog } from '@/components/dialogs/CameraCaptureDialog';
 import { DuplicateFaceDialog } from '@/components/faces/DuplicateFaceDialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+import { FaceConsentNotice, type ConsentGivenBy } from '@/components/faces/FaceConsentNotice';
 import { useEnrollFace } from '@/hooks/use-guests';
 import { useEnrollCustomerFace } from '@/hooks/useCustomers';
 import { getDuplicateFaceConflict } from '@/lib/utils';
@@ -37,8 +36,9 @@ export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, 
   const [conflict, setConflict] = useState<DuplicateFaceConflict | null>(null);
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
+  const [givenBy, setGivenBy] = useState<ConsentGivenBy>('self');
   // Asked afresh for every enrolment.
-  useEffect(() => { if (open) setConsent(false); }, [open]);
+  useEffect(() => { if (open) { setConsent(false); setGivenBy('self'); } }, [open]);
   const isPending = enrollGuest.isPending || enrollCustomer.isPending;
 
   function reset() {
@@ -48,7 +48,7 @@ export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, 
 
   function enroll(image: string, options: FaceEnrollOptions = {}) {
     if (!personId || !consent) return;
-    options = { ...options, consent: true };
+    options = { ...options, consent: true, consentGivenBy: givenBy };
     const callbacks = {
       onSuccess: (result: { success?: boolean } | undefined) => {
         if (result?.success === false) return;
@@ -83,13 +83,14 @@ export function FaceEnrollDialog({ entity, personId, open, onOpenChange, title, 
         onSubmit={(image) => enroll(image)}
         glasses={{ purpose: 'enroll', subjectLabel: personName }}
       >
-        <div className="flex items-start gap-2 rounded-lg border bg-muted/40 p-3">
-          <Checkbox id="enroll-consent" checked={consent} onCheckedChange={(v) => setConsent(v === true)} className="mt-0.5" />
-          <Label htmlFor="enroll-consent" className="text-xs font-normal leading-snug">
-            {personName ? `${personName} agreed` : 'They agreed'} to their face being used for check-in. If they said no,
-            close this — they can check in with their phone number instead.
-          </Label>
-        </div>
+        <FaceConsentNotice
+          idPrefix="enroll"
+          personName={personName}
+          givenBy={givenBy}
+          onGivenByChange={setGivenBy}
+          consent={consent}
+          onConsentChange={setConsent}
+        />
       </CameraCaptureDialog>
       <DuplicateFaceDialog
         conflict={conflict}

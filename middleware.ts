@@ -5,6 +5,10 @@ import { isKnownRole } from '@/constants/roles';
 // Routes that don't require authentication
 const publicRoutes = ['/login', '/forgot-password', '/reset-password', '/verify-otp'];
 
+// Pages anyone may read, signed in or not: the public biometric policy that the kiosk and the
+// enrolment notice point patients to. Unlike the login pages, a signed-in user is not redirected.
+const openRoutes = ['/biometric-policy'];
+
 /**
  * Reads the Cognito ID token's payload (no signature check — the API Gateway authorizer does
  * that on every request). Used only to turn away cookies that are not a real staff session:
@@ -42,6 +46,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   
+  if (openRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))) {
+    return NextResponse.next();
+  }
+
   // Check if the route is public
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route));
   

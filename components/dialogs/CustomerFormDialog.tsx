@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/select';
 import { AlertCircle } from 'lucide-react';
 import { FacePhotoField } from '@/components/faces/FacePhotoField';
+import type { ConsentGivenBy } from '@/components/faces/FaceConsentNotice';
 import { isValidEmail, isValidPhone } from '@/lib/utils';
 import { customerTierOptions, PREFERRED_CONTACT_OPTIONS } from '@/constants';
 import { useTerminology } from '@/hooks';
@@ -98,7 +99,7 @@ interface CustomerFormDialogProps {
   isSubmitting?: boolean;
   submitError?: string | null;
   /** `photo` is only ever set when creating — an optional face photo to enrol once saved. */
-  onSubmit: (payload: CreateCustomerPayload | UpdateCustomerPayload, photo?: string | null) => void;
+  onSubmit: (payload: CreateCustomerPayload | UpdateCustomerPayload, photo?: string | null, consentGivenBy?: ConsentGivenBy) => void;
   /** A problem with the photo reported by the caller (e.g. no face found in it). */
   photoError?: string | null;
 }
@@ -113,6 +114,7 @@ export function CustomerFormDialog({
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [photo, setPhoto] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
+  const [givenBy, setGivenBy] = useState<ConsentGivenBy>('self');
   const [consentError, setConsentError] = useState<string | null>(null);
 
   // Reset the form only when the dialog transitions to open, so a failed submit doesn't wipe what the user typed.
@@ -122,6 +124,7 @@ export function CustomerFormDialog({
       setFieldErrors({});
       setPhoto(null);
       setConsent(false);
+      setGivenBy('self');
       setConsentError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,7 +149,7 @@ export function CustomerFormDialog({
       setConsentError('Tick the consent box, or remove the photo to save without one.');
       return;
     }
-    onSubmit(toPayload(form, isEditing), isEditing ? null : photo);
+    onSubmit(toPayload(form, isEditing), isEditing ? null : photo, givenBy);
   }
 
   return (
@@ -175,6 +178,8 @@ export function CustomerFormDialog({
                   onPhotoChange={(p) => { setPhoto(p); setConsentError(null); }}
                   consent={consent}
                   onConsentChange={(c) => { setConsent(c); setConsentError(null); }}
+                  givenBy={givenBy}
+                  onGivenByChange={setGivenBy}
                   personLabel={t.account.one.toLowerCase()}
                   error={consentError ?? (photo ? photoError : null)}
                   disabled={isSubmitting}

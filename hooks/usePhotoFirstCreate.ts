@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ConsentGivenBy } from '@/components/faces/FaceConsentNotice';
 import { popup } from '@/lib/popup';
 import { checkInService } from '@/services/checkin.service';
 import { useEnrollFace } from '@/hooks/use-guests';
@@ -26,10 +27,12 @@ export function usePhotoFirstCreate<P>(entity: PersonEntity, create: CreateFn<P>
   const enrollCustomer = useEnrollCustomerFace();
   const [checking, setChecking] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [pending, setPending] = useState<{ conflict: DuplicateFaceConflict; payload: P; photo: string } | null>(null);
+  const [pending, setPending] = useState<{
+    conflict: DuplicateFaceConflict; payload: P; photo: string; givenBy?: ConsentGivenBy;
+  } | null>(null);
 
-  function enroll(id: string, photo: string, allowDuplicate: boolean) {
-    const options = { consent: true, allowDuplicate };
+  function enroll(id: string, photo: string, allowDuplicate: boolean, givenBy?: ConsentGivenBy) {
+    const options = { consent: true, allowDuplicate, consentGivenBy: givenBy };
     const onError = (err: unknown) => {
       // Someone enrolled this face between the lookup and now. The record exists; say so plainly.
       const conflict = getDuplicateFaceConflict(err);
@@ -39,7 +42,8 @@ export function usePhotoFirstCreate<P>(entity: PersonEntity, create: CreateFn<P>
     else enrollGuest.mutate({ guestId: id, image: photo, options }, { onError });
   }
 
-  async function submit(payload: P, photo: string | null) {
+  /** `givenBy`: who agreed to face check-in — the person, or a parent/guardian for them. */
+  async function submit(payload: P, photo: string | null, givenBy?: ConsentGivenBy) {
     setPhotoError(null);
     if (!photo) {
       create(payload, () => {});
@@ -52,6 +56,7 @@ export function usePhotoFirstCreate<P>(entity: PersonEntity, create: CreateFn<P>
         setPending({
           payload,
           photo,
+          givenBy,
           conflict: {
             message: `This face is already registered to ${found.matches[0].name || 'someone'}.`,
             duplicateOf: found.matches[0],
@@ -72,14 +77,14 @@ export function usePhotoFirstCreate<P>(entity: PersonEntity, create: CreateFn<P>
     } finally {
       setChecking(false);
     }
-    create(payload, (id) => enroll(id, photo, false));
+    create(payload, (id) => enroll(id, photo, false, givenBy));
   }
 
   function createAnyway() {
     if (!pending) return;
-    const { payload, photo } = pending;
+    const { payload, photo, givenBy } = pending;
     setPending(null);
-    create(payload, (id) => enroll(id, photo, true));
+    create(payload, (id) => enroll(id, photo, true, givenBy));
   }
 
   return {

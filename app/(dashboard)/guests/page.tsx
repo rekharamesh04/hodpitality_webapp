@@ -39,6 +39,7 @@ import {
   useGuests, useCreateGuest, useUpdateGuest, useDeleteGuest, useBulkDeleteGuests,
 } from '@/hooks/use-guests';
 import { usePhotoFirstCreate } from '@/hooks/usePhotoFirstCreate';
+import type { ConsentGivenBy } from '@/components/faces/FaceConsentNotice';
 import { useCheckIn } from '@/hooks/useCheckins';
 import { useActionParam } from '@/hooks/useActionParam';
 import { personDeleteWarning } from '@/lib/person-delete';
@@ -218,7 +219,7 @@ function GuestsPageInner() {
     setFormOpen(true);
   }
 
-  function handleFormSubmit(payload: CreateGuestPayload | UpdateGuestPayload, photo?: string | null) {
+  function handleFormSubmit(payload: CreateGuestPayload | UpdateGuestPayload, photo?: string | null, consentGivenBy?: ConsentGivenBy) {
     if (editingGuest) {
       updateMutation.mutate(
         { id: getGuestId(editingGuest), data: payload },
@@ -226,7 +227,7 @@ function GuestsPageInner() {
       );
     } else {
       // With a photo, the face is looked up first so a returning person is not registered twice.
-      void photoCreate.submit(payload as CreateGuestPayload, photo ?? null);
+      void photoCreate.submit(payload as CreateGuestPayload, photo ?? null, consentGivenBy);
     }
   }
 
