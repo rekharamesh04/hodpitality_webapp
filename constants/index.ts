@@ -81,6 +81,8 @@ export const API_ENDPOINTS = {
     STATUS: '/auth/mfa',
     SETUP: '/auth/mfa/setup',
     VERIFY: '/auth/mfa/verify',
+    /** Browsers the person asked to remember (no code there for 30 days). */
+    DEVICES: '/auth/mfa/devices',
   },
   SETTINGS: {
     PROFILE: '/settings/profile',

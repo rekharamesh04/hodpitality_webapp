@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton';
@@ -23,6 +24,7 @@ import { isKnownRole } from '@/constants/roles';
 import { popup } from '@/lib/popup';
 import type { AuthResponse } from '@/types';
 import { passwordProblem } from '@/lib/password-rules';
+import { forgetRememberedBrowser, saveRememberedBrowser } from '@/lib/remembered-browser';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -66,6 +68,8 @@ export default function LoginPage() {
   const { login } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [challenge, setChallenge] = useState<PendingChallenge | null>(null);
+  // "Remember this browser for 30 days" at the code step. Off by default: front desks share computers.
+  const [rememberBrowser, setRememberBrowser] = useState(false);
   // Why the app ended the last session (e.g. the organisation was suspended), shown once.
   const [signOutReason, setSignOutReason] = useState<string | null>(null);
 
@@ -87,6 +91,11 @@ export default function LoginPage() {
 
   /** A login response is a session, or a step still to take. */
   function handleAuthResult(result: AuthResponse, email: string) {
+    // Keep, or drop, this browser's remembered status for the person signing in.
+    const who = (result.user?.email || result.email || email || '').toLowerCase();
+    if (result.forgetDevice) forgetRememberedBrowser(who);
+    if (result.device) saveRememberedBrowser(who, result.device);
+    if (result.rememberFailed) popup.warning('Signed in, but this browser could not be remembered. You will be asked for a code next time.');
     if (result.ChallengeName === 'NEW_PASSWORD_REQUIRED' || result.ChallengeName === 'SOFTWARE_TOKEN_MFA') {
       if (!result.Session) {
         popup.error('Unexpected response from server. Please try again.');
@@ -172,6 +181,7 @@ export default function LoginPage() {
         email: challenge.email,
         session: challenge.session,
         code: data.code,
+        rememberDevice: rememberBrowser,
       });
       handleAuthResult(result, challenge.email);
     } catch (err: any) {
@@ -330,6 +340,16 @@ export default function LoginPage() {
                     {mfaForm.formState.errors.code && (
                       <p className="text-sm text-destructive">{mfaForm.formState.errors.code.message}</p>
                     )}
+                  </div>
+                  <div className="flex items-start gap-3 rounded-lg border bg-muted/40 p-3">
+                    <Checkbox id="remember-browser" checked={rememberBrowser} disabled={isLoading}
+                      onCheckedChange={(v) => setRememberBrowser(v === true)} className="mt-0.5" />
+                    <div className="space-y-0.5">
+                      <Label htmlFor="remember-browser" className="cursor-pointer">Remember this browser for 30 days</Label>
+                      <p className="text-xs text-muted-foreground">
+                        You&rsquo;ll only need your password here. Don&rsquo;t tick this on a shared or public computer.
+                      </p>
+                    </div>
                   </div>
                   <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

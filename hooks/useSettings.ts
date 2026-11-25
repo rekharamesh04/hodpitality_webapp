@@ -87,6 +87,31 @@ export function useVerifyMfa() {
   });
 }
 
+const REMEMBERED_KEY = [...MFA_KEY, "devices"];
+
+/** Browsers the signed-in person asked to remember (Settings → Security). */
+export function useRememberedBrowsers(options: { enabled?: boolean } = {}) {
+  return useQuery({
+    queryKey: REMEMBERED_KEY,
+    queryFn: authService.listRememberedBrowsers,
+    enabled: options.enabled ?? true,
+    staleTime: 30_000,
+  });
+}
+
+/** Forget one remembered browser (by key), or all of them with no key. */
+export function useForgetRememberedBrowsers() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (key?: string) => authService.forgetRememberedBrowsers(key),
+    onSuccess: (_data, key) => {
+      qc.invalidateQueries({ queryKey: REMEMBERED_KEY });
+      popup.success(key ? "Browser forgotten — it will ask for a code next time" : "All browsers forgotten");
+    },
+    onError: (err: any) => popup.error(err?.backendMessage ?? getFriendlyErrorMessage(err, "Could not forget that browser")),
+  });
+}
+
 export function useDisableMfa() {
   const qc = useQueryClient();
   return useMutation({

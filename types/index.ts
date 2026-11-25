@@ -39,6 +39,12 @@ export interface AuthResponse {
   /** Set when the challenge asks for an authenticator-app code. */
   mfaRequired?: boolean;
   message?: string;
+  /** This browser, remembered after the code ("Remember this browser"): kept by lib/remembered-browser. */
+  device?: { key: string; groupKey: string; secret: string; name?: string; days?: number };
+  /** Remembering was asked for but could not be done; the sign-in itself succeeded. */
+  rememberFailed?: boolean;
+  /** The browser this sign-in named is no longer remembered; drop it. */
+  forgetDevice?: boolean;
 }
 
 export interface LoginCredentials {

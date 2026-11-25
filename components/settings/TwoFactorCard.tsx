@@ -13,6 +13,9 @@ import type { Reauth } from '@/services/auth.service';
 import { useDisableMfa, useMfaStatus, useSetupMfa, useVerifyMfa } from '@/hooks/useSettings';
 import { getFriendlyErrorMessage } from '@/lib/utils';
 import { popup } from '@/lib/popup';
+import { forgetRememberedBrowser } from '@/lib/remembered-browser';
+import { useAuthStore } from '@/store';
+import { RememberedBrowsers } from './RememberedBrowsers';
 
 type Step = 'idle' | 'password' | 'scan' | 'disable';
 
@@ -26,6 +29,7 @@ function errorText(err: unknown, fallback: string): string {
  * current code, so someone at an unlocked screen cannot remove it.
  */
 export function TwoFactorCard() {
+  const userEmail = useAuthStore((s) => s.user?.email ?? '');
   const status = useMfaStatus();
   const setup = useSetupMfa();
   const verify = useVerifyMfa();
@@ -84,7 +88,8 @@ export function TwoFactorCard() {
     if (!hasProof(proof)) return setError('Enter your password, or confirm with Google.');
     if (!/^\d{6}$/.test(code)) return setError('Enter the 6-digit code from the app.');
     disable.mutate({ proof, code }, {
-      onSuccess: reset,
+      // The server forgot every remembered browser; this one drops its copy too.
+      onSuccess: () => { forgetRememberedBrowser(userEmail); reset(); },
       onError: (err) => setError(errorText(err, 'Could not turn off two-factor authentication.')),
     });
   }
@@ -130,8 +135,9 @@ export function TwoFactorCard() {
           )}
         </div>
         <CardDescription>
-          Ask for a code from an authenticator app on your phone each time you sign in. Required to hand
-          over controlled medicines.
+          Ask for a code from an authenticator app on your phone when you sign in. On a browser you trust you
+          can tick &ldquo;Remember this browser&rdquo; and skip the code there for 30 days. Required to hand over
+          controlled medicines.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -141,9 +147,12 @@ export function TwoFactorCard() {
 
         {step === 'idle' && !status.isLoading && !status.isError && (
           enabled ? (
-            <Button variant="outline" onClick={() => setStep('disable')}>
-              <ShieldOff className="mr-2 h-4 w-4" /> Turn off
-            </Button>
+            <div className="space-y-4">
+              <RememberedBrowsers />
+              <Button variant="outline" onClick={() => setStep('disable')}>
+                <ShieldOff className="mr-2 h-4 w-4" /> Turn off
+              </Button>
+            </div>
           ) : (
             <Button onClick={() => setStep('password')}>
               <ShieldCheck className="mr-2 h-4 w-4" /> Turn on

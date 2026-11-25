@@ -1,6 +1,16 @@
 import api from '@/lib/axios';
 import { API_ENDPOINTS, STORAGE_KEYS } from '@/constants';
 import type { LoginCredentials, AuthResponse as LoginResponse, User } from '@/types';
+import { emailFromIdToken, rememberedBrowserFor } from '@/lib/remembered-browser';
+
+/** A browser the person asked to remember, as Settings → Security lists it. */
+export interface RememberedBrowserInfo {
+  key: string;
+  name: string;
+  rememberedAt: string;
+  lastUsedAt: string;
+  expiresAt: string;
+}
 
 /**
  * How someone proves it is them again for a sensitive step: their password, or a
@@ -19,7 +29,9 @@ export const authService = {
   /** Exchange a Google ID token (from Google Identity Services) for this app's session. */
   async loginWithGoogle(idToken: string): Promise<LoginResponse> {
     try {
-      const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.GOOGLE, { idToken });
+      // A browser this person asked to remember skips the code here too.
+      const device = rememberedBrowserFor(emailFromIdToken(idToken));
+      const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.GOOGLE, device ? { idToken, device } : { idToken });
       return data;
     } catch (err: any) {
       console.error('[GOOGLE] HTTP error ←', err?.response?.status, JSON.stringify(err?.response?.data));
@@ -29,7 +41,9 @@ export const authService = {
 
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
     try {
-      const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, credentials);
+      // A browser this person asked to remember signs in without the authenticator code.
+      const device = rememberedBrowserFor(credentials.email);
+      const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.LOGIN, device ? { ...credentials, device } : credentials);
       return data;
     } catch (err: any) {
       const resp = err?.response;
@@ -51,7 +65,7 @@ export const authService = {
   },
 
   /** Finish a login that asked for an authenticator-app code (ChallengeName SOFTWARE_TOKEN_MFA). */
-  async respondMfa(payload: { email: string; session: string; code: string; challengeName?: string }): Promise<LoginResponse> {
+  async respondMfa(payload: { email: string; session: string; code: string; challengeName?: string; rememberDevice?: boolean }): Promise<LoginResponse> {
     const { data } = await api.post<LoginResponse>(API_ENDPOINTS.AUTH.MFA_RESPOND, payload);
     return data;
   },
@@ -72,6 +86,17 @@ export const authService = {
   async verifyMfa(proof: Reauth, code: string): Promise<{ mfaEnabled: boolean }> {
     const { data } = await api.post<{ mfaEnabled: boolean }>(API_ENDPOINTS.MFA.VERIFY, { ...proof, code });
     return data;
+  },
+
+  /** The browsers the signed-in person asked to remember. */
+  async listRememberedBrowsers(): Promise<{ devices: RememberedBrowserInfo[]; days: number }> {
+    const { data } = await api.get<{ devices: RememberedBrowserInfo[]; days: number }>(API_ENDPOINTS.MFA.DEVICES);
+    return data;
+  },
+
+  /** Forget one remembered browser (`key`), or all of them: the code is asked for there again. */
+  async forgetRememberedBrowsers(key?: string): Promise<void> {
+    await api.delete(API_ENDPOINTS.MFA.DEVICES, { params: key ? { key } : undefined });
   },
 
   /** Turn two-factor off. Needs proof of who you are and a current code. */
