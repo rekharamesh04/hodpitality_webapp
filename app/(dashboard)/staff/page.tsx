@@ -3,8 +3,9 @@
 import { Suspense, useMemo, useState } from 'react';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import {
-  Plus, MoreHorizontal, Eye, Pencil, Trash2, UserCog, Clock, CalendarDays,
+  Plus, MoreHorizontal, Eye, Pencil, Trash2, UserCog, Clock, CalendarDays, LifeBuoy,
 } from 'lucide-react';
+import { SignInHelpDialog } from '@/components/staff/SignInHelpDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -98,6 +99,7 @@ function StaffPageInner() {
   /** A row's role, named in its own company's words. */
   const rowIndustry = (s: Staff): IndustrySlug => (s.tenantIndustry ? normalizeIndustry(s.tenantIndustry) : industry);
 
+  const [signInHelpOpen, setSignInHelpOpen] = useState(false);
   const [search, setSearch] = useState(searchParams.get('search') ?? '');
   const [status, setStatus] = useState(searchParams.get('status') ?? '');
   const [department, setDepartment] = useState(searchParams.get('department') ?? '');
@@ -236,10 +238,16 @@ function StaffPageInner() {
           </p>
         </div>
         {canManageStaff && (
-          <Button size="sm" onClick={openCreate}>
-            <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
-            Add Staff
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="outline" onClick={() => setSignInHelpOpen(true)}>
+              <LifeBuoy className="mr-2 h-4 w-4" aria-hidden="true" />
+              Sign-in help
+            </Button>
+            <Button size="sm" onClick={openCreate}>
+              <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
+              Add Staff
+            </Button>
+          </div>
         )}
       </div>
 
@@ -459,6 +467,8 @@ function StaffPageInner() {
         isConfirming={deleteMutation.isPending}
         onConfirm={handleDeleteConfirm}
       />
+
+      {canManageStaff && <SignInHelpDialog open={signInHelpOpen} onOpenChange={setSignInHelpOpen} />}
 
       <StaffScheduleDialog
         open={!!scheduleTarget}

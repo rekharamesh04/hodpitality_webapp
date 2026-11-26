@@ -22,6 +22,7 @@ import { getInitials, formatDate, getFriendlyErrorMessage } from '@/lib/utils';
 import { isClinicalIndustry, npiRegistrySummary } from '@/lib/clinical';
 import { doctorReadiness, isDoctor } from '@/lib/zocdoc-readiness';
 import { ZocdocPendingDialog } from '@/components/integrations/ZocdocPendingDialog';
+import { SignInAccessCard } from '@/components/staff/SignInAccessCard';
 import { useAuthStore } from '@/store';
 import { assignableRoles, canManageStaffMember, roleLabel } from '@/constants/roles';
 import { useIndustry } from '@/hooks';
@@ -101,6 +102,9 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
 
   const resolvedId = getStaffId(staff.id, staff.PK);
   const canManage = canManageStaffMember(user?.role, staff.role);
+  // Someone else's sign-in (your own is in Settings → Security).
+  const showSignIn = canManage && !!staff.email
+    && staff.email.trim().toLowerCase() !== (user?.email ?? '').trim().toLowerCase();
   const scheduleEntries = staff.schedule && typeof staff.schedule === 'object'
     ? DAY_ORDER
         .map((day) => [day, (staff.schedule as Record<string, unknown>)[day]] as const)
@@ -232,6 +236,8 @@ export default function StaffDetailPage({ params }: { params: Promise<{ id: stri
           </CardContent>
         </Card>
       </div>
+
+      {showSignIn && <SignInAccessCard email={staff.email as string} />}
 
       {/* Edit dialog */}
       <StaffFormDialog

@@ -38,6 +38,7 @@ import { useResellers } from '@/hooks/useResellers';
 import { useCreateStaff } from '@/hooks/useStaff';
 import { emailInUseMessage, findEmailOwner } from '@/lib/email-owner';
 import { useAuthStore } from '@/store';
+import { SignInAccessCard } from '@/components/staff/SignInAccessCard';
 import { getInitials, formatDate, isValidEmail, getFriendlyErrorMessage } from '@/lib/utils';
 import type { CreateCompanyPayload, UpdateCompanyPayload } from '@/services/company.service';
 import type { Company } from '@/types';
@@ -527,6 +528,17 @@ function CompaniesPageInner({
               )}
               {viewing.status && <DetailRow icon={Briefcase} label="Status" value={viewing.status} capitalize />}
               <DetailRow icon={CalendarClock} label="Created" value={formatDate(viewing.createdAt)} />
+
+              {/* The company's own admin login has no staff row, so this is where it is looked after. */}
+              {canInviteAdmin && viewing.email && (
+                <>
+                  <Separator />
+                  <div>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Admin sign-in</p>
+                    <SignInAccessCard key={viewing.email} email={viewing.email} bare />
+                  </div>
+                </>
+              )}
 
               <Separator />
               <div>

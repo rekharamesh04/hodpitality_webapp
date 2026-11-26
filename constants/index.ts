@@ -84,6 +84,16 @@ export const API_ENDPOINTS = {
     /** Browsers the person asked to remember (no code there for 30 days). */
     DEVICES: '/auth/mfa/devices',
   },
+  /**
+   * Sign-in help for administrators: someone else's invite status, a new invitation, and taking the
+   * authenticator off a person who lost their phone. POST with the email in the body, so it stays
+   * out of URLs and access logs.
+   */
+  LOGINS: {
+    STATUS: '/logins/status',
+    RESEND_INVITE: '/logins/resend-invite',
+    RESET_MFA: '/logins/reset-mfa',
+  },
   SETTINGS: {
     PROFILE: '/settings/profile',
     ORGANISATION: '/settings/organisation',
